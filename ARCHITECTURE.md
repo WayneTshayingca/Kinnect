@@ -1,274 +1,392 @@
 # Kinnect Architecture Overview
 
-## 🏗️ Monorepo Structure
+## Monorepo Structure
 
 ```
 kinnect/
 │
-├── 📦 apps/
-│   └── 🌐 web/                          # Next.js 14 Web Application
-│       ├── app/                         # App Router (Pages)
-│       │   ├── page.tsx                 # Landing page
-│       │   ├── layout.tsx               # Root layout
-│       │   ├── globals.css              # Global styles
+├── apps/
+│   └── web/                              # Next.js 14 Web Application
+│       ├── app/
+│       │   ├── page.tsx                  # Landing page
+│       │   ├── layout.tsx                # Root layout + SupabaseProvider
+│       │   ├── globals.css               # Global styles
 │       │   │
-│       │   ├── auth/                    # Authentication pages
-│       │   │   ├── login/page.tsx       # ✅ Login form
-│       │   │   └── signup/page.tsx      # ✅ Signup form
+│       │   ├── auth/
+│       │   │   ├── login/page.tsx        # Login form
+│       │   │   └── signup/page.tsx       # Signup form
 │       │   │
-│       │   └── dashboard/               # Protected dashboard
-│       │       ├── layout.tsx           # ✅ Dashboard nav & auth check
-│       │       ├── page.tsx             # ✅ Main dashboard
-│       │       ├── tasks/page.tsx       # 📝 Tasks page (TODO)
-│       │       ├── calendar/page.tsx    # 📝 Calendar page (TODO)
-│       │       └── family/page.tsx      # 📝 Family management (TODO)
+│       │   ├── onboarding/page.tsx       # Create family after signup
+│       │   │
+│       │   ├── api/
+│       │   │   └── invite/route.ts       # POST - send email invites (server-side)
+│       │   │
+│       │   └── dashboard/
+│       │       ├── layout.tsx            # Nav bar, auth guard, sign out
+│       │       ├── page.tsx              # Dashboard home (stats + recent tasks)
+│       │       ├── tasks/page.tsx        # Task list with filters
+│       │       ├── calendar/page.tsx     # Month grid + agenda views
+│       │       └── family/page.tsx       # Family member management
 │       │
-│       ├── components/                  # React components
-│       │   └── providers/
-│       │       └── supabase-provider.tsx # ✅ Supabase initialization
+│       ├── components/
+│       │   ├── providers/
+│       │   │   └── supabase-provider.tsx # Initializes Supabase client on app start
+│       │   ├── CreateTaskModal.tsx       # Modal: create task with assignees + points
+│       │   ├── CreateEventModal.tsx      # Modal: create/edit calendar event
+│       │   └── AddMemberModal.tsx        # Modal: add/edit family member + invite
 │       │
-│       ├── .env.local                   # ✅ Environment variables (configured)
-│       ├── next.config.js               # ✅ Next.js configuration
-│       ├── tailwind.config.js           # ✅ Tailwind CSS setup
-│       └── package.json                 # Web app dependencies
+│       ├── .env.local                    # Environment variables
+│       ├── next.config.js                # Next.js config
+│       ├── tailwind.config.js            # Tailwind CSS (custom primary colors)
+│       └── package.json
 │
-├── 📦 packages/
-│   └── 🔧 core/                         # Shared Business Logic
+├── packages/
+│   └── core/                             # Shared Business Logic
 │       └── src/
-│           ├── supabase/                # Database layer
-│           │   ├── client.ts            # ✅ Supabase client init
-│           │   ├── auth.ts              # ✅ Auth functions (signup, login, etc.)
-│           │   ├── families.ts          # ✅ Family queries
-│           │   ├── tasks.ts             # ✅ Task queries
-│           │   └── calendar.ts          # ✅ Calendar queries
-│           │
-│           ├── types/                   # TypeScript types
-│           │   └── database.ts          # ✅ Database schema types
-│           │
-│           └── index.ts                 # ✅ Public API exports
+│           ├── supabase/
+│           │   ├── client.ts             # Supabase client singleton
+│           │   ├── auth.ts               # signUp, signIn, signOut, getCurrentUser, getSession
+│           │   ├── families.ts           # createFamily, getFamily, getFamilyMembers,
+│           │   │                         # addFamilyMember, updateFamily,
+│           │   │                         # updateFamilyMember, removeFamilyMember
+│           │   ├── tasks.ts              # getTasks, createTask, completeTask,
+│           │   │                         # assignTask, deleteTask
+│           │   └── calendar.ts           # getCalendarEvents, createCalendarEvent,
+│           │                             # updateCalendarEvent, deleteCalendarEvent
+│           ├── types/
+│           │   └── database.ts           # Auto-generated DB types + helper aliases
+│           └── index.ts                  # Public API (re-exports everything)
 │
-├── 📁 supabase/
+├── supabase/
 │   └── migrations/
-│       └── 001_add_calendar_events.sql  # ⚠️ RUN THIS in Supabase SQL Editor
+│       ├── 001_add_calendar_events.sql   # calendar_events table + RLS policies
+│       └── 002_add_location_to_calendar_events.sql  # adds location column
 │
-├── 📄 package.json                      # ✅ Workspace root config
-├── 📄 turbo.json                        # ✅ Turborepo config
-├── 📄 tsconfig.json                     # ✅ TypeScript config
-├── 📄 .gitignore                        # ✅ Git ignore rules
-├── 📄 README.md                         # Full documentation
-└── 📄 QUICKSTART.md                     # Quick start guide
+├── package.json                          # Workspace root
+├── turbo.json                            # Turborepo task config
+└── tsconfig.json                         # Root TypeScript config
 ```
-
-## 🔄 How It Works
-
-### 1. Authentication Flow
-
-```
-User fills login form (web/app/auth/login/page.tsx)
-    ↓
-Calls signIn() from @kinnect/core
-    ↓
-packages/core/src/supabase/auth.ts → Supabase Auth
-    ↓
-Returns session → Redirect to /dashboard
-    ↓
-Dashboard layout checks auth (web/app/dashboard/layout.tsx)
-    ↓
-If not authenticated → Redirect to /auth/login
-```
-
-### 2. Data Loading Flow
-
-```
-Dashboard page loads (web/app/dashboard/page.tsx)
-    ↓
-Calls getCurrentUser() from @kinnect/core
-    ↓
-Gets user's family_id
-    ↓
-Calls getFamily(), getFamilyMembers(), getTasks()
-    ↓
-packages/core/src/supabase/*.ts query Supabase
-    ↓
-Display data in dashboard UI
-```
-
-### 3. Code Sharing Strategy
-
-**What's in @kinnect/core (shared with future mobile app):**
-- ✅ All Supabase queries
-- ✅ TypeScript types
-- ✅ Auth logic
-- ✅ Business rules (e.g., points calculation)
-
-**What's in apps/web (web-specific):**
-- ✅ Next.js pages and routing
-- ✅ React components
-- ✅ Tailwind CSS styles
-- ✅ Web-specific UI logic
-
-**Later for apps/mobile (mobile-specific):**
-- 📱 React Native screens
-- 📱 Native navigation
-- 📱 Mobile UI components
-
-**Result:** When you build the mobile app, ~60-70% of code is already done! Just import from @kinnect/core.
-
-## 🗄️ Database Schema (Supabase)
-
-### Existing Tables (✅ Already in your database)
-
-1. **families**
-   - id (uuid)
-   - name (text)
-   - created_at (timestamp)
-
-2. **users**
-   - id (uuid)
-   - family_id (uuid) → families
-   - auth_user_id (uuid) → auth.users
-   - name (text)
-   - role (parent | grandparent | child | domestic_worker)
-   - phone (text)
-   - avatar_url (text)
-   - points (integer) ← Reward system
-   - created_at (timestamp)
-
-3. **tasks**
-   - id (uuid)
-   - family_id (uuid) → families
-   - title (text)
-   - description (text)
-   - assigned_to (uuid) → users
-   - completed (boolean)
-   - points (integer) ← Reward value
-   - due_date (timestamp)
-   - created_at (timestamp)
-
-### New Table (⚠️ Need to create via migration)
-
-4. **calendar_events** ← RUN MIGRATION FILE
-   - id (uuid)
-   - family_id (uuid) → families
-   - title (text)
-   - description (text)
-   - start_time (timestamp)
-   - end_time (timestamp)
-   - all_day (boolean)
-   - created_by (uuid) → users
-   - created_at (timestamp)
-
-## 🚀 Development Workflow
-
-### Starting the App
-
-```bash
-cd ~/Documents/apps/kinnect
-npm install        # Install all dependencies
-npm run dev        # Start Next.js dev server
-```
-
-Open http://localhost:3000
-
-### Making Changes
-
-**To add a new page:**
-1. Create file in `apps/web/app/your-page/page.tsx`
-2. Add navigation link in `apps/web/app/dashboard/layout.tsx`
-
-**To add a database query:**
-1. Add function in `packages/core/src/supabase/*.ts`
-2. Export it from `packages/core/src/index.ts`
-3. Import in your page: `import { yourFunction } from '@kinnect/core'`
-
-**To add a type:**
-1. Define in `packages/core/src/types/database.ts`
-2. Export from `packages/core/src/index.ts`
-3. Import: `import type { YourType } from '@kinnect/core'`
-
-### Building Features
-
-**Example: Building Task Creation Page**
-
-1. Create UI page: `apps/web/app/dashboard/tasks/page.tsx`
-2. Use existing query: `import { createTask } from '@kinnect/core'`
-3. Build form that calls `createTask(familyId, title, ...)`
-4. Done! The query logic is already in @kinnect/core
-
-## 📊 Current Status
-
-### ✅ Completed (Working Now)
-
-- [x] Monorepo structure
-- [x] Next.js 14 setup
-- [x] Supabase connection
-- [x] TypeScript configuration
-- [x] Tailwind CSS styling
-- [x] Authentication (signup/login/logout)
-- [x] Protected routes
-- [x] Dashboard layout with navigation
-- [x] Database queries (families, users, tasks, calendar)
-- [x] Points/rewards logic
-
-### 📝 TODO (Next Steps)
-
-- [ ] Onboarding flow (create family after signup)
-- [ ] Task creation UI
-- [ ] Task completion with points
-- [ ] Calendar event creation
-- [ ] Calendar view component
-- [ ] Family member management UI
-- [ ] Mobile responsive polish
-
-## 🎯 Your 6-Week Web MVP Timeline
-
-**Weeks 1-2: Foundation** ✅ DONE
-- Monorepo setup
-- Authentication
-- Basic structure
-
-**Weeks 3-4: Core Features** ← YOU ARE HERE
-- Task creation & completion
-- Family member management
-- Dashboard with real data
-
-**Weeks 5-6: Polish & Launch**
-- Calendar view
-- Mobile responsiveness
-- Beta testing with your family
-- Bug fixes
-
-## 🔑 Key Commands
-
-```bash
-# Development
-npm run dev          # Start all apps in dev mode
-npm run build        # Build for production
-npm run lint         # Lint code
-npm run type-check   # Check TypeScript
-
-# Package-specific
-cd apps/web && npm run dev       # Run just the web app
-cd packages/core && npm run dev  # Build core in watch mode
-```
-
-## 📝 Environment Variables
-
-Located in `apps/web/.env.local`:
-
-```
-NEXT_PUBLIC_SUPABASE_URL=https://mvmjvfwyvvvjqwctmhsz.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
-```
-
-✅ Already configured with your credentials!
-
-## 🔗 Important Links
-
-- **Supabase Dashboard:** https://supabase.com/dashboard/project/mvmjvfwyvvvjqwctmhsz
-- **Local Dev Server:** http://localhost:3000 (after `npm run dev`)
-- **Vercel (for deployment):** Connect your GitHub repo
 
 ---
 
-**Everything is ready! Just run `npm install` and `npm run dev` to start building!** 🚀
+## Application Flows
+
+### 1. Signup & Onboarding
+
+```
+Landing page (/)
+  └─ User clicks "Sign Up"
+      │
+      ▼
+Signup page (/auth/signup)
+  └─ User enters name, email, password
+  └─ Calls signUp() from @kinnect/core
+      │  → Supabase Auth creates auth account
+      │  → Creates user record in users table
+      │
+      ▼
+Onboarding page (/onboarding)
+  └─ User enters family name
+  └─ Calls createFamily() from @kinnect/core
+      │  → Creates family record in families table
+      │  → Links user to family (sets family_id)
+      │  → Sets user role to "parent"
+      │
+      ▼
+Dashboard (/dashboard)
+```
+
+### 2. Authentication & Route Protection
+
+```
+Any /dashboard/* page loads
+  └─ Dashboard layout (layout.tsx) runs on mount
+      │
+      ▼
+Calls getCurrentUser() from @kinnect/core
+  │  → Checks Supabase auth session
+  │  → Looks up user record by auth_user_id
+  │
+  ├─ No session → Redirect to /auth/login
+  ├─ No family_id → Redirect to /onboarding
+  └─ Has family → Render page content
+```
+
+### 3. Dashboard
+
+```
+Dashboard page loads (/dashboard)
+  └─ Calls getCurrentUser()
+  └─ Gets user.family_id
+      │
+      ▼
+Parallel fetch:
+  ├─ getFamily(familyId)        → family name
+  ├─ getFamilyMembers(familyId) → member count
+  └─ getTasks(familyId)         → pending/completed tasks
+      │
+      ▼
+Renders:
+  ├─ Stat cards: Family Members | Pending Tasks | Your Points
+  ├─ Recent tasks list (first 5)
+  ├─ "Create Task" button → opens CreateTaskModal
+  └─ "Add Member" button → opens AddMemberModal
+```
+
+### 4. Task Management
+
+```
+Tasks page loads (/dashboard/tasks)
+  └─ Fetches user + getTasks(familyId)
+      │
+      ▼
+Renders task list with filter tabs: All | Pending | Completed
+  │
+  ├─ "Create Task" button
+  │   └─ Opens CreateTaskModal
+  │       ├─ Title (required), Description, Due Date, Points
+  │       ├─ Assign To: checkboxes for each family member
+  │       └─ Submit → createTask() from @kinnect/core
+  │           └─ Inserts into tasks table, reloads list
+  │
+  └─ Task card actions:
+      └─ Checkbox → completeTask(taskId, userId) from @kinnect/core
+          ├─ Sets completed=true, completed_by, completed_at
+          ├─ Awards points to completing user
+          └─ Reloads task list + user (for updated points)
+```
+
+### 5. Calendar
+
+```
+Calendar page loads (/dashboard/calendar)
+  └─ Fetches user + getCalendarEvents(familyId, monthStart, monthEnd)
+      │
+      ▼
+View toggle tabs: Month | Agenda
+
+MONTH VIEW:
+  ├─ 7-column CSS grid with day cells
+  ├─ Today: blue circle highlight
+  ├─ Events: blue pills in cells (max 2 shown, "+N more" overflow)
+  ├─ Click a day → detail panel below grid
+  │   ├─ Shows all events for that day
+  │   ├─ Each event: title, time, location (pin icon), description
+  │   ├─ Edit (pencil) → opens CreateEventModal with event data
+  │   └─ Delete (trash) → confirm + deleteCalendarEvent()
+  ├─ Navigation: ◀ Month Year ▶ + "Today" button
+  └─ "+" on day cell → opens CreateEventModal with that date pre-filled
+
+AGENDA VIEW:
+  ├─ Events grouped by date (sticky date headers)
+  ├─ Event cards: title, time range, location, description
+  ├─ Edit + Delete buttons on each card
+  └─ Empty state: "No events this month"
+
+CREATE/EDIT EVENT (CreateEventModal):
+  ├─ Title (required), Description, Location
+  ├─ All-day toggle (hides time fields when checked)
+  ├─ Start Date + Time, End Date + Time
+  ├─ Create mode: calls createCalendarEvent()
+  └─ Edit mode (event prop): pre-fills fields, calls updateCalendarEvent()
+```
+
+### 6. Family Management
+
+```
+Family page loads (/dashboard/family)
+  └─ Fetches user + getFamily() + getFamilyMembers() in parallel
+      │
+      ▼
+HEADER:
+  ├─ Family name (click pencil to edit inline)
+  │   └─ Edit mode: text input + save/cancel
+  │       └─ Save → updateFamily(familyId, { name })
+  ├─ Member count subtitle
+  └─ "Add Member" button
+
+MEMBER CARDS (one per member):
+  ├─ Avatar: first letter of name (blue circle)
+  ├─ Name + "(You)" badge for current user
+  ├─ Role badge: Parent (blue) | Grandparent (purple) |
+  │               Child (green) | Helper (amber)
+  ├─ Phone number (if set)
+  ├─ Points
+  ├─ Joined date
+  │
+  ├─ "Invite" button (amber, shown when member has no auth account)
+  │   └─ Opens edit modal with email field visible
+  │
+  ├─ Edit (pencil) → opens AddMemberModal in edit mode
+  │   ├─ Pre-fills name, role, phone
+  │   ├─ Shows email field if member has no account
+  │   ├─ Submit → updateFamilyMember() + sendInvite() if email provided
+  │   └─ Invite flow:
+  │       POST /api/invite { email, userId, familyId }
+  │         └─ Server creates Supabase admin client (service role key)
+  │         └─ Calls auth.admin.inviteUserByEmail(email)
+  │         └─ Links auth_user_id to member record
+  │         └─ Supabase sends invite email automatically
+  │
+  ├─ Delete (trash) → confirm dialog → removeFamilyMember()
+  │   (hidden for current user — can't delete yourself)
+  │
+  └─ Add mode (AddMemberModal without member prop):
+      ├─ Name, Role, Phone, Email (optional)
+      ├─ Submit → addFamilyMember() + updateFamilyMember(phone)
+      ├─ If email provided → POST /api/invite
+      └─ Info note: "Creates profile without login credentials"
+```
+
+### 7. Email Invite Flow (Detailed)
+
+```
+User clicks "Invite" or provides email when adding/editing a member
+  │
+  ▼
+Client calls POST /api/invite
+  Body: { email, userId, familyId }
+  │
+  ▼
+API route (apps/web/app/api/invite/route.ts):
+  ├─ Creates Supabase admin client using SUPABASE_SERVICE_ROLE_KEY
+  ├─ Calls supabase.auth.admin.inviteUserByEmail(email, {
+  │     data: { user_id, family_id }
+  │   })
+  ├─ Supabase creates an auth account and sends invite email
+  ├─ Links auth_user_id on the existing user record
+  └─ Returns { success: true }
+  │
+  ▼
+Invited person receives email
+  └─ Clicks invite link
+  └─ Sets their password
+  └─ Can now log in → their account is linked to the family
+```
+
+---
+
+## Code Sharing Strategy
+
+```
+@kinnect/core (shared)          apps/web (web only)        apps/mobile (future)
+┌────────────────────────┐     ┌───────────────────┐      ┌───────────────────┐
+│ Supabase queries       │     │ Next.js pages      │      │ React Native      │
+│ Auth functions         │◄────│ React components   │      │ screens           │
+│ TypeScript types       │     │ Tailwind styles     │      │ Native navigation │
+│ Business logic         │◄────────────────────────────────│ Mobile UI         │
+└────────────────────────┘     └───────────────────┘      └───────────────────┘
+       60-70% reuse
+```
+
+All database queries, auth logic, and types live in `@kinnect/core`. Web-specific UI lives in `apps/web`. When a mobile app is added, it imports `@kinnect/core` and only needs its own UI layer.
+
+---
+
+## Database Schema
+
+### families
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | Primary key |
+| name | text | Family/household name |
+| primary_language | text | Nullable, for future i18n |
+| created_at | timestamp | |
+
+### users
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | Primary key |
+| family_id | uuid | FK → families |
+| auth_user_id | uuid | FK → auth.users (null if no account) |
+| name | text | Display name |
+| role | text | parent, grandparent, child, domestic_worker |
+| phone | text | Nullable |
+| avatar_url | text | Nullable, for future use |
+| points | integer | Reward points from completing tasks |
+| language_preference | text | Nullable, for future i18n |
+| push_token | text | Nullable, for future push notifications |
+| created_at | timestamp | |
+
+### tasks
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | Primary key |
+| family_id | uuid | FK → families |
+| title | text | Task name |
+| description | text | Nullable |
+| assigned_to | uuid[] | Array of user IDs |
+| category | text | Nullable |
+| points | integer | Points awarded on completion |
+| completed | boolean | |
+| completed_by | uuid | FK → users |
+| completed_at | timestamp | |
+| due_date | timestamp | Nullable |
+| created_by | uuid | FK → users |
+| created_at | timestamp | |
+
+### calendar_events
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | Primary key |
+| family_id | uuid | FK → families |
+| title | text | Event name |
+| description | text | Nullable |
+| location | text | Nullable |
+| start_time | timestamptz | |
+| end_time | timestamptz | |
+| all_day | boolean | Default false |
+| created_by | uuid | FK → users |
+| created_at | timestamptz | |
+
+All tables have Row Level Security (RLS) policies — users can only access data belonging to their family.
+
+---
+
+## Key Patterns
+
+### Data Fetching
+Every dashboard page follows the same pattern:
+1. `getCurrentUser()` on mount
+2. Guard: no user → redirect to login; no family → redirect to onboarding
+3. Fetch page-specific data using `user.family_id`
+4. Render with loading/empty states
+
+### Modals
+All modals follow a consistent pattern:
+- Props: `isOpen`, `onClose`, `familyId`, `userId`, callback (e.g. `onEventCreated`)
+- Optional entity prop for edit mode (e.g. `event?: CalendarEvent`)
+- `useEffect` populates form when `isOpen` changes
+- Same overlay, card, close button, form layout, cancel/submit buttons
+- Loading state on submit button
+
+### Styling
+- Tailwind utility classes throughout
+- Custom primary colors: `primary-50/100/500/600/700` (sky blue)
+- Consistent card style: `bg-white rounded-lg shadow p-4 hover:shadow-md`
+- Form inputs: `border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500`
+- Buttons: `bg-blue-600 text-white rounded-lg hover:bg-blue-700`
+- Tab navigation: `border-b-2` active state pattern
+
+---
+
+## Environment Variables
+
+| Variable | Prefix | Used By | Purpose |
+|----------|--------|---------|---------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Public | Client + Server | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public | Client + Server | Public API key (RLS enforced) |
+| `SUPABASE_SERVICE_ROLE_KEY` | None | Server only | Admin key for invites (bypasses RLS) |
+
+The service role key is **never** exposed to the client. It's only used in the `/api/invite` route handler.
+
+---
+
+## Commands
+
+```bash
+npm run dev          # Start development server (all apps via Turborepo)
+npm run build        # Production build
+npm run lint         # ESLint across all packages
+npm run type-check   # TypeScript strict mode check
+```
