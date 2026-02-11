@@ -1,41 +1,106 @@
 'use client'
 
-import { useState } from 'react'
-import { addFamilyMember } from '@kinnect/core'
+import { useState, useEffect } from 'react'
+import { addFamilyMember, updateFamilyMember, type User } from '@kinnect/core'
+
+type Role = 'parent' | 'grandparent' | 'child' | 'domestic_worker'
 
 interface AddMemberModalProps {
   isOpen: boolean
   onClose: () => void
   familyId: string
   onMemberAdded: () => void
+  member?: User | null
 }
 
-export default function AddMemberModal({ 
-  isOpen, 
-  onClose, 
+export default function AddMemberModal({
+  isOpen,
+  onClose,
   familyId,
-  onMemberAdded 
+  onMemberAdded,
+  member,
 }: AddMemberModalProps) {
   const [name, setName] = useState('')
-  const [role, setRole] = useState<'parent' | 'grandparent' | 'child' | 'domestic_worker'>('child')
+  const [role, setRole] = useState<Role>('child')
+  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
+  const [inviteStatus, setInviteStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+
+  const isEditing = !!member
+  const needsAccount = isEditing && !member.auth_user_id
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    if (member) {
+      setName(member.name)
+      setRole((member.role as Role) || 'child')
+      setPhone(member.phone || '')
+      setEmail('')
+    } else {
+      setName('')
+      setRole('child')
+      setPhone('')
+      setEmail('')
+    }
+    setInviteStatus('idle')
+  }, [isOpen, member])
+
+  async function sendInvite(userId: string) {
+    setInviteStatus('sending')
+    try {
+      const res = await fetch('/api/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, userId, familyId }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to send invite')
+      }
+      setInviteStatus('sent')
+    } catch (error) {
+      console.error('Invite error:', error)
+      setInviteStatus('error')
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
 
     try {
-      await addFamilyMember(familyId, name, role)
-      
-      // Reset form
-      setName('')
-      setRole('child')
-      
+      if (isEditing) {
+        await updateFamilyMember(member.id, {
+          name,
+          role,
+          phone: phone || null,
+        })
+
+        // Send invite if editing a member without an account and email was provided
+        if (needsAccount && email) {
+          await sendInvite(member.id)
+        }
+      } else {
+        const newMember = await addFamilyMember(familyId, name, role)
+
+        // Update phone if provided
+        if (phone) {
+          await updateFamilyMember(newMember.id, { phone })
+        }
+
+        // Send invite if email provided
+        if (email) {
+          await sendInvite(newMember.id)
+        }
+      }
+
       onMemberAdded()
       onClose()
     } catch (error) {
-      console.error('Error adding family member:', error)
-      alert('Failed to add family member')
+      console.error(`Error ${isEditing ? 'updating' : 'adding'} family member:`, error)
+      alert(`Failed to ${isEditing ? 'update' : 'add'} family member`)
     } finally {
       setLoading(false)
     }
@@ -45,14 +110,14 @@ export default function AddMemberModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-md w-full p-6">
+      <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">Add Family Member</h2>
+          <h2 className="text-xl font-bold">{isEditing ? 'Edit Member' : 'Add Family Member'}</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
           >
-            ×
+            &times;
           </button>
         </div>
 
@@ -78,62 +143,82 @@ export default function AddMemberModal({
               Role *
             </label>
             <div className="space-y-2">
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="radio"
-                  name="role"
-                  value="child"
-                  checked={role === 'child'}
-                  onChange={(e) => setRole(e.target.value as any)}
-                  className="mr-2"
-                />
-                <span className="text-sm text-gray-700">Child</span>
-              </label>
-              
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="radio"
-                  name="role"
-                  value="parent"
-                  checked={role === 'parent'}
-                  onChange={(e) => setRole(e.target.value as any)}
-                  className="mr-2"
-                />
-                <span className="text-sm text-gray-700">Parent</span>
-              </label>
-              
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="radio"
-                  name="role"
-                  value="grandparent"
-                  checked={role === 'grandparent'}
-                  onChange={(e) => setRole(e.target.value as any)}
-                  className="mr-2"
-                />
-                <span className="text-sm text-gray-700">Grandparent</span>
-              </label>
-              
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="radio"
-                  name="role"
-                  value="domestic_worker"
-                  checked={role === 'domestic_worker'}
-                  onChange={(e) => setRole(e.target.value as any)}
-                  className="mr-2"
-                />
-                <span className="text-sm text-gray-700">Helper / Domestic Worker</span>
-              </label>
+              {([
+                { value: 'child', label: 'Child' },
+                { value: 'parent', label: 'Parent' },
+                { value: 'grandparent', label: 'Grandparent' },
+                { value: 'domestic_worker', label: 'Helper / Domestic Worker' },
+              ] as const).map((opt) => (
+                <label key={opt.value} className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="role"
+                    value={opt.value}
+                    checked={role === opt.value}
+                    onChange={(e) => setRole(e.target.value as Role)}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700">{opt.label}</span>
+                </label>
+              ))}
             </div>
           </div>
 
-          {/* Info Note */}
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-            <p className="text-xs text-blue-800">
-              💡 This creates a profile without login credentials. Perfect for kids or helpers who don't need their own account yet.
-            </p>
+          {/* Phone */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Phone
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              placeholder="e.g., 072 123 4567"
+            />
           </div>
+
+          {/* Email invite — show when creating OR editing a member without an account */}
+          {(!isEditing || needsAccount) && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                placeholder="e.g., john@example.com"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                {needsAccount
+                  ? 'Enter their email to send an invite so they can log in'
+                  : 'Optional — sends an invite so they can log in to Kinnect'}
+              </p>
+            </div>
+          )}
+
+          {/* Info Note */}
+          {!isEditing && !email && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+              <p className="text-xs text-blue-800">
+                This creates a profile without login credentials. Perfect for kids or helpers who don&apos;t need their own account yet.
+              </p>
+            </div>
+          )}
+
+          {/* Invite status */}
+          {inviteStatus === 'sent' && (
+            <div className="bg-green-50 border border-green-200 rounded-md p-3">
+              <p className="text-xs text-green-800">Invite sent to {email}!</p>
+            </div>
+          )}
+          {inviteStatus === 'error' && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-3">
+              <p className="text-xs text-red-800">Failed to send invite. You can try again from the family page later.</p>
+            </div>
+          )}
 
           {/* Buttons */}
           <div className="flex gap-3 pt-4">
@@ -149,7 +234,9 @@ export default function AddMemberModal({
               disabled={loading}
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
-              {loading ? 'Adding...' : 'Add Member'}
+              {loading
+                ? (isEditing ? 'Saving...' : 'Adding...')
+                : (isEditing ? 'Save Changes' : 'Add Member')}
             </button>
           </div>
         </form>

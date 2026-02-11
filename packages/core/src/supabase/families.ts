@@ -73,7 +73,7 @@ export async function getFamily(familyId: string): Promise<Family | null> {
 
 export async function getFamilyMembers(familyId: string): Promise<User[]> {
   const supabase = getSupabase()
-  
+
   const { data, error } = await supabase
     .from('users')
     .select('*')
@@ -82,4 +82,49 @@ export async function getFamilyMembers(familyId: string): Promise<User[]> {
 
   if (error) throw error
   return data || []
+}
+
+export async function updateFamily(
+  familyId: string,
+  updates: { name?: string; primary_language?: string }
+) {
+  const supabase = getSupabase()
+
+  const { data, error } = await supabase
+    .from('families')
+    .update(updates)
+    .eq('id', familyId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function updateFamilyMember(
+  memberId: string,
+  updates: { name?: string; role?: string; phone?: string | null }
+) {
+  const supabase = getSupabase()
+
+  const { data, error } = await supabase
+    .from('users')
+    .update(updates)
+    .eq('id', memberId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function removeFamilyMember(memberId: string) {
+  const supabase = getSupabase()
+
+  const { error } = await supabase
+    .from('users')
+    .delete()
+    .eq('id', memberId)
+
+  if (error) throw error
 }
