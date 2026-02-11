@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import type { Database } from '../types/database' 
+import type { Database } from '../types/database'
 
 let supabaseClient: SupabaseClient<Database> | null = null
 

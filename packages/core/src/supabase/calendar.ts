@@ -33,10 +33,11 @@ export async function createCalendarEvent(
   endTime: string,
   createdBy: string,
   description?: string,
-  allDay = false
+  allDay = false,
+  location?: string
 ) {
   const supabase = getSupabase()
-  
+
   const { data, error } = await supabase
     .from('calendar_events')
     .insert({
@@ -47,7 +48,8 @@ export async function createCalendarEvent(
       end_time: endTime,
       all_day: allDay,
       created_by: createdBy,
-    })  // Remove "as any"
+      location: location || null,
+    })
     .select()
     .single()
 
@@ -63,6 +65,7 @@ export async function updateCalendarEvent(
     start_time?: string
     end_time?: string
     all_day?: boolean
+    location?: string | null
   }
 ) {
   const supabase = getSupabase()
