@@ -162,7 +162,7 @@ export default function DashboardPage() {
   // ── render ─────────────────────────────────────────────
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1">
       {/* ── Top Banner ────────────────────────────────── */}
       <div className="bg-brand-primary text-white p-6 md:p-8 rounded-b-[2rem] shadow-lg -mx-4 sm:-mx-6 lg:-mx-8 -mt-6">
         <div className="max-w-4xl mx-auto">
