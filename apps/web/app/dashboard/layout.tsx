@@ -61,13 +61,13 @@ export default function DashboardLayout({
       try {
         const currentUser = await getCurrentUser()
         if (!currentUser) {
-          router.push('/auth/login')
+          router.push('/')
           return
         }
         setUser(currentUser)
       } catch (error) {
         console.error('Auth error:', error)
-        router.push('/auth/login')
+        router.push('/')
       } finally {
         setLoading(false)
       }

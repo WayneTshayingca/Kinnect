@@ -79,7 +79,7 @@ export default function CalendarPage() {
         router.push('/onboarding')
       }
     } catch {
-      router.push('/auth/login')
+      router.push('/')
     } finally {
       setLoading(false)
     }
