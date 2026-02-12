@@ -189,24 +189,26 @@ export default function DashboardLayout({
           sidebarOpen ? 'md:ml-60' : 'md:ml-16'
         }`}
       >
-        {/* Mobile top bar (logo + user info only) */}
-        <header className="md:hidden flex items-center justify-between bg-white border-b border-gray-200 px-4 h-14">
-          <Link href="/dashboard">
-            <Logo variant="full" color="primary" size="sm" />
-          </Link>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-600">{user?.points || 0} pts</span>
-            <button
-              onClick={handleSignOut}
-              className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100"
-              title="Sign out"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-              </svg>
-            </button>
-          </div>
-        </header>
+        {/* Mobile top bar (hidden on dashboard home where the banner covers this) */}
+        {pathname !== '/dashboard' && (
+          <header className="md:hidden flex items-center justify-between bg-white border-b border-gray-200 px-4 h-14">
+            <Link href="/dashboard">
+              <Logo variant="full" color="primary" size="sm" />
+            </Link>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-600">{user?.points || 0} pts</span>
+              <button
+                onClick={handleSignOut}
+                className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100"
+                title="Sign out"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+                </svg>
+              </button>
+            </div>
+          </header>
+        )}
 
         {/* Page content */}
         <main className="py-6 px-4 sm:px-6 lg:px-8 pb-20 md:pb-6">
