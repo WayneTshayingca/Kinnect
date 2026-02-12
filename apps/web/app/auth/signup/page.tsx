@@ -48,7 +48,7 @@ export default function SignupPage() {
           </p>
         </div>
 
-        <div className="text-sm text-white/50">
+        <div className="hidden md:block text-sm text-white/50">
           <p>Built for South African families</p>
           <p>Supporting parents, grandparents, children, and domestic workers</p>
         </div>
