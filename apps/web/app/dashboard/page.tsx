@@ -9,6 +9,7 @@ import {
   getFamilyMembers,
   getTasks,
   completeTask,
+  signOut,
   type User,
   type Family,
   type Task,
@@ -23,6 +24,7 @@ import {
   Trophy,
   Heart,
   Plus,
+  LogOut,
 } from 'lucide-react'
 
 // ── helpers ──────────────────────────────────────────────
@@ -104,6 +106,11 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleSignOut() {
+    await signOut()
+    router.push('/')
+  }
+
   async function handleCompleteTask(taskId: string) {
     if (!user) return
     try {
@@ -166,18 +173,27 @@ export default function DashboardPage() {
       {/* ── Top Banner ────────────────────────────────── */}
       <div className="bg-brand-primary text-white p-6 md:p-8 rounded-b-[2rem] shadow-lg -mx-4 sm:-mx-6 lg:-mx-8 -mt-6">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/10">
-              <Logo variant="icon" color="white" size="sm" />
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/10">
+                <Logo variant="icon" color="white" size="sm" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">
+                  {family?.name}
+                </h1>
+                <p className="text-indigo-200 text-sm font-medium">
+                  Welcome back, {user.name}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                {family?.name}
-              </h1>
-              <p className="text-indigo-200 text-sm font-medium">
-                Welcome back, {user.name}
-              </p>
-            </div>
+            <button
+              onClick={handleSignOut}
+              title="Sign out"
+              className="md:hidden p-2 rounded-xl bg-white/10 text-white/80 hover:bg-white/20 hover:text-white transition-colors backdrop-blur-sm border border-white/10"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
           </div>
 
           <div className="grid grid-cols-3 gap-4 bg-white/5 p-4 rounded-2xl backdrop-blur-sm border border-white/10">
