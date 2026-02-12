@@ -21,7 +21,6 @@ export default function CreateTaskModal({
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [dueDate, setDueDate] = useState('')
-  const [points, setPoints] = useState(10)
   const [assignedTo, setAssignedTo] = useState<string[]>([])
   const [members, setMembers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
@@ -52,14 +51,12 @@ export default function CreateTaskModal({
         description,
         assigned_to: assignedTo,
         due_date: dueDate || undefined,
-        points,
         created_by: userId
       })
 
       setTitle('')
       setDescription('')
       setDueDate('')
-      setPoints(10)
       setAssignedTo([])
       
       onTaskCreated()
@@ -165,19 +162,6 @@ export default function CreateTaskModal({
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Points
-            </label>
-            <input
-              type="number"
-              min="1"
-              value={points}
-              onChange={(e) => setPoints(parseInt(e.target.value))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900"
             />
           </div>

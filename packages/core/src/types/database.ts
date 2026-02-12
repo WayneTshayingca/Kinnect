@@ -14,6 +14,118 @@ export type Database = {
   }
   public: {
     Tables: {
+      lists: {
+        Row: {
+          id: string
+          family_id: string
+          type: string
+          name: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          family_id: string
+          type?: string
+          name?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          family_id?: string
+          type?: string
+          name?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lists_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      list_items: {
+        Row: {
+          id: string
+          list_id: string
+          title: string
+          quantity: string | null
+          notes: string | null
+          added_by: string
+          assigned_shopper: string | null
+          completed: boolean
+          completed_by: string | null
+          completed_at: string | null
+          position: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          list_id: string
+          title: string
+          quantity?: string | null
+          notes?: string | null
+          added_by: string
+          assigned_shopper?: string | null
+          completed?: boolean
+          completed_by?: string | null
+          completed_at?: string | null
+          position?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          list_id?: string
+          title?: string
+          quantity?: string | null
+          notes?: string | null
+          added_by?: string
+          assigned_shopper?: string | null
+          completed?: boolean
+          completed_by?: string | null
+          completed_at?: string | null
+          position?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_items_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_items_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_items_assigned_shopper_fkey"
+            columns: ["assigned_shopper"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_items_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_events: {
         Row: {
           all_day: boolean
@@ -354,6 +466,11 @@ export type Family = Database['public']['Tables']['families']['Row']
 export type Task = Database['public']['Tables']['tasks']['Row']
 export type CalendarEvent = Database['public']['Tables']['calendar_events']['Row']
 
+export type List = Database['public']['Tables']['lists']['Row']
+export type ListItem = Database['public']['Tables']['list_items']['Row']
+
 export type UserInsert = Database['public']['Tables']['users']['Insert']
 export type FamilyInsert = Database['public']['Tables']['families']['Insert']
 export type TaskInsert = Database['public']['Tables']['tasks']['Insert']
+export type ListInsert = Database['public']['Tables']['lists']['Insert']
+export type ListItemInsert = Database['public']['Tables']['list_items']['Insert']

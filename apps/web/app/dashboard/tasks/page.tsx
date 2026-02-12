@@ -169,7 +169,6 @@ export default function TasksPage() {
                     <p className="text-sm text-gray-600 mt-1">{task.description}</p>
                   )}
                   <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                    <span className="font-medium text-accent-500">{task.points} pts</span>
                     {task.due_date && (
                       <span>Due: {new Date(task.due_date).toLocaleDateString()}</span>
                     )}
