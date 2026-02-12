@@ -97,12 +97,14 @@ export default function DashboardLayout({
     <div className="min-h-screen bg-gray-50">
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden md:flex md:flex-col fixed inset-y-0 left-0 z-30 bg-white border-r border-gray-200 transition-all duration-300 ${
+        className={`hidden md:flex md:flex-col fixed inset-y-0 left-0 z-30 bg-white border-r border-gray-200 transition-all duration-300 overflow-hidden ${
           sidebarOpen ? 'w-60' : 'w-16'
         }`}
       >
         {/* Logo + collapse toggle */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+        <div className={`flex items-center h-16 border-b border-gray-200 ${
+          sidebarOpen ? 'justify-between px-4' : 'flex-col justify-center gap-1 px-2'
+        }`}>
           <Link href="/dashboard">
             {sidebarOpen ? (
               <Logo variant="full" color="primary" size="sm" />
@@ -112,9 +114,7 @@ export default function DashboardLayout({
           </Link>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className={`p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 ${
-              !sidebarOpen ? 'mx-auto' : ''
-            }`}
+            className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700"
             title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
           >
             {sidebarOpen ? (
