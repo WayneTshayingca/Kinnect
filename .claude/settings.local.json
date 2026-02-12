@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npx turbo run:*)",
-      "Bash(npm run type-check:*)"
+      "Bash(npm run type-check:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

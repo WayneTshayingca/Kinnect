@@ -189,7 +189,7 @@ export default function CalendarPage() {
         </div>
         <button
           onClick={() => openCreateForDate()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors flex items-center gap-2"
         >
           <span className="text-xl leading-none">+</span>
           Add Event
@@ -203,7 +203,7 @@ export default function CalendarPage() {
             onClick={() => setView('month')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
               view === 'month'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-accent-500 text-accent-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -213,7 +213,7 @@ export default function CalendarPage() {
             onClick={() => setView('agenda')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
               view === 'agenda'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-accent-500 text-accent-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -286,14 +286,14 @@ export default function CalendarPage() {
                   key={day}
                   onClick={() => setSelectedDay(selectedDay === day ? null : day)}
                   className={`border-r border-b border-gray-200 min-h-[80px] sm:min-h-[100px] p-1 cursor-pointer transition-colors ${
-                    isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'
+                    isSelected ? 'bg-primary-50' : 'hover:bg-gray-50'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span
                       className={`text-sm font-medium inline-flex items-center justify-center w-7 h-7 rounded-full ${
                         isToday
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-accent-500 text-white'
                           : 'text-gray-700'
                       }`}
                     >
@@ -302,7 +302,7 @@ export default function CalendarPage() {
                     {dayEvents.length > 0 && (
                       <button
                         onClick={(e) => { e.stopPropagation(); openCreateForDate(day) }}
-                        className="text-gray-400 hover:text-blue-600 text-xs leading-none"
+                        className="text-gray-400 hover:text-accent-500 text-xs leading-none"
                         title="Add event"
                       >
                         +
@@ -313,7 +313,7 @@ export default function CalendarPage() {
                     {dayEvents.slice(0, 2).map(ev => (
                       <div
                         key={ev.id}
-                        className="text-xs truncate rounded px-1 py-0.5 bg-blue-100 text-blue-800"
+                        className="text-xs truncate rounded px-1 py-0.5 bg-primary-100 text-primary-700"
                         title={ev.title}
                       >
                         {ev.all_day ? '' : formatTime(ev.start_time) + ' '}{ev.title}
@@ -344,7 +344,7 @@ export default function CalendarPage() {
                 </h3>
                 <button
                   onClick={() => openCreateForDate(selectedDay)}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                  className="text-sm text-accent-500 hover:text-accent-700 font-medium"
                 >
                   + Add event
                 </button>
@@ -375,7 +375,7 @@ export default function CalendarPage() {
                       <div className="flex items-center gap-2 ml-3 flex-shrink-0">
                         <button
                           onClick={() => openEditEvent(ev)}
-                          className="text-gray-400 hover:text-blue-600 transition-colors"
+                          className="text-gray-400 hover:text-primary-600 transition-colors"
                           title="Edit event"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -421,7 +421,7 @@ export default function CalendarPage() {
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <h4 className="font-medium text-gray-900">{ev.title}</h4>
-                            <p className="text-sm text-blue-600 mt-0.5">
+                            <p className="text-sm text-primary-600 mt-0.5">
                               {ev.all_day
                                 ? 'All day'
                                 : `${formatTime(ev.start_time)} – ${formatTime(ev.end_time)}`}
@@ -439,7 +439,7 @@ export default function CalendarPage() {
                           <div className="flex items-center gap-2 ml-3 flex-shrink-0">
                             <button
                               onClick={() => openEditEvent(ev)}
-                              className="text-gray-400 hover:text-blue-600 transition-colors"
+                              className="text-gray-400 hover:text-primary-600 transition-colors"
                               title="Edit event"
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

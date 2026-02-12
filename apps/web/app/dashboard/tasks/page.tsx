@@ -89,7 +89,7 @@ export default function TasksPage() {
         </div>
         <button
           onClick={() => setShowCreateTask(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors flex items-center gap-2"
         >
           <span className="text-xl leading-none">+</span>
           Create Task
@@ -103,7 +103,7 @@ export default function TasksPage() {
             onClick={() => setFilter('all')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
               filter === 'all'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-accent-500 text-accent-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -113,7 +113,7 @@ export default function TasksPage() {
             onClick={() => setFilter('pending')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
               filter === 'pending'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-accent-500 text-accent-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -123,7 +123,7 @@ export default function TasksPage() {
             onClick={() => setFilter('completed')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
               filter === 'completed'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-accent-500 text-accent-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -148,12 +148,12 @@ export default function TasksPage() {
                 {!task.completed && (
                   <button
                     onClick={() => handleCompleteTask(task.id)}
-                    className="flex-shrink-0 w-5 h-5 mt-0.5 border-2 border-gray-300 rounded hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                    className="flex-shrink-0 w-5 h-5 mt-0.5 border-2 border-gray-300 rounded hover:border-accent-500 hover:bg-primary-50 transition-colors"
                     title="Mark as complete"
                   />
                 )}
                 {task.completed && (
-                  <div className="flex-shrink-0 w-5 h-5 mt-0.5 bg-green-500 rounded flex items-center justify-center">
+                  <div className="flex-shrink-0 w-5 h-5 mt-0.5 bg-success-500 rounded flex items-center justify-center">
                     <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
@@ -169,7 +169,7 @@ export default function TasksPage() {
                     <p className="text-sm text-gray-600 mt-1">{task.description}</p>
                   )}
                   <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                    <span className="font-medium text-blue-600">{task.points} pts</span>
+                    <span className="font-medium text-accent-500">{task.points} pts</span>
                     {task.due_date && (
                       <span>Due: {new Date(task.due_date).toLocaleDateString()}</span>
                     )}
@@ -177,7 +177,7 @@ export default function TasksPage() {
                       <span>{task.assigned_to.length} assigned</span>
                     )}
                     {task.completed_at && (
-                      <span className="text-green-600">
+                      <span className="text-success-600">
                         ✓ Completed {new Date(task.completed_at).toLocaleDateString()}
                       </span>
                     )}

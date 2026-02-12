@@ -1,12 +1,13 @@
 import Link from 'next/link'
+import { Logo } from '@/components/Logo'
 
 export default function Home() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-8">
+    <main className="min-h-screen flex flex-col items-center justify-center p-8 bg-background">
       <div className="max-w-2xl text-center space-y-8">
-        <h1 className="text-5xl font-bold text-primary-600">
-          Welcome to Kinnect
-        </h1>
+        <div className="flex justify-center">
+          <Logo variant="full" color="primary" size="xl" />
+        </div>
         <p className="text-xl text-gray-600">
           Africa's family coordination platform for multi-generational households
         </p>
@@ -14,7 +15,7 @@ export default function Home() {
         <div className="flex gap-4 justify-center">
           <Link
             href="/auth/login"
-            className="px-6 py-3 bg-primary-600 text-black rounded-lg hover:bg-primary-700 transition"
+            className="px-6 py-3 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition"
           >
             Log In
           </Link>

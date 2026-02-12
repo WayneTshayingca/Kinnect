@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { getCurrentUser, signOut, type User } from '@kinnect/core'
+import { Logo } from '@/components/Logo'
 
 const navItems = [
   {
@@ -102,11 +103,13 @@ export default function DashboardLayout({
       >
         {/* Logo + collapse toggle */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
-          {sidebarOpen && (
-            <Link href="/dashboard" className="text-xl font-bold text-primary-600">
-              Kinnect
-            </Link>
-          )}
+          <Link href="/dashboard">
+            {sidebarOpen ? (
+              <Logo variant="full" color="primary" size="sm" />
+            ) : (
+              <Logo variant="icon" color="primary" size="sm" />
+            )}
+          </Link>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className={`p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 ${
@@ -188,8 +191,8 @@ export default function DashboardLayout({
       >
         {/* Mobile top bar (logo + user info only) */}
         <header className="md:hidden flex items-center justify-between bg-white border-b border-gray-200 px-4 h-14">
-          <Link href="/dashboard" className="text-xl font-bold text-primary-600">
-            Kinnect
+          <Link href="/dashboard">
+            <Logo variant="full" color="primary" size="sm" />
           </Link>
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-600">{user?.points || 0} pts</span>

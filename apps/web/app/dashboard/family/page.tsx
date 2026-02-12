@@ -16,9 +16,9 @@ import AddMemberModal from '@/components/AddMemberModal'
 // ── helpers ──────────────────────────────────────────────
 
 const ROLE_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  parent:          { bg: 'bg-blue-100',   text: 'text-blue-800',   label: 'Parent' },
+  parent:          { bg: 'bg-primary-100', text: 'text-primary-700', label: 'Parent' },
   grandparent:     { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Grandparent' },
-  child:           { bg: 'bg-green-100',  text: 'text-green-800',  label: 'Child' },
+  child:           { bg: 'bg-success-100', text: 'text-success-700', label: 'Child' },
   domestic_worker: { bg: 'bg-amber-100',  text: 'text-amber-800',  label: 'Helper' },
 }
 
@@ -153,12 +153,12 @@ export default function FamilyPage() {
                   if (e.key === 'Enter') saveFamilyName()
                   if (e.key === 'Escape') setEditingName(false)
                 }}
-                className="text-3xl font-bold text-gray-900 border-b-2 border-blue-500 outline-none bg-transparent"
+                className="text-3xl font-bold text-gray-900 border-b-2 border-accent-500 outline-none bg-transparent"
               />
               <button
                 onClick={saveFamilyName}
                 disabled={savingName}
-                className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
+                className="p-1.5 text-success-600 hover:bg-success-50 rounded transition-colors"
                 title="Save"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -180,7 +180,7 @@ export default function FamilyPage() {
               <h1 className="text-3xl font-bold text-gray-900">{family?.name}</h1>
               <button
                 onClick={startEditingName}
-                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
                 title="Edit family name"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -195,7 +195,7 @@ export default function FamilyPage() {
         </div>
         <button
           onClick={openAddMember}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors flex items-center gap-2"
         >
           <span className="text-xl leading-none">+</span>
           Add Member
@@ -217,7 +217,7 @@ export default function FamilyPage() {
               <div key={m.id} className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-4">
                   {/* Avatar */}
-                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-lg font-semibold">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-lg font-semibold">
                     {initials}
                   </div>
 
@@ -226,7 +226,7 @@ export default function FamilyPage() {
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium text-gray-900 truncate">{m.name}</h3>
                       {isCurrentUser && (
-                        <span className="text-xs text-blue-600 font-medium">(You)</span>
+                        <span className="text-xs text-primary-600 font-medium">(You)</span>
                       )}
                       {!m.auth_user_id && !isCurrentUser && (
                         <button
@@ -242,7 +242,7 @@ export default function FamilyPage() {
                       {m.phone && (
                         <span className="text-sm text-gray-500">{m.phone}</span>
                       )}
-                      <span className="text-sm text-blue-600 font-medium">{m.points || 0} pts</span>
+                      <span className="text-sm text-accent-500 font-medium">{m.points || 0} pts</span>
                     </div>
                     {m.created_at && (
                       <p className="text-xs text-gray-400 mt-1">
@@ -255,7 +255,7 @@ export default function FamilyPage() {
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       onClick={() => openEditMember(m)}
-                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                       title="Edit member"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

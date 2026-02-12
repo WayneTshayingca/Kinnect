@@ -132,7 +132,7 @@ export default function AddMemberModal({
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900"
               placeholder="e.g., John"
             />
           </div>
@@ -173,7 +173,7 @@ export default function AddMemberModal({
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900"
               placeholder="e.g., 072 123 4567"
             />
           </div>
@@ -188,7 +188,7 @@ export default function AddMemberModal({
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900"
                 placeholder="e.g., john@example.com"
               />
               <p className="mt-1 text-xs text-gray-500">
@@ -201,8 +201,8 @@ export default function AddMemberModal({
 
           {/* Info Note */}
           {!isEditing && !email && (
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-              <p className="text-xs text-blue-800">
+            <div className="bg-primary-50 border border-primary-200 rounded-md p-3">
+              <p className="text-xs text-primary-700">
                 This creates a profile without login credentials. Perfect for kids or helpers who don&apos;t need their own account yet.
               </p>
             </div>
@@ -210,8 +210,8 @@ export default function AddMemberModal({
 
           {/* Invite status */}
           {inviteStatus === 'sent' && (
-            <div className="bg-green-50 border border-green-200 rounded-md p-3">
-              <p className="text-xs text-green-800">Invite sent to {email}!</p>
+            <div className="bg-success-50 border border-success-200 rounded-md p-3">
+              <p className="text-xs text-success-700">Invite sent to {email}!</p>
             </div>
           )}
           {inviteStatus === 'error' && (
@@ -232,7 +232,7 @@ export default function AddMemberModal({
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 disabled:opacity-50"
             >
               {loading
                 ? (isEditing ? 'Saving...' : 'Adding...')

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createTask, getFamilyMembers, type User, type CreateTaskInput } from '@kinnect/core'
+import {useEffect, useState} from 'react'
+import {createTask, getFamilyMembers, type User} from '@kinnect/core'
 
 interface CreateTaskModalProps {
   isOpen: boolean
@@ -111,7 +111,7 @@ export default function CreateTaskModal({
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900"
               placeholder="e.g., Clean your room"
             />
           </div>
@@ -124,7 +124,7 @@ export default function CreateTaskModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900"
               placeholder="Add any details..."
             />
           </div>
@@ -143,7 +143,7 @@ export default function CreateTaskModal({
                       type="checkbox"
                       checked={assignedTo.includes(member.id)}
                       onChange={() => toggleAssignee(member.id)}
-                      className="mr-2 h-4 w-4 text-blue-600 rounded"
+                      className="mr-2 h-4 w-4 text-primary-600 rounded"
                     />
                     <span className="text-sm">{member.name}</span>
                     {member.role && (
@@ -165,7 +165,7 @@ export default function CreateTaskModal({
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900"
             />
           </div>
 
@@ -178,7 +178,7 @@ export default function CreateTaskModal({
               min="1"
               value={points}
               onChange={(e) => setPoints(parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900"
             />
           </div>
 
@@ -193,7 +193,7 @@ export default function CreateTaskModal({
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 disabled:opacity-50"
             >
               {loading ? 'Creating...' : 'Create Task'}
             </button>

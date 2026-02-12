@@ -1,12 +1,54 @@
 'use client'
 
-import AddMemberModal from '@/components/AddMemberModal'
-import { completeTask } from '@kinnect/core'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { getCurrentUser, getFamily, getFamilyMembers, getTasks, type User, type Family, type Task } from '@kinnect/core'
+import {
+  getCurrentUser,
+  getFamily,
+  getFamilyMembers,
+  getTasks,
+  completeTask,
+  type User,
+  type Family,
+  type Task,
+} from '@kinnect/core'
 import CreateTaskModal from '@/components/CreateTaskModal'
+import AddMemberModal from '@/components/AddMemberModal'
+import { Logo } from '@/components/Logo'
+import {
+  CheckCircle,
+  AlertCircle,
+  TrendingUp,
+  Trophy,
+  Heart,
+  Plus,
+} from 'lucide-react'
+
+// ── helpers ──────────────────────────────────────────────
+
+const ROLE_COLORS: Record<string, string> = {
+  parent: 'bg-primary-500',
+  grandparent: 'bg-purple-500',
+  child: 'bg-accent-500',
+  domestic_worker: 'bg-amber-500',
+}
+
+function memberColor(role: string | null) {
+  return ROLE_COLORS[role || ''] || 'bg-gray-500'
+}
+
+function isSameDay(dateStr: string) {
+  const d = new Date(dateStr)
+  const today = new Date()
+  return (
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate()
+  )
+}
+
+// ── component ────────────────────────────────────────────
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -49,7 +91,6 @@ export default function DashboardPage() {
   }
 
   async function handleTaskCreated() {
-    // Reload tasks
     if (user?.family_id) {
       const tasksData = await getTasks(user.family_id)
       setTasks(tasksData)
@@ -57,7 +98,6 @@ export default function DashboardPage() {
   }
 
   async function handleMemberAdded() {
-    // Reload family members
     if (user?.family_id) {
       const membersData = await getFamilyMembers(user.family_id)
       setMembers(membersData)
@@ -66,14 +106,11 @@ export default function DashboardPage() {
 
   async function handleCompleteTask(taskId: string) {
     if (!user) return
-
     try {
       await completeTask(taskId, user.id)
-      // Reload tasks
       if (user.family_id) {
         const tasksData = await getTasks(user.family_id)
         setTasks(tasksData)
-        // Reload user to get updated points
         const updatedUser = await getCurrentUser()
         setUser(updatedUser)
       }
@@ -84,171 +121,347 @@ export default function DashboardPage() {
   }
 
   if (loading) {
-    return <div className="p-8">Loading dashboard...</div>
+    return <div className="p-8 text-muted-foreground">Loading dashboard...</div>
   }
 
   if (!user?.family_id) {
-    return null // Will redirect to onboarding
+    return null
   }
 
-  const pendingTasks = tasks.filter(t => !t.completed)
-  const completedTasks = tasks.filter(t => t.completed)
+  // ── derived data ─────────────────────────────────────
+
+  const today = new Date()
+
+  const todaysTasks = tasks.filter(
+    (t) => t.due_date && isSameDay(t.due_date)
+  )
+  const completedToday = todaysTasks.filter((t) => t.completed).length
+
+  const overdueTasks = tasks.filter(
+    (t) => t.due_date && new Date(t.due_date) < today && !t.completed
+  )
+
+  const totalPoints = members.reduce((sum, m) => sum + (m.points || 0), 0)
+
+  const pendingTasks = tasks.filter((t) => !t.completed)
+
+  // Tasks to feature: today's tasks first, then recent pending
+  const featuredTasks =
+    todaysTasks.length > 0
+      ? todaysTasks.slice(0, 6)
+      : pendingTasks.slice(0, 6)
+
+  function getMemberName(id: string) {
+    return members.find((m) => m.id === id)?.name || '?'
+  }
+
+  function getMemberRole(id: string) {
+    return members.find((m) => m.id === id)?.role || null
+  }
+
+  // ── render ─────────────────────────────────────────────
 
   return (
-    <div className="px-4 sm:px-0">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">
-        Welcome back, {user.name}!
-      </h1>
+    <div className="flex-1 overflow-y-auto">
+      {/* ── Top Banner ────────────────────────────────── */}
+      <div className="bg-brand-primary text-white p-6 md:p-8 rounded-b-[2rem] shadow-lg -mx-4 sm:-mx-6 lg:-mx-8 -mt-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/10">
+              <Logo variant="icon" color="white" size="sm" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">
+                {family?.name}
+              </h1>
+              <p className="text-indigo-200 text-sm font-medium">
+                Welcome back, {user.name}
+              </p>
+            </div>
+          </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-8">
-        {/* Family Members Card */}
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center flex-1">
-                <div className="flex-shrink-0">
-                  <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Family Members</dt>
-                    <dd className="text-3xl font-semibold text-gray-900">{members.length}</dd>
-                  </dl>
-                </div>
+          <div className="grid grid-cols-3 gap-4 bg-white/5 p-4 rounded-2xl backdrop-blur-sm border border-white/10">
+            <div className="text-center">
+              <div className="text-3xl font-black">{completedToday}</div>
+              <div className="text-[10px] uppercase tracking-wider text-indigo-100 font-bold">
+                Done Today
               </div>
+            </div>
+            <div className="text-center border-x border-white/10">
+              <div className="text-3xl font-black">{todaysTasks.length}</div>
+              <div className="text-[10px] uppercase tracking-wider text-indigo-100 font-bold">
+                Daily Tasks
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-black">{totalPoints}</div>
+              <div className="text-[10px] uppercase tracking-wider text-indigo-100 font-bold">
+                Total Points
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main Content ──────────────────────────────── */}
+      <div className="max-w-4xl mx-auto -mt-4 space-y-6 pb-4">
+        {/* Progress + Alert row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Today's Progress */}
+          <div className="bg-white rounded-[1.5rem] shadow-sm overflow-hidden">
+            <div className="px-6 pt-6 pb-3 border-b border-gray-50">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold flex items-center gap-2 text-brand-primary">
+                  <CheckCircle className="h-5 w-5 text-brand-success" />
+                  Today&apos;s Progress
+                </h2>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                    completedToday === todaysTasks.length &&
+                    todaysTasks.length > 0
+                      ? 'bg-brand-success text-white'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  {completedToday}/{todaysTasks.length}
+                </span>
+              </div>
+            </div>
+            <div className="px-6 pt-6 pb-6">
+              {/* Progress bar */}
+              <div className="h-3 rounded-full bg-primary-50 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-brand-success transition-all duration-500"
+                  style={{
+                    width: `${
+                      todaysTasks.length > 0
+                        ? (completedToday / todaysTasks.length) * 100
+                        : 0
+                    }%`,
+                  }}
+                />
+              </div>
+              <p className="mt-4 text-sm text-gray-500 font-medium">
+                {todaysTasks.length === 0
+                  ? 'No tasks scheduled for today. Take a break!'
+                  : completedToday === todaysTasks.length
+                    ? 'Amazing! Every task is complete.'
+                    : `${todaysTasks.length - completedToday} tasks left to conquer today.`}
+              </p>
               <button
-                onClick={() => setShowAddMember(true)}
-                className="ml-4 p-2 text-blue-600 hover:bg-blue-50 rounded-full"
-                title="Add family member"
+                onClick={() => setShowCreateTask(true)}
+                className="w-full mt-6 bg-brand-accent hover:bg-accent-600 text-white rounded-xl h-12 shadow-lg shadow-accent-500/20 font-bold flex items-center justify-center gap-2 transition-colors"
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
+                <Plus className="h-4 w-4" />
+                New Family Task
               </button>
             </div>
           </div>
-        </div>
 
-        {/* Pending Tasks Card */}
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
+          {/* Overdue Alert OR On Track */}
+          {overdueTasks.length > 0 ? (
+            <div className="bg-accent-50 rounded-[1.5rem] shadow-sm border-2 border-accent-200/40">
+              <div className="px-6 pt-6 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="bg-brand-accent p-2 rounded-lg">
+                    <AlertCircle className="h-5 w-5 text-white" />
+                  </div>
+                  <h2 className="text-lg font-bold text-accent-900">
+                    Action Required
+                  </h2>
+                </div>
               </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Pending Tasks</dt>
-                  <dd className="text-3xl font-semibold text-gray-900">{pendingTasks.length}</dd>
-                </dl>
+              <div className="px-6 pb-6">
+                <p className="text-sm text-accent-700 mb-6 font-medium">
+                  {overdueTasks.length} task
+                  {overdueTasks.length > 1 ? 's are' : ' is'} overdue.
+                  Let&apos;s get these finished!
+                </p>
+                <Link
+                  href="/dashboard/tasks"
+                  className="block w-full text-center bg-white border border-accent-200 text-brand-accent hover:bg-accent-50 rounded-xl h-11 leading-[2.75rem] font-bold transition-colors"
+                >
+                  Resolve Issues
+                </Link>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Points Card */}
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                </svg>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Your Points</dt>
-                  <dd className="text-3xl font-semibold text-gray-900">{user.points || 0}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Tasks */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-4 py-5 sm:px-6 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-lg font-medium text-gray-900">Recent Tasks</h2>
-          <button
-            onClick={() => setShowCreateTask(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-          >
-            <span className="text-xl leading-none">+</span>
-            Create Task
-          </button>
-        </div>
-        <div className="px-4 py-5 sm:p-6">
-          {tasks.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No tasks yet. Create one to get started!</p>
           ) : (
-            <ul className="divide-y divide-gray-200">
-              {tasks.slice(0, 5).map((task) => (
-                <li key={task.id} className="py-4">
-                  <div className="flex items-center justify-between">
-                    {/* Checkbox for completion */}
-                    <div className="flex items-center gap-3 flex-1">
-                      {!task.completed && (
-                        <button
-                          onClick={() => handleCompleteTask(task.id)}
-                          className="flex-shrink-0 w-5 h-5 border-2 border-gray-300 rounded hover:border-blue-500 hover:bg-blue-50 transition-colors"
-                          title="Mark as complete"
-                        >
-                          {/* Empty checkbox */}
-                        </button>
-                      )}
-                      {task.completed && (
-                        <div className="flex-shrink-0 w-5 h-5 bg-green-500 rounded flex items-center justify-center">
-                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                      )}
+            <div className="bg-brand-bg/50 rounded-[1.5rem] shadow-sm border border-brand-bg flex items-center justify-center p-8">
+              <div className="text-center">
+                <div className="bg-white p-4 rounded-full inline-block shadow-sm mb-4">
+                  <Heart className="h-8 w-8 text-brand-accent" />
+                </div>
+                <h3 className="font-bold text-brand-primary">
+                  You&apos;re on track!
+                </h3>
+                <p className="text-sm text-primary-500 mt-1 font-medium">
+                  Everything is up to date.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
 
-                      <div className="flex-1">
-                        <p className={`text-sm font-medium ${task.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
-                          {task.title}
-                        </p>
-                        {task.description && (
-                          <p className="text-sm text-gray-500 mt-1">{task.description}</p>
-                        )}
-                        {task.due_date && (
-                          <p className="text-xs text-gray-400 mt-1">
-                            Due: {new Date(task.due_date).toLocaleDateString()}
-                          </p>
-                        )}
+        {/* ── Featured Tasks ──────────────────────────── */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-2">
+            <h2 className="text-xl font-bold text-brand-primary">
+              Featured Tasks
+            </h2>
+            <Link
+              href="/dashboard/tasks"
+              className="text-brand-accent font-bold hover:bg-brand-bg px-3 py-1.5 rounded-lg transition-colors text-sm"
+            >
+              View Full List
+            </Link>
+          </div>
+
+          {featuredTasks.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-[2rem] shadow-sm border border-gray-50">
+              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="h-10 w-10 text-gray-200" />
+              </div>
+              <p className="text-gray-400 font-bold">No tasks to show</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {featuredTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden group"
+                >
+                  <div className="p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      {task.category ? (
+                        <span className="bg-primary-50 text-brand-primary text-[10px] uppercase font-bold px-2 py-0.5 rounded">
+                          {task.category}
+                        </span>
+                      ) : (
+                        <span />
+                      )}
+                      <div className="flex items-center text-amber-500 font-black text-sm">
+                        <Trophy className="h-3.5 w-3.5 mr-1" />
+                        {task.points || 0}
                       </div>
                     </div>
 
-                    <div className="ml-4 flex items-center gap-2">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {task.points} pts
-                      </span>
-                      {task.completed && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          ✓ Done
+                    <h3
+                      className={`font-bold text-brand-primary line-clamp-1 group-hover:text-brand-accent transition-colors ${
+                        task.completed ? 'line-through opacity-50' : ''
+                      }`}
+                    >
+                      {task.title}
+                    </h3>
+
+                    <div className="mt-4 flex items-center justify-between">
+                      {/* Assigned avatars */}
+                      <div className="flex -space-x-2">
+                        {(task.assigned_to || []).slice(0, 3).map((id) => (
+                          <div
+                            key={id}
+                            className={`h-7 w-7 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-[10px] text-white font-bold ${memberColor(getMemberRole(id))}`}
+                          >
+                            {getMemberName(id).charAt(0)}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Status + complete action */}
+                      {task.completed ? (
+                        <span className="px-2 py-1 rounded-lg text-[10px] font-bold uppercase bg-success-50 text-brand-success">
+                          Completed
                         </span>
+                      ) : (
+                        <button
+                          onClick={() => handleCompleteTask(task.id)}
+                          className="px-2 py-1 rounded-lg text-[10px] font-bold uppercase bg-gray-100 text-gray-600 hover:bg-success-50 hover:text-brand-success transition-colors"
+                        >
+                          Pending
+                        </button>
                       )}
                     </div>
                   </div>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
-      </div>
-      <AddMemberModal
-        isOpen={showAddMember}
-        onClose={() => setShowAddMember(false)}
-        familyId={user.family_id}
-        onMemberAdded={handleMemberAdded}
-      />
 
-      {/* Create Task Modal */}
+        {/* ── Family Leaderboard ──────────────────────── */}
+        <div className="bg-white rounded-[2rem] shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-50 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-brand-primary">
+              Family Leaderboard
+            </h2>
+            <button
+              onClick={() => setShowAddMember(true)}
+              className="text-brand-accent text-sm font-bold hover:bg-brand-bg px-3 py-1.5 rounded-lg transition-colors"
+            >
+              + Add Member
+            </button>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {members.map((member) => {
+              const completedCount = tasks.filter(
+                (t) =>
+                  t.completed &&
+                  t.assigned_to &&
+                  t.assigned_to.includes(member.id)
+              ).length
+
+              return (
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between p-4 hover:bg-primary-50/30 transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`h-10 w-10 rounded-full shadow-sm flex items-center justify-center text-white font-bold ${memberColor(member.role)}`}
+                    >
+                      {member.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-bold text-brand-primary">
+                        {member.name}
+                        {member.id === user.id && (
+                          <span className="text-xs text-primary-400 font-medium ml-1.5">
+                            (You)
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">
+                        {member.role || 'Member'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-6">
+                    <div className="text-right hidden sm:block">
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                        Completed
+                      </p>
+                      <p className="font-bold text-brand-primary">
+                        {completedCount}
+                      </p>
+                    </div>
+                    <div className="bg-brand-bg px-4 py-2 rounded-xl text-center min-w-[80px]">
+                      <div className="flex items-center justify-center text-brand-primary font-black">
+                        <TrendingUp className="h-4 w-4 mr-1 text-brand-success" />
+                        <span>{member.points || 0}</span>
+                      </div>
+                      <p className="text-[10px] text-primary-400 uppercase font-bold">
+                        Points
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Modals ────────────────────────────────────── */}
       <CreateTaskModal
         isOpen={showCreateTask}
         onClose={() => setShowCreateTask(false)}
@@ -256,7 +469,12 @@ export default function DashboardPage() {
         userId={user.id}
         onTaskCreated={handleTaskCreated}
       />
+      <AddMemberModal
+        isOpen={showAddMember}
+        onClose={() => setShowAddMember(false)}
+        familyId={user.family_id}
+        onMemberAdded={handleMemberAdded}
+      />
     </div>
   )
-
 }
