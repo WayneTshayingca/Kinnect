@@ -242,7 +242,6 @@ export default function FamilyPage() {
                       {m.phone && (
                         <span className="text-sm text-gray-500">{m.phone}</span>
                       )}
-                      <span className="text-sm text-accent-500 font-medium">{m.points || 0} pts</span>
                     </div>
                     {m.created_at && (
                       <p className="text-xs text-gray-400 mt-1">

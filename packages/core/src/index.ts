@@ -1,5 +1,3 @@
-import { completeTask } from './supabase/tasks'
-
 // Supabase client
 export { initSupabase, getSupabase } from './supabase/client'
 
@@ -15,7 +13,8 @@ export * from './supabase/tasks'
 // Calendar
 export * from './supabase/calendar'
 
+// Shopping List
+export * from './supabase/shopping-list'
+
 // Types
 export * from './types/database'
-
-export * from './supabase/tasks'
