@@ -99,10 +99,10 @@ export default function ShoppingListWidget({
               No items yet. Add your first item below!
             </p>
           ) : (
-            items.map((item) => (
+            items.map((item, index) => (
               <div
                 key={item.id}
-                className="flex items-start gap-3 group hover:bg-gray-50 p-2 -mx-2 rounded-xl transition-colors"
+                className={`flex items-start gap-3 group hover:bg-gray-50 p-2 -mx-2 rounded-xl transition-colors${index >= 3 ? ' hidden md:flex' : ''}`}
               >
                 <input
                   type="checkbox"

@@ -67,6 +67,24 @@ export async function completeTask(taskId: string, userId: string) {
   return task
 }
 
+export async function uncompleteTask(taskId: string) {
+  const supabase = getSupabase()
+
+  const { data: task, error } = await supabase
+    .from('tasks')
+    .update({
+      completed: false,
+      completed_by: null,
+      completed_at: null,
+    })
+    .eq('id', taskId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return task
+}
+
 export async function assignTask(taskId: string, userIds: string[]) {
   const supabase = getSupabase()
   

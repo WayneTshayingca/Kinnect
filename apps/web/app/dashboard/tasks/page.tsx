@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getTasks, completeTask, type Task } from '@kinnect/core'
+import { getTasks, completeTask, uncompleteTask, type Task } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
 import CreateTaskModal from '@/components/CreateTaskModal'
 
@@ -45,6 +45,19 @@ export default function TasksPage() {
     } catch (error) {
       console.error('Error completing task:', error)
       alert('Failed to complete task')
+    }
+  }
+
+  async function handleUncompleteTask(taskId: string) {
+    if (!user?.family_id) return
+
+    try {
+      await uncompleteTask(taskId)
+      const tasksData = await getTasks(user.family_id)
+      setTasks(tasksData)
+    } catch (error) {
+      console.error('Error undoing task:', error)
+      alert('Failed to undo task')
     }
   }
 
@@ -141,11 +154,15 @@ export default function TasksPage() {
                   />
                 )}
                 {task.completed && (
-                  <div className="flex-shrink-0 w-5 h-5 mt-0.5 bg-success-500 rounded flex items-center justify-center">
+                  <button
+                    onClick={() => handleUncompleteTask(task.id)}
+                    className="flex-shrink-0 w-5 h-5 mt-0.5 bg-success-500 rounded flex items-center justify-center hover:bg-success-400 transition-colors cursor-pointer"
+                    title="Mark as incomplete"
+                  >
                     <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
-                  </div>
+                  </button>
                 )}
 
                 {/* Task Content */}
