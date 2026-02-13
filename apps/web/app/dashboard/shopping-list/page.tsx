@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   getFamilyMembers,
@@ -14,6 +14,7 @@ import {
   type ListItem,
 } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
+import { useRealtimeSync } from '@/hooks/useRealtimeSync'
 import toast from 'react-hot-toast'
 import { ShoppingCart, Plus, Trash2, ChevronDown, ChevronUp, Pencil, Check, X } from 'lucide-react'
 
@@ -75,7 +76,7 @@ export default function ShoppingListPage() {
     }
   }
 
-  async function reloadList() {
+  const reloadList = useCallback(async () => {
     if (!user?.family_id) return
     try {
       const listData = await getFullShoppingList(user.family_id)
@@ -84,7 +85,9 @@ export default function ShoppingListPage() {
     } catch (error) {
       console.error('Error reloading list:', error)
     }
-  }
+  }, [user?.family_id])
+
+  const broadcast = useRealtimeSync(user?.family_id, { list_items: reloadList })
 
   function getMemberName(id: string) {
     return members.find((m) => m.id === id)?.name || 'Someone'
@@ -101,6 +104,7 @@ export default function ShoppingListPage() {
       })
       setNewTitle('')
       await reloadList()
+      broadcast('list_items')
     } catch (error) {
       console.error('Failed to add item:', error)
       toast.error('Failed to add item')
@@ -129,6 +133,7 @@ export default function ShoppingListPage() {
 
     try {
       await toggleShoppingListItem(itemId, !completed, user.id)
+      broadcast('list_items')
     } catch (error) {
       console.error('Failed to toggle item:', error)
       await reloadList()
@@ -142,6 +147,7 @@ export default function ShoppingListPage() {
 
     try {
       await deleteShoppingListItem(itemId)
+      broadcast('list_items')
     } catch (error) {
       console.error('Failed to delete item:', error)
       await reloadList()
@@ -154,6 +160,7 @@ export default function ShoppingListPage() {
     try {
       await clearCompletedItems(user.family_id)
       await reloadList()
+      broadcast('list_items')
     } catch (error) {
       console.error('Failed to clear completed:', error)
       toast.error('Failed to clear completed items')
@@ -177,6 +184,7 @@ export default function ShoppingListPage() {
       setEditingId(null)
       setEditTitle('')
       await reloadList()
+      broadcast('list_items')
     } catch (error) {
       console.error('Failed to update item:', error)
       toast.error('Failed to update item')

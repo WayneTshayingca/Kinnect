@@ -58,7 +58,7 @@ export default function FamilyActivityWidget({
     <div className="bg-white rounded-[1.5rem] shadow-sm overflow-hidden">
       <div className="px-6 py-5 border-b border-gray-50 flex items-center justify-between">
         <h2 className="text-lg font-bold text-brand-primary">
-          Family Activity
+          Family Members
         </h2>
         <button
           onClick={onAddMember}

@@ -4,6 +4,7 @@ import { z } from 'zod'
 
 const inviteSchema = z.object({
   email: z.string().email('Invalid email address'),
+  name: z.string().min(1, 'Name is required').optional().default(''),
   userId: z.string().uuid('Invalid user ID'),
   familyId: z.string().uuid('Invalid family ID'),
 })
@@ -29,16 +30,20 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const { email, userId, familyId } = parsed.data
+  const { email, name, userId, familyId } = parsed.data
 
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
   // Send the invite — Supabase creates an auth user and emails them
+  const origin = request.nextUrl.origin
   const { data: authData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
     email,
-    { data: { user_id: userId, family_id: familyId } }
+    {
+      data: { name, user_id: userId, family_id: familyId },
+      redirectTo: `${origin}/auth/callback`,
+    }
   )
 
   if (inviteError) {

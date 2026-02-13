@@ -1,6 +1,6 @@
 'use client'
 
-import {useEffect, useState} from 'react'
+import {useCallback, useEffect, useState} from 'react'
 import {useRouter} from 'next/navigation'
 import {
     type CalendarEvent,
@@ -26,6 +26,7 @@ import ShoppingListWidget from '@/components/dashboard/ShoppingListWidget'
 import UpcomingEventsWidget from '@/components/dashboard/UpcomingEventsWidget'
 import FamilyActivityWidget from '@/components/dashboard/FamilyActivityWidget'
 import {ErrorBoundary} from '@/components/ErrorBoundary'
+import {useRealtimeSync} from '@/hooks/useRealtimeSync'
 import {LogOut} from 'lucide-react'
 
 // ── helpers ──────────────────────────────────────────────
@@ -118,6 +119,7 @@ export default function DashboardPage() {
             : t
         )
       )
+      broadcast('tasks')
     }
   }
 
@@ -125,6 +127,7 @@ export default function DashboardPage() {
   function handleShoppingToggleOptimistic(itemId: string) {
     setShoppingItems((prev) => prev.filter((i) => i.id !== itemId))
     setShoppingTotalCount((prev) => Math.max(0, prev - 1))
+    broadcast('list_items')
     // Background sync
     if (user?.family_id) {
       getShoppingListPreview(user.family_id, 4).then((data) => {
@@ -134,27 +137,43 @@ export default function DashboardPage() {
     }
   }
 
-  async function handleTaskCreated() {
+  const reloadTasks = useCallback(async () => {
     if (user?.family_id) {
       const tasksData = await getTodaysTasks(user.family_id)
       setTasks(tasksData)
     }
-  }
+  }, [user?.family_id])
 
-  async function handleMemberAdded() {
+  const reloadMembers = useCallback(async () => {
     if (user?.family_id) {
       const membersData = await getFamilyMembers(user.family_id)
       setMembers(membersData)
     }
-  }
+  }, [user?.family_id])
 
-  async function handleShoppingItemAdded() {
+  const reloadShopping = useCallback(async () => {
     if (user?.family_id) {
       const shoppingData = await getShoppingListPreview(user.family_id, 4)
       setShoppingItems(shoppingData.items)
       setShoppingTotalCount(shoppingData.totalCount)
     }
-  }
+  }, [user?.family_id])
+
+  const reloadEvents = useCallback(async () => {
+    if (user?.family_id) {
+      const { weekStart, weekEnd } = getWeekRange()
+      const eventsData = await getCalendarEvents(user.family_id, weekStart.toISOString(), weekEnd.toISOString())
+      setEvents(eventsData)
+    }
+  }, [user?.family_id])
+
+  // ── Realtime sync (Broadcast) ─────────────────────────
+  const broadcast = useRealtimeSync(user?.family_id, {
+    tasks: reloadTasks,
+    list_items: reloadShopping,
+    calendar_events: reloadEvents,
+    users: reloadMembers,
+  })
 
   async function handleSignOut() {
     await signOut()
@@ -229,7 +248,7 @@ export default function DashboardPage() {
               userId={user.id}
               familyId={user.family_id}
               onTaskCompleted={handleTaskCompletedOptimistic}
-              onTaskCreated={handleTaskCreated}
+              onTaskCreated={async () => { await reloadTasks(); broadcast('tasks') }}
               onCreateTask={() => setShowCreateTask(true)}
             />
           </ErrorBoundary>
@@ -240,7 +259,7 @@ export default function DashboardPage() {
               familyId={user.family_id}
               userId={user.id}
               members={members}
-              onItemAdded={handleShoppingItemAdded}
+              onItemAdded={() => { reloadShopping(); broadcast('list_items') }}
               onItemToggled={handleShoppingToggleOptimistic}
             />
           </ErrorBoundary>
@@ -267,13 +286,13 @@ export default function DashboardPage() {
         familyId={user.family_id}
         userId={user.id}
         members={members}
-        onTaskCreated={handleTaskCreated}
+        onTaskCreated={async () => { await reloadTasks(); broadcast('tasks') }}
       />
       <AddMemberModal
         isOpen={showAddMember}
         onClose={() => setShowAddMember(false)}
         familyId={user.family_id}
-        onMemberAdded={handleMemberAdded}
+        onMemberAdded={() => { reloadMembers(); broadcast('users') }}
       />
     </div>
   )

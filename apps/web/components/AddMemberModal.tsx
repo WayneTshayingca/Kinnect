@@ -54,7 +54,7 @@ export default function AddMemberModal({
       const res = await fetch('/api/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, userId, familyId }),
+        body: JSON.stringify({ email, name, userId, familyId }),
       })
       if (!res.ok) {
         const data = await res.json()

@@ -15,6 +15,7 @@ import {
 } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
 import toast from 'react-hot-toast'
+import { Eye, EyeOff } from 'lucide-react'
 import AddMemberModal from '@/components/AddMemberModal'
 
 // ── role helpers ──────────────────────────────────────────
@@ -66,6 +67,8 @@ export default function ProfilePage() {
   const [passwordError, setPasswordError] = useState('')
   const [passwordSuccess, setPasswordSuccess] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   // ── data loading ─────────────────────────────────────
 
@@ -105,8 +108,14 @@ export default function ProfilePage() {
 
   async function reloadMembers() {
     if (!user?.family_id) return
-    const membersData = await getFamilyMembers(user.family_id)
-    setMembers(membersData)
+    try {
+      const membersData = await getFamilyMembers(user.family_id)
+      setMembers(membersData)
+    } catch (error) {
+      console.error('Error reloading members:', error)
+      // Re-fetch from scratch as a fallback
+      await refreshUser()
+    }
   }
 
   // ── profile editing ──────────────────────────────────
@@ -203,13 +212,22 @@ export default function ProfilePage() {
   }
 
   async function handleRemoveMember(m: User) {
+    if (m.id === user?.id) {
+      toast.error('You cannot remove yourself from the family')
+      return
+    }
     if (!confirm(`Remove ${m.name} from the family circle?`)) return
     try {
       await removeFamilyMember(m.id)
+      // Optimistically remove the member from UI immediately
+      setMembers((prev) => prev.filter((member) => member.id !== m.id))
+      // Then sync with server
       await reloadMembers()
     } catch (error) {
       console.error('Error removing member:', error)
       toast.error('Failed to remove member')
+      // Reload to get the true state from server
+      await reloadMembers()
     }
   }
 
@@ -326,27 +344,45 @@ export default function ProfilePage() {
               <form onSubmit={handleChangePassword} className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900"
-                    placeholder="Min. 6 characters"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      required
+                      minLength={6}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900"
+                      placeholder="Min. 6 characters"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900"
-                    placeholder="Re-enter password"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      required
+                      minLength={6}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900"
+                      placeholder="Re-enter password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
                 {passwordError && (
                   <p className="text-sm text-red-600">{passwordError}</p>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   getCalendarEvents,
@@ -8,6 +8,7 @@ import {
   type CalendarEvent,
 } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
+import { useRealtimeSync } from '@/hooks/useRealtimeSync'
 import toast from 'react-hot-toast'
 import CreateEventModal from '@/components/CreateEventModal'
 
@@ -75,7 +76,7 @@ export default function CalendarPage() {
     }
   }, [user, year, month])
 
-  async function loadEvents() {
+  const loadEvents = useCallback(async () => {
     if (!user?.family_id) return
     try {
       const start = `${year}-${String(month + 1).padStart(2, '0')}-01`
@@ -86,13 +87,16 @@ export default function CalendarPage() {
     } catch (error) {
       console.error('Error loading events:', error)
     }
-  }
+  }, [user?.family_id, year, month])
+
+  const broadcast = useRealtimeSync(user?.family_id, { calendar_events: loadEvents })
 
   async function handleDelete(eventId: string) {
     if (!confirm('Delete this event?')) return
     try {
       await deleteCalendarEvent(eventId)
       await loadEvents()
+      broadcast('calendar_events')
     } catch (error) {
       console.error('Error deleting event:', error)
       toast.error('Failed to delete event')
@@ -463,7 +467,7 @@ export default function CalendarPage() {
         onClose={() => { setShowCreateEvent(false); setEditingEvent(null) }}
         familyId={user.family_id}
         userId={user.id}
-        onEventCreated={loadEvents}
+        onEventCreated={() => { loadEvents(); broadcast('calendar_events') }}
         defaultDate={defaultDate}
         event={editingEvent}
       />

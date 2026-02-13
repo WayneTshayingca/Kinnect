@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getTasks, completeTask, uncompleteTask, type Task } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
+import { useRealtimeSync } from '@/hooks/useRealtimeSync'
 import CreateTaskModal from '@/components/CreateTaskModal'
 
 export default function TasksPage() {
@@ -27,12 +28,14 @@ export default function TasksPage() {
       .finally(() => setLoading(false))
   }, [user?.family_id])
 
-  async function handleTaskCreated() {
+  const reloadTasks = useCallback(async () => {
     if (user?.family_id) {
       const tasksData = await getTasks(user.family_id)
       setTasks(tasksData)
     }
-  }
+  }, [user?.family_id])
+
+  const broadcast = useRealtimeSync(user?.family_id, { tasks: reloadTasks })
 
   async function handleCompleteTask(taskId: string) {
     if (!user) return
@@ -48,9 +51,9 @@ export default function TasksPage() {
 
     try {
       await completeTask(taskId, user.id)
+      broadcast('tasks')
     } catch (error) {
       console.error('Error completing task:', error)
-      // Revert on failure
       if (user.family_id) {
         const tasksData = await getTasks(user.family_id)
         setTasks(tasksData)
@@ -72,9 +75,9 @@ export default function TasksPage() {
 
     try {
       await uncompleteTask(taskId)
+      broadcast('tasks')
     } catch (error) {
       console.error('Error undoing task:', error)
-      // Revert on failure
       const tasksData = await getTasks(user.family_id)
       setTasks(tasksData)
     }
@@ -229,7 +232,7 @@ export default function TasksPage() {
         onClose={() => setShowCreateTask(false)}
         familyId={user.family_id}
         userId={user.id}
-        onTaskCreated={handleTaskCreated}
+        onTaskCreated={() => { reloadTasks(); broadcast('tasks') }}
       />
     </div>
   )

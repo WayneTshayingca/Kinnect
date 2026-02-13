@@ -28,7 +28,7 @@ export default function DashboardStats({
       <div className="text-center">
         <div className="text-3xl font-black">{upcomingEvents}</div>
         <div className="text-[10px] uppercase tracking-wider text-indigo-100 font-bold">
-          This Week
+          Events This Week
         </div>
       </div>
     </div>

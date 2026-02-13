@@ -115,6 +115,19 @@ export async function updateFamilyMember(
 export async function removeFamilyMember(memberId: string) {
   const supabase = getSupabase()
 
+  // Safety: prevent deleting your own user record
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session?.user) {
+    const { data: selfRecord } = await supabase
+      .from('users')
+      .select('id')
+      .eq('auth_user_id', session.user.id)
+      .maybeSingle()
+    if (selfRecord && selfRecord.id === memberId) {
+      throw new Error('You cannot remove yourself from the family')
+    }
+  }
+
   const { error } = await supabase
     .from('users')
     .delete()
