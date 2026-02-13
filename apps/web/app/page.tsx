@@ -15,11 +15,15 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
-  // If Supabase redirects here with invite tokens in the hash, forward to callback page
+  // If Supabase redirects here with tokens in the hash, forward appropriately
   useEffect(() => {
     const hash = window.location.hash
-    if (hash && hash.includes('access_token') && hash.includes('type=invite')) {
-      router.replace(`/auth/callback${hash}`)
+    if (hash && hash.includes('access_token')) {
+      if (hash.includes('type=invite')) {
+        router.replace(`/auth/callback${hash}`)
+      } else if (hash.includes('type=recovery')) {
+        router.replace(`/auth/reset-password${hash}`)
+      }
     }
   }, [router])
 
@@ -95,9 +99,14 @@ export default function Home() {
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password
-                </label>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                    Password
+                  </label>
+                  <Link href="/auth/forgot-password" className="text-sm text-accent-600 hover:text-accent-700 font-medium">
+                    Forgot password?
+                  </Link>
+                </div>
                 <div className="relative mt-1">
                   <input
                     id="password"

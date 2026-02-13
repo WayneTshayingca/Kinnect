@@ -69,6 +69,12 @@ export async function changePassword(newPassword: string) {
   return data
 }
 
+export async function resetPasswordForEmail(email: string, redirectTo: string) {
+  const supabase = getSupabase()
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+  if (error) throw error
+}
+
 export async function getSession() {
   const supabase = getSupabase()
   const { data: { session } } = await supabase.auth.getSession()
