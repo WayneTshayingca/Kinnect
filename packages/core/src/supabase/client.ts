@@ -25,6 +25,6 @@ export function getSupabase(): SupabaseClient<Database> {
 // Export a typed client directly
 export const supabase = new Proxy({} as SupabaseClient<Database>, {
   get(_target, prop) {
-    return (getSupabase() as any)[prop]
+    return getSupabase()[prop as keyof SupabaseClient<Database>]
   }
 })

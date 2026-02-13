@@ -14,6 +14,7 @@ import {
   type Family,
 } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
+import toast from 'react-hot-toast'
 import AddMemberModal from '@/components/AddMemberModal'
 
 // ── role helpers ──────────────────────────────────────────
@@ -128,7 +129,7 @@ export default function ProfilePage() {
       setEditingProfile(false)
     } catch (error) {
       console.error('Error updating profile:', error)
-      alert('Failed to update profile')
+      toast.error('Failed to update profile')
     } finally {
       setSavingProfile(false)
     }
@@ -150,7 +151,7 @@ export default function ProfilePage() {
       setEditingFamilyName(false)
     } catch (error) {
       console.error('Error updating family name:', error)
-      alert('Failed to update family name')
+      toast.error('Failed to update family name')
     } finally {
       setSavingFamilyName(false)
     }
@@ -208,7 +209,7 @@ export default function ProfilePage() {
       await reloadMembers()
     } catch (error) {
       console.error('Error removing member:', error)
-      alert('Failed to remove member')
+      toast.error('Failed to remove member')
     }
   }
 

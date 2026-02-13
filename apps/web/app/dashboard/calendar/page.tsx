@@ -8,7 +8,7 @@ import {
   type CalendarEvent,
 } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
-
+import toast from 'react-hot-toast'
 import CreateEventModal from '@/components/CreateEventModal'
 
 // ── helpers ──────────────────────────────────────────────
@@ -95,7 +95,7 @@ export default function CalendarPage() {
       await loadEvents()
     } catch (error) {
       console.error('Error deleting event:', error)
-      alert('Failed to delete event')
+      toast.error('Failed to delete event')
     }
   }
 

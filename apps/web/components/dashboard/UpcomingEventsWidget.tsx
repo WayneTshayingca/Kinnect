@@ -46,9 +46,16 @@ export default function UpcomingEventsWidget({ events }: UpcomingEventsWidgetPro
 
       <div className="px-6 py-4">
         {events.length === 0 ? (
-          <p className="text-gray-400 text-sm font-medium py-2">
-            No upcoming events this week.
-          </p>
+          <div className="text-center py-6">
+            <Calendar className="h-8 w-8 text-gray-200 mx-auto mb-2" />
+            <p className="text-gray-400 text-sm font-medium">No upcoming events this week</p>
+            <Link
+              href="/dashboard/calendar"
+              className="text-brand-accent text-sm font-bold mt-2 inline-block hover:underline"
+            >
+              Add an event
+            </Link>
+          </div>
         ) : (
           <div className="space-y-3">
             {events.map((event) => (

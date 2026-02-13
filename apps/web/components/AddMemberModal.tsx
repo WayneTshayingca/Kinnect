@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import { addFamilyMember, updateFamilyMember, type User } from '@kinnect/core'
 
 type Role = 'admin' | 'member' | 'dependent' | 'observer'
@@ -100,7 +101,7 @@ export default function AddMemberModal({
       onClose()
     } catch (error) {
       console.error(`Error ${isEditing ? 'updating' : 'adding'} family member:`, error)
-      alert(`Failed to ${isEditing ? 'update' : 'add'} family member`)
+      toast.error(`Failed to ${isEditing ? 'update' : 'add'} family member`)
     } finally {
       setLoading(false)
     }

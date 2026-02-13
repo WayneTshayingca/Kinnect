@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
 import {
   addShoppingListItem,
   toggleShoppingListItem,
@@ -65,7 +66,7 @@ export default function ShoppingListWidget({
       onItemAdded()
     } catch (error) {
       console.error('Failed to add item:', error)
-      alert('Failed to add item')
+      toast.error('Failed to add item')
     } finally {
       setIsAdding(false)
     }

@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import Link from 'next/link'
 import { type User, type Task } from '@kinnect/core'
+import { Users } from 'lucide-react'
 
 const ROLE_COLORS: Record<string, string> = {
   admin: 'bg-primary-500',
@@ -68,6 +69,18 @@ export default function FamilyActivityWidget({
       </div>
 
       <div className="divide-y divide-gray-50">
+        {membersWithCounts.length === 0 ? (
+          <div className="text-center py-8">
+            <Users className="h-8 w-8 text-gray-200 mx-auto mb-2" />
+            <p className="text-gray-400 text-sm font-medium">No family members yet</p>
+            <button
+              onClick={onAddMember}
+              className="text-brand-accent text-sm font-bold mt-2 inline-block hover:underline"
+            >
+              Add your first member
+            </button>
+          </div>
+        ) : null}
         {membersWithCounts.map((member) => (
           <Link
             key={member.id}

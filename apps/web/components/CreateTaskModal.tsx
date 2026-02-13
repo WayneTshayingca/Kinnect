@@ -1,6 +1,7 @@
 'use client'
 
 import {useEffect, useState} from 'react'
+import toast from 'react-hot-toast'
 import {createTask, getFamilyMembers, type User} from '@kinnect/core'
 
 interface CreateTaskModalProps {
@@ -68,13 +69,7 @@ export default function CreateTaskModal({
       onClose()
     } catch (error) {
   console.error('Error creating task:', error)
-  console.error('Error details:', JSON.stringify(error, null, 2))
-  if (error instanceof Error) {
-    console.error('Error message:', error.message)
-    alert(`Failed to create task: ${error.message}`)
-  } else {
-    alert('Failed to create task')
-  }
+  toast.error(error instanceof Error ? error.message : 'Failed to create task')
 } finally {
       setLoading(false)
     }

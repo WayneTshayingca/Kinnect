@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
 import { completeTask, createTask, type Task, type User } from '@kinnect/core'
 import { AlertCircle, CheckCircle, Circle, Plus } from 'lucide-react'
 
@@ -89,7 +90,7 @@ export default function TodaysTasksWidget({
       await onTaskCreated()
     } catch (error) {
       console.error('Failed to add task:', error)
-      alert('Failed to add task')
+      toast.error('Failed to add task')
     } finally {
       setIsAdding(false)
     }

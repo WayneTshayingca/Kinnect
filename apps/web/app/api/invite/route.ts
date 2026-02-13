@@ -1,5 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+
+const inviteSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  userId: z.string().uuid('Invalid user ID'),
+  familyId: z.string().uuid('Invalid family ID'),
+})
 
 export async function POST(request: NextRequest) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -12,14 +19,17 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const { email, userId, familyId } = await request.json()
+  const body = await request.json()
+  const parsed = inviteSchema.safeParse(body)
 
-  if (!email || !userId || !familyId) {
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: 'Missing required fields: email, userId, familyId' },
+      { error: parsed.error.errors[0].message },
       { status: 400 }
     )
   }
+
+  const { email, userId, familyId } = parsed.data
 
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },

@@ -13,6 +13,7 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true)
   const [showCreateTask, setShowCreateTask] = useState(false)
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all')
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -88,8 +89,9 @@ export default function TasksPage() {
   }
 
   const filteredTasks = tasks.filter(task => {
-    if (filter === 'pending') return !task.completed
-    if (filter === 'completed') return task.completed
+    if (filter === 'pending' && task.completed) return false
+    if (filter === 'completed' && !task.completed) return false
+    if (search && !task.title.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
 
@@ -113,6 +115,17 @@ export default function TasksPage() {
           <span className="text-xl leading-none">+</span>
           Create Task
         </button>
+      </div>
+
+      {/* Search */}
+      <div className="mb-4">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search tasks..."
+          className="w-full px-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent placeholder:text-gray-400"
+        />
       </div>
 
       {/* Filter Tabs */}

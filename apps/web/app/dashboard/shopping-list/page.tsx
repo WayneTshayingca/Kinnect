@@ -14,6 +14,7 @@ import {
   type ListItem,
 } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
+import toast from 'react-hot-toast'
 import { ShoppingCart, Plus, Trash2, ChevronDown, ChevronUp, Pencil, Check, X } from 'lucide-react'
 
 // ── helpers ──────────────────────────────────────────────
@@ -102,7 +103,7 @@ export default function ShoppingListPage() {
       await reloadList()
     } catch (error) {
       console.error('Failed to add item:', error)
-      alert('Failed to add item')
+      toast.error('Failed to add item')
     } finally {
       setIsAdding(false)
     }
@@ -155,7 +156,7 @@ export default function ShoppingListPage() {
       await reloadList()
     } catch (error) {
       console.error('Failed to clear completed:', error)
-      alert('Failed to clear completed items')
+      toast.error('Failed to clear completed items')
     }
   }
 
@@ -178,7 +179,7 @@ export default function ShoppingListPage() {
       await reloadList()
     } catch (error) {
       console.error('Failed to update item:', error)
-      alert('Failed to update item')
+      toast.error('Failed to update item')
     }
   }
 

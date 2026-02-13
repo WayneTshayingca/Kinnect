@@ -26,6 +26,22 @@ export async function getTasks(familyId: string): Promise<Task[]> {
   return data || []
 }
 
+export async function getTodaysTasks(familyId: string): Promise<Task[]> {
+  const supabase = getSupabase()
+  const today = new Date()
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('family_id', familyId)
+    .or(`due_date.is.null,due_date.lte.${todayStr}`)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data || []
+}
+
 export async function createTask(input: CreateTaskInput) {
   const supabase = getSupabase()
   
@@ -57,7 +73,7 @@ export async function completeTask(taskId: string, userId: string) {
       completed: true,
       completed_by: userId,
       completed_at: new Date().toISOString()
-    })  // Remove "as any"
+    })
     .eq('id', taskId)
     .select()
     .single()

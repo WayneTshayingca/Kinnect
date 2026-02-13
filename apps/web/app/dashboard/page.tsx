@@ -1,31 +1,32 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import {useEffect, useState} from 'react'
+import {useRouter} from 'next/navigation'
 import {
-  getFamily,
-  getFamilyMembers,
-  getTasks,
-  getCalendarEvents,
-  getShoppingListPreview,
-  signOut,
-  type User,
-  type Family,
-  type Task,
-  type CalendarEvent,
-  type ListItem,
+    type CalendarEvent,
+    type Family,
+    getCalendarEvents,
+    getFamily,
+    getFamilyMembers,
+    getShoppingListPreview,
+    getTodaysTasks,
+    type ListItem,
+    signOut,
+    type Task,
+    type User,
 } from '@kinnect/core'
-import { useUser } from '@/components/providers/user-provider'
+import {useUser} from '@/components/providers/user-provider'
 import CreateTaskModal from '@/components/CreateTaskModal'
 import AddMemberModal from '@/components/AddMemberModal'
-import { Logo } from '@/components/Logo'
-import { AnimatedLogo } from '@/components/AnimatedLogo'
+import {Logo} from '@/components/Logo'
+import {AnimatedLogo} from '@/components/AnimatedLogo'
 import DashboardStats from '@/components/dashboard/DashboardStats'
 import TodaysTasksWidget from '@/components/dashboard/TodaysTasksWidget'
 import ShoppingListWidget from '@/components/dashboard/ShoppingListWidget'
 import UpcomingEventsWidget from '@/components/dashboard/UpcomingEventsWidget'
 import FamilyActivityWidget from '@/components/dashboard/FamilyActivityWidget'
-import { LogOut } from 'lucide-react'
+import {ErrorBoundary} from '@/components/ErrorBoundary'
+import {LogOut} from 'lucide-react'
 
 // ── helpers ──────────────────────────────────────────────
 
@@ -84,7 +85,7 @@ export default function DashboardPage() {
         await Promise.all([
           getFamily(familyId),
           getFamilyMembers(familyId),
-          getTasks(familyId),
+          getTodaysTasks(familyId),
           getCalendarEvents(
             familyId,
             weekStart.toISOString(),
@@ -135,7 +136,7 @@ export default function DashboardPage() {
 
   async function handleTaskCreated() {
     if (user?.family_id) {
-      const tasksData = await getTasks(user.family_id)
+      const tasksData = await getTodaysTasks(user.family_id)
       setTasks(tasksData)
     }
   }
@@ -221,34 +222,42 @@ export default function DashboardPage() {
       <div className="max-w-4xl mx-auto -mt-4 space-y-6 pb-4">
         {/* Widget Grid: Tasks + Shopping List */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <TodaysTasksWidget
-            tasks={todaysTasks}
-            members={members}
-            userId={user.id}
-            familyId={user.family_id}
-            onTaskCompleted={handleTaskCompletedOptimistic}
-            onTaskCreated={handleTaskCreated}
-            onCreateTask={() => setShowCreateTask(true)}
-          />
-          <ShoppingListWidget
-            items={shoppingItems}
-            totalCount={shoppingTotalCount}
-            familyId={user.family_id}
-            userId={user.id}
-            members={members}
-            onItemAdded={handleShoppingItemAdded}
-            onItemToggled={handleShoppingToggleOptimistic}
-          />
+          <ErrorBoundary>
+            <TodaysTasksWidget
+              tasks={todaysTasks}
+              members={members}
+              userId={user.id}
+              familyId={user.family_id}
+              onTaskCompleted={handleTaskCompletedOptimistic}
+              onTaskCreated={handleTaskCreated}
+              onCreateTask={() => setShowCreateTask(true)}
+            />
+          </ErrorBoundary>
+          <ErrorBoundary>
+            <ShoppingListWidget
+              items={shoppingItems}
+              totalCount={shoppingTotalCount}
+              familyId={user.family_id}
+              userId={user.id}
+              members={members}
+              onItemAdded={handleShoppingItemAdded}
+              onItemToggled={handleShoppingToggleOptimistic}
+            />
+          </ErrorBoundary>
         </div>
 
         {/* Full Width Widgets */}
-        <UpcomingEventsWidget events={events} />
-        <FamilyActivityWidget
-          members={members}
-          tasks={tasks}
-          currentUserId={user.id}
-          onAddMember={() => setShowAddMember(true)}
-        />
+        <ErrorBoundary>
+          <UpcomingEventsWidget events={events} />
+        </ErrorBoundary>
+        <ErrorBoundary>
+          <FamilyActivityWidget
+            members={members}
+            tasks={tasks}
+            currentUserId={user.id}
+            onAddMember={() => setShowAddMember(true)}
+          />
+        </ErrorBoundary>
       </div>
 
       {/* ── Modals ────────────────────────────────────── */}

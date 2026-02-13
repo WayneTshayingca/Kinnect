@@ -20,7 +20,7 @@ export async function signUp(email: string, password: string, name: string) {
       auth_user_id: authData.user.id,
       name,
       role: 'admin', // Default role for account creator
-    } as any)
+    })
 
   if (profileError) throw profileError
 

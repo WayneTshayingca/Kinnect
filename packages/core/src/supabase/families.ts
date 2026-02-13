@@ -44,7 +44,7 @@ export async function addFamilyMember(
       family_id: familyId,
       name,
       role,
-    })  // Remove "as any"
+    })
     .select()
     .single()
 
