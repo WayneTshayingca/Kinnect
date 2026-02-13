@@ -54,7 +54,7 @@ export default function Home() {
       </div>
 
       {/* Right sign-in panel */}
-      <div className="md:w-1/2 flex items-center justify-center p-8 md:p-12 lg:p-16 bg-white">
+      <div className="md:w-1/2 flex flex-1 items-center justify-center p-8 md:p-12 lg:p-16 bg-white">
         <div className="w-full max-w-md space-y-8">
           <div>
             <h2 className="text-3xl font-bold text-gray-900">Welcome back</h2>
