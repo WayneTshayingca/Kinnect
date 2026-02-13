@@ -4,7 +4,9 @@
       "Bash(npx turbo run:*)",
       "Bash(npm run type-check:*)",
       "Bash(npm install:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npm ls:*)",
+      "Bash(npx next build:*)"
     ]
   }
 }

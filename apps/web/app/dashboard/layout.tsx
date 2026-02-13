@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { signOut } from '@kinnect/core'
 import { Logo } from '@/components/Logo'
+import { AnimatedLogo } from '@/components/AnimatedLogo'
 import { UserProvider, useUser } from '@/components/providers/user-provider'
 
 const navItems = [
@@ -78,8 +79,9 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <AnimatedLogo size="xl" color="primary" />
+        <p className="text-sm text-gray-500 animate-pulse">Loading...</p>
       </div>
     )
   }

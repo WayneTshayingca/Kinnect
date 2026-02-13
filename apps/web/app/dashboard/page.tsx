@@ -19,6 +19,7 @@ import { useUser } from '@/components/providers/user-provider'
 import CreateTaskModal from '@/components/CreateTaskModal'
 import AddMemberModal from '@/components/AddMemberModal'
 import { Logo } from '@/components/Logo'
+import { AnimatedLogo } from '@/components/AnimatedLogo'
 import DashboardStats from '@/components/dashboard/DashboardStats'
 import TodaysTasksWidget from '@/components/dashboard/TodaysTasksWidget'
 import ShoppingListWidget from '@/components/dashboard/ShoppingListWidget'
@@ -161,7 +162,10 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="p-8 text-muted-foreground">Loading dashboard...</div>
+      <div className="flex flex-col items-center justify-center py-24 gap-4">
+        <AnimatedLogo size="lg" color="primary" />
+        <p className="text-sm text-gray-500 animate-pulse">Loading dashboard...</p>
+      </div>
     )
   }
 
