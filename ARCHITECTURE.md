@@ -77,7 +77,11 @@ kinnect/
 │       ├── 001_add_calendar_events.sql   # calendar_events table + RLS policies
 │       ├── 002_add_location_to_calendar_events.sql  # adds location column
 │       ├── 003_add_shopping_lists.sql    # lists + list_items tables + RLS policies
-│       └── 004_update_user_roles.sql     # Updates role values to admin/member/dependent/observer
+│       ├── 004_update_user_roles.sql     # Updates role values to admin/member/dependent/observer
+│       ├── 005_fix_shopping_list_trigger_rls.sql  # SECURITY DEFINER on default list trigger
+│       └── 006_enable_users_rls.sql      # Enables RLS on users/families, rebuilds all
+│                                         # policies to use get_my_family_id() helper,
+│                                         # adds create_family_with_user() RPC
 │
 ├── package.json                          # Workspace root
 ├── turbo.json                            # Turborepo task config
@@ -105,9 +109,9 @@ Signup page (/auth/signup)
 Onboarding page (/onboarding)
   └─ User enters family name
   └─ Calls createFamily() from @kinnect/core
-      │  → Creates family record in families table
-      │  → Links user to family (sets family_id)
-      │  → Sets user role to "admin"
+      │  → Calls create_family_with_user() RPC (SECURITY DEFINER)
+      │  → Atomically: creates family + links user as admin
+      │  → Then fetches the family record (RLS now passes)
       │
       ▼
 Dashboard (/dashboard)
@@ -316,8 +320,7 @@ Invited person receives email
 
 | Page | Route | Description |
 |------|-------|-------------|
-| Landing | `/` | Marketing page with signup/login links |
-| Login | `/auth/login` | Email + password login form |
+| Sign In | `/` | Email + password sign-in form |
 | Signup | `/auth/signup` | Name + email + password registration |
 | Onboarding | `/onboarding` | Family name creation (post-signup) |
 | Dashboard | `/dashboard` | Widget-based overview with stats |
@@ -332,7 +335,7 @@ Invited person receives email
 | Widget | File | Props | Description |
 |--------|------|-------|-------------|
 | `DashboardStats` | `components/dashboard/DashboardStats.tsx` | `doneToday`, `dailyTasks`, `upcomingEvents` | Three stat cards in the top banner |
-| `TodaysTasksWidget` | `components/dashboard/TodaysTasksWidget.tsx` | `tasks`, `members`, `userId`, `familyId`, `onTaskCompleted`, `onCreateTask` | Shows up to 3 incomplete tasks for today + quick-add form. Tasks link to `/dashboard/tasks` |
+| `TodaysTasksWidget` | `components/dashboard/TodaysTasksWidget.tsx` | `tasks`, `members`, `userId`, `familyId`, `onTaskCompleted`, `onTaskCreated`, `onCreateTask` | Shows up to 3 incomplete tasks (today + overdue + no due date) with overdue badges + quick-add form |
 | `ShoppingListWidget` | `components/dashboard/ShoppingListWidget.tsx` | `items`, `totalCount`, `familyId`, `userId`, `members`, `onItemAdded`, `onItemToggled` | Shows up to 4 shopping items + quick-add form. Items link to `/dashboard/shopping-list` |
 | `UpcomingEventsWidget` | `components/dashboard/UpcomingEventsWidget.tsx` | `events` | This week's events. Click an event to open inline detail modal with date, time, location, description |
 | `FamilyActivityWidget` | `components/dashboard/FamilyActivityWidget.tsx` | `members`, `tasks`, `currentUserId`, `onAddMember` | Members ranked by weekly task completions. Members link to `/dashboard/profile` |
@@ -363,7 +366,7 @@ Invited person receives email
 **Auth** (`supabase/auth.ts`)
 | Function | Description |
 |----------|-------------|
-| `signUp(name, email, password)` | Creates auth account + user record |
+| `signUp(email, password, name)` | Creates auth account (with name in metadata) + user record |
 | `signIn(email, password)` | Signs in via Supabase Auth |
 | `signOut()` | Signs out current session |
 | `getCurrentUser()` | Gets current user record from auth session |
@@ -372,7 +375,7 @@ Invited person receives email
 **Families** (`supabase/families.ts`)
 | Function | Description |
 |----------|-------------|
-| `createFamily(name, userId)` | Creates family + links user as admin |
+| `createFamily(name, primaryLanguage?)` | Creates family + links user as admin via RPC |
 | `getFamily(familyId)` | Returns family record |
 | `getFamilyMembers(familyId)` | Returns all members of a family |
 | `addFamilyMember(familyId, data)` | Adds a member to the family |
@@ -510,7 +513,7 @@ All database queries, auth logic, and types live in `@kinnect/core`. Web-specifi
 | created_at | timestamptz | |
 | updated_at | timestamptz | |
 
-All tables have Row Level Security (RLS) policies — users can only access data belonging to their family.
+All tables have Row Level Security (RLS) policies — users can only access data belonging to their family. All policies use the `get_my_family_id()` helper function (`SECURITY DEFINER`) to look up the current user's family without triggering recursive RLS checks on the `users` table.
 
 ---
 

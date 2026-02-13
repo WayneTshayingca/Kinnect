@@ -32,6 +32,8 @@ Go to Supabase Dashboard > SQL Editor and run these in order:
 3. `supabase/migrations/002_add_location_to_calendar_events.sql`
 4. `supabase/migrations/003_add_shopping_lists.sql`
 5. `supabase/migrations/004_update_user_roles.sql`
+6. `supabase/migrations/005_fix_shopping_list_trigger_rls.sql`
+7. `supabase/migrations/006_enable_users_rls.sql`
 
 ## Step 4: Start Development
 
@@ -46,7 +48,7 @@ Open http://localhost:3000
 1. **Sign up** — Create an account at `/auth/signup`
 2. **Create family** — Enter your family name at `/onboarding`
 3. **Dashboard** — See your widget overview at `/dashboard`
-4. **Add members** — Go to `/dashboard/family`, click "Add Member"
+4. **Add members** — Go to `/dashboard/profile`, click "Add Member"
 5. **Create tasks** — Use the quick-add on the dashboard, or go to `/dashboard/tasks`
 6. **Complete tasks** — Click the checkbox to mark done (instant optimistic feedback)
 7. **Shopping list** — Add items from the dashboard widget, or go to `/dashboard/shopping-list`

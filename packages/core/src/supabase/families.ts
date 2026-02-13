@@ -1,39 +1,33 @@
 import { getSupabase } from './client'
 import type { Family, User } from '../types/database'
 
-export async function createFamily(name: string, userId: string, primaryLanguage = 'en') {
+export async function createFamily(name: string, primaryLanguage = 'en') {
   const supabase = getSupabase()
-  
+
   const { data: { user: authUser } } = await supabase.auth.getUser()
   if (!authUser) throw new Error('Not authenticated')
 
-  const { data: family, error: familyError } = await supabase
+  const userName = authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User'
+
+  const { data: familyId, error } = await supabase.rpc('create_family_with_user', {
+    family_name: name,
+    auth_uid: authUser.id,
+    user_name: userName,
+    primary_lang: primaryLanguage,
+  })
+
+  if (error) throw error
+  if (!familyId) throw new Error('Failed to create family')
+
+  // User record now exists, so RLS allows reading the family
+  const { data: family, error: fetchError } = await supabase
     .from('families')
-    .insert({
-      name,
-      primary_language: primaryLanguage
-    })  // Remove "as any"
-    .select()
+    .select('*')
+    .eq('id', familyId)
     .single()
 
-  if (familyError) throw familyError
-  if (!family) throw new Error('Failed to create family')
-
-  const { error: userError } = await supabase
-    .from('users')
-    .upsert({
-      id: userId,
-      auth_user_id: authUser.id,
-      family_id: family.id,
-      name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-      role: 'admin'
-    }, {  // Remove "as any"
-      onConflict: 'id'
-    })
-
-  if (userError) throw userError
-
-  return family
+  if (fetchError) throw fetchError
+  return family as Family
 }
 
 // Also fix addFamilyMember

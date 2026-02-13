@@ -28,15 +28,17 @@ import { LogOut } from 'lucide-react'
 
 // ── helpers ──────────────────────────────────────────────
 
-function isSameDay(dateStr: string) {
-  const d = new Date(dateStr)
+function getLocalTodayStr() {
   const today = new Date()
-  return (
-    d.getFullYear() === today.getFullYear() &&
-    d.getMonth() === today.getMonth() &&
-    d.getDate() === today.getDate()
-  )
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 }
+
+function isRelevantTask(dueDateStr: string | null | undefined) {
+  if (!dueDateStr) return true // No due date = always relevant
+  const dateOnly = dueDateStr.split('T')[0]
+  return dateOnly <= getLocalTodayStr() // Today or overdue
+}
+
 
 function getWeekRange() {
   const now = new Date()
@@ -103,7 +105,8 @@ export default function DashboardPage() {
     }
   }
 
-  // Optimistic: mark task completed locally, then sync
+  // Optimistic: mark task completed locally (no immediate refetch — the
+  // widget awaits the API call and then triggers onTaskCreated to sync)
   function handleTaskCompletedOptimistic(taskId?: string) {
     if (taskId) {
       setTasks((prev) =>
@@ -113,10 +116,6 @@ export default function DashboardPage() {
             : t
         )
       )
-    }
-    // Background sync — silently refresh to stay consistent
-    if (user?.family_id) {
-      getTasks(user.family_id).then(setTasks).catch(console.error)
     }
   }
 
@@ -172,8 +171,9 @@ export default function DashboardPage() {
 
   // ── derived data ─────────────────────────────────────
 
-  const todaysTasks = tasks.filter((t) => t.due_date && isSameDay(t.due_date))
-  const completedToday = todaysTasks.filter((t) => t.completed).length
+  const relevantTasks = tasks.filter((t) => isRelevantTask(t.due_date))
+  const todaysTasks = relevantTasks.filter((t) => !t.completed)
+  const completedToday = relevantTasks.filter((t) => t.completed).length
 
   // ── render ─────────────────────────────────────────────
 
@@ -223,6 +223,7 @@ export default function DashboardPage() {
             userId={user.id}
             familyId={user.family_id}
             onTaskCompleted={handleTaskCompletedOptimistic}
+            onTaskCreated={handleTaskCreated}
             onCreateTask={() => setShowCreateTask(true)}
           />
           <ShoppingListWidget

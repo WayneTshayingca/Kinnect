@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { completeTask, createTask, type Task, type User } from '@kinnect/core'
-import { CheckCircle, Circle, Plus } from 'lucide-react'
+import { AlertCircle, CheckCircle, Circle, Plus } from 'lucide-react'
 
 const ROLE_COLORS: Record<string, string> = {
   admin: 'bg-primary-500',
@@ -18,6 +18,7 @@ interface TodaysTasksWidgetProps {
   userId: string
   familyId: string
   onTaskCompleted: (taskId?: string) => void
+  onTaskCreated: () => Promise<void>
   onCreateTask: () => void
 }
 
@@ -27,6 +28,7 @@ export default function TodaysTasksWidget({
   userId,
   familyId,
   onTaskCompleted,
+  onTaskCreated,
   onCreateTask,
 }: TodaysTasksWidgetProps) {
   const [newTaskTitle, setNewTaskTitle] = useState('')
@@ -38,6 +40,14 @@ export default function TodaysTasksWidget({
     for (const m of members) map[m.id] = m
     return map
   }, [members])
+
+  function isOverdue(dueDateStr: string | null | undefined) {
+    if (!dueDateStr) return false
+    const dateOnly = dueDateStr.split('T')[0]
+    const today = new Date()
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+    return dateOnly < todayStr
+  }
 
   function getMemberName(id: string) {
     return membersMap[id]?.name || '?'
@@ -52,8 +62,12 @@ export default function TodaysTasksWidget({
     onTaskCompleted(taskId)
     try {
       await completeTask(taskId, userId)
+      // Sync after API confirms
+      await onTaskCreated()
     } catch (error) {
       console.error('Failed to complete task:', error)
+      // Revert by refetching
+      await onTaskCreated()
     }
   }
 
@@ -72,7 +86,7 @@ export default function TodaysTasksWidget({
         due_date: today,
       })
       setNewTaskTitle('')
-      onTaskCompleted()
+      await onTaskCreated()
     } catch (error) {
       console.error('Failed to add task:', error)
       alert('Failed to add task')
@@ -136,8 +150,16 @@ export default function TodaysTasksWidget({
                     href="/dashboard/tasks"
                     className="flex-1 min-w-0"
                   >
-                    <div className="text-sm font-bold text-brand-primary group-hover:text-brand-accent transition-colors">
-                      {task.title}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-bold text-brand-primary group-hover:text-brand-accent transition-colors">
+                        {task.title}
+                      </span>
+                      {isOverdue(task.due_date) && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 text-[10px] font-bold shrink-0">
+                          <AlertCircle className="w-3 h-3" />
+                          Overdue
+                        </span>
+                      )}
                     </div>
                     {task.assigned_to && task.assigned_to.length > 0 && (
                       <div className="flex items-center gap-1.5 mt-1.5">

@@ -326,7 +326,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_my_family_id: {
+        Args: Record<string, never>
+        Returns: string
+      }
+      create_family_with_user: {
+        Args: {
+          family_name: string
+          auth_uid: string
+          user_name: string
+          primary_lang?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

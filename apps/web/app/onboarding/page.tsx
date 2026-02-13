@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createFamily, getCurrentUser } from '@kinnect/core'
+import { createFamily } from '@kinnect/core'
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -16,31 +16,9 @@ export default function OnboardingPage() {
   setLoading(true)
 
   try {
-    console.log('=== Starting family creation ===')
-    console.log('Family name:', familyName)
-    
-    console.log('Getting current user...')
-    const user = await getCurrentUser()
-    console.log('Current user:', user)
-    
-    if (!user) {
-      setError('User not found')
-      return
-    }
-
-
-    console.log('Creating family for user:', user.id)
-    const family = await createFamily(familyName, user.id, 'en')
-    console.log('Family created:', family)
-    
-    console.log('Redirecting to dashboard...')
+    await createFamily(familyName)
     router.push('/dashboard')
   } catch (err: any) {
-    console.error('Family creation error:', err)
-    console.error('Error message:', err?.message)
-    console.error('Error code:', err?.code)
-    console.error('Error details:', err?.details)
-    console.error('Full error:', JSON.stringify(err))
     setError(err?.message || err?.code || 'Failed to create family')
   } finally {
     setLoading(false)
@@ -73,7 +51,7 @@ export default function OnboardingPage() {
               value={familyName}
               onChange={(e) => setFamilyName(e.target.value)}
               placeholder="The Smiths"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-gray-900 bg-white"
             />
             <p className="mt-1 text-xs text-gray-500">
               This could be your family name, a fun nickname, or anything you like!

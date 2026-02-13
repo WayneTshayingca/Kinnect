@@ -7,6 +7,7 @@ export async function signUp(email: string, password: string, name: string) {
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
+    options: { data: { name } },
   })
 
   if (authError) throw authError
@@ -55,7 +56,7 @@ export async function getCurrentUser(): Promise<User | null> {
     .from('users')
     .select('*')
     .eq('auth_user_id', session.user.id)
-    .single()
+    .maybeSingle()
 
   if (error) throw error
   return userData
