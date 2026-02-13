@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { addFamilyMember, updateFamilyMember, type User } from '@kinnect/core'
 
-type Role = 'parent' | 'grandparent' | 'child' | 'domestic_worker'
+type Role = 'admin' | 'member' | 'dependent' | 'observer'
 
 interface AddMemberModalProps {
   isOpen: boolean
@@ -21,7 +21,7 @@ export default function AddMemberModal({
   member,
 }: AddMemberModalProps) {
   const [name, setName] = useState('')
-  const [role, setRole] = useState<Role>('child')
+  const [role, setRole] = useState<Role>('member')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
@@ -35,12 +35,12 @@ export default function AddMemberModal({
 
     if (member) {
       setName(member.name)
-      setRole((member.role as Role) || 'child')
+      setRole((member.role as Role) || 'member')
       setPhone(member.phone || '')
       setEmail('')
     } else {
       setName('')
-      setRole('child')
+      setRole('member')
       setPhone('')
       setEmail('')
     }
@@ -144,10 +144,10 @@ export default function AddMemberModal({
             </label>
             <div className="space-y-2">
               {([
-                { value: 'child', label: 'Child' },
-                { value: 'parent', label: 'Parent' },
-                { value: 'grandparent', label: 'Grandparent' },
-                { value: 'domestic_worker', label: 'Helper / Domestic Worker' },
+                { value: 'member', label: 'Member' },
+                { value: 'dependent', label: 'Dependent' },
+                { value: 'observer', label: 'Observer' },
+                { value: 'admin', label: 'Admin' },
               ] as const).map((opt) => (
                 <label key={opt.value} className="flex items-center cursor-pointer">
                   <input
@@ -203,7 +203,7 @@ export default function AddMemberModal({
           {!isEditing && !email && (
             <div className="bg-primary-50 border border-primary-200 rounded-md p-3">
               <p className="text-xs text-primary-700">
-                This creates a profile without login credentials. Perfect for kids or helpers who don&apos;t need their own account yet.
+                This creates a profile without login credentials. Perfect for dependents or observers who don&apos;t need their own account yet.
               </p>
             </div>
           )}

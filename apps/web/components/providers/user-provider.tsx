@@ -1,14 +1,15 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { getCurrentUser, type User } from '@kinnect/core'
 
 interface UserContextType {
   user: User | null
   loading: boolean
+  refreshUser: () => Promise<void>
 }
 
-const UserContext = createContext<UserContextType>({ user: null, loading: true })
+const UserContext = createContext<UserContextType>({ user: null, loading: true, refreshUser: async () => {} })
 
 export function useUser() {
   return useContext(UserContext)
@@ -18,6 +19,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const u = await getCurrentUser()
+      setUser(u)
+    } catch (err) {
+      console.error('Auth error:', err)
+    }
+  }, [])
+
   useEffect(() => {
     getCurrentUser()
       .then(setUser)
@@ -26,7 +36,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <UserContext.Provider value={{ user, loading }}>
+    <UserContext.Provider value={{ user, loading, refreshUser }}>
       {children}
     </UserContext.Provider>
   )

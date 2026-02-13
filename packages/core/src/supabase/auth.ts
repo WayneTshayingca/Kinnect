@@ -18,7 +18,7 @@ export async function signUp(email: string, password: string, name: string) {
     .insert({
       auth_user_id: authData.user.id,
       name,
-      role: 'parent', // Default role
+      role: 'admin', // Default role for account creator
     } as any)
 
   if (profileError) throw profileError
@@ -59,6 +59,13 @@ export async function getCurrentUser(): Promise<User | null> {
 
   if (error) throw error
   return userData
+}
+
+export async function changePassword(newPassword: string) {
+  const supabase = getSupabase()
+  const { data, error } = await supabase.auth.updateUser({ password: newPassword })
+  if (error) throw error
+  return data
 }
 
 export async function getSession() {

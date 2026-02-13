@@ -3,17 +3,17 @@
 import { type User, type Task } from '@kinnect/core'
 
 const ROLE_COLORS: Record<string, string> = {
-  parent: 'bg-primary-500',
-  grandparent: 'bg-purple-500',
-  child: 'bg-accent-500',
-  domestic_worker: 'bg-amber-500',
+  admin: 'bg-primary-500',
+  member: 'bg-purple-500',
+  dependent: 'bg-accent-500',
+  observer: 'bg-amber-500',
 }
 
 const ROLE_LABELS: Record<string, string> = {
-  parent: 'Parent',
-  grandparent: 'Grandparent',
-  child: 'Child',
-  domestic_worker: 'Helper',
+  admin: 'Admin',
+  member: 'Member',
+  dependent: 'Dependent',
+  observer: 'Observer',
 }
 
 interface FamilyActivityWidgetProps {

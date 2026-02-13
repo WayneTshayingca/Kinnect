@@ -49,7 +49,7 @@ export default function Home() {
 
         <div className="hidden md:block text-sm text-white/50">
           <p>Built for South African families</p>
-          <p>Supporting parents, grandparents, children, and domestic workers</p>
+          <p>Supporting the whole family circle — members, dependents, and more</p>
         </div>
       </div>
 
