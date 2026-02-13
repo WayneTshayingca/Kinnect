@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  getCurrentUser,
   getFamilyMembers,
   getFullShoppingList,
   addShoppingListItem,
@@ -14,6 +13,7 @@ import {
   type User,
   type ListItem,
 } from '@kinnect/core'
+import { useUser } from '@/components/providers/user-provider'
 import { ShoppingCart, Plus, Trash2, ChevronDown, ChevronUp, Pencil, Check, X } from 'lucide-react'
 
 // ── helpers ──────────────────────────────────────────────
@@ -33,7 +33,7 @@ function timeAgo(dateStr: string): string {
 
 export default function ShoppingListPage() {
   const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
+  const { user } = useUser()
   const [members, setMembers] = useState<User[]>([])
   const [incompleteItems, setIncompleteItems] = useState<ListItem[]>([])
   const [completedItems, setCompletedItems] = useState<ListItem[]>([])
@@ -49,22 +49,19 @@ export default function ShoppingListPage() {
   const [editTitle, setEditTitle] = useState('')
 
   useEffect(() => {
-    loadData()
-  }, [])
+    if (!user) return
+    if (!user.family_id) {
+      router.push('/onboarding')
+      return
+    }
+    loadData(user.family_id)
+  }, [user])
 
-  async function loadData() {
+  async function loadData(familyId: string) {
     try {
-      const currentUser = await getCurrentUser()
-      setUser(currentUser)
-
-      if (!currentUser?.family_id) {
-        router.push('/onboarding')
-        return
-      }
-
       const [membersData, listData] = await Promise.all([
-        getFamilyMembers(currentUser.family_id),
-        getFullShoppingList(currentUser.family_id),
+        getFamilyMembers(familyId),
+        getFullShoppingList(familyId),
       ])
 
       setMembers(membersData)

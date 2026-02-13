@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  getCurrentUser,
   getFamily,
   getFamilyMembers,
   updateFamily,
@@ -11,6 +10,7 @@ import {
   type User,
   type Family,
 } from '@kinnect/core'
+import { useUser } from '@/components/providers/user-provider'
 import AddMemberModal from '@/components/AddMemberModal'
 
 // ── helpers ──────────────────────────────────────────────
@@ -35,7 +35,7 @@ function roleBadge(role: string | null) {
 
 export default function FamilyPage() {
   const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
+  const { user } = useUser()
   const [family, setFamily] = useState<Family | null>(null)
   const [members, setMembers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -52,22 +52,19 @@ export default function FamilyPage() {
   // ── data loading ─────────────────────────────────────
 
   useEffect(() => {
-    loadData()
-  }, [])
+    if (!user) return
+    if (!user.family_id) {
+      router.push('/onboarding')
+      return
+    }
+    loadData(user.family_id)
+  }, [user])
 
-  async function loadData() {
+  async function loadData(familyId: string) {
     try {
-      const currentUser = await getCurrentUser()
-      setUser(currentUser)
-
-      if (!currentUser?.family_id) {
-        router.push('/onboarding')
-        return
-      }
-
       const [familyData, membersData] = await Promise.all([
-        getFamily(currentUser.family_id),
-        getFamilyMembers(currentUser.family_id),
+        getFamily(familyId),
+        getFamilyMembers(familyId),
       ])
 
       setFamily(familyData)

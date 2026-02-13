@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { getCurrentUser, signOut, type User } from '@kinnect/core'
+import { signOut } from '@kinnect/core'
 import { Logo } from '@/components/Logo'
+import { UserProvider, useUser } from '@/components/providers/user-provider'
 
 const navItems = [
   {
@@ -54,35 +55,16 @@ const navItems = [
   },
 ]
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const { user, loading } = useUser()
 
   useEffect(() => {
-    async function checkAuth() {
-      try {
-        const currentUser = await getCurrentUser()
-        if (!currentUser) {
-          router.push('/')
-          return
-        }
-        setUser(currentUser)
-      } catch (error) {
-        console.error('Auth error:', error)
-        router.push('/')
-      } finally {
-        setLoading(false)
-      }
+    if (!loading && !user) {
+      router.push('/')
     }
-    checkAuth()
-  }, [router])
+  }, [loading, user, router])
 
   async function handleSignOut() {
     await signOut()
@@ -102,40 +84,19 @@ export default function DashboardLayout({
     )
   }
 
+  if (!user) return null
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden md:flex md:flex-col fixed inset-y-0 left-0 z-30 bg-white border-r border-gray-200 transition-all duration-300 overflow-hidden ${
-          sidebarOpen ? 'w-60' : 'w-16'
-        }`}
+        className="hidden md:flex md:flex-col fixed inset-y-0 left-0 z-30 bg-white border-r border-gray-200 w-60"
       >
-        {/* Logo + collapse toggle */}
-        <div className={`flex items-center h-16 border-b border-gray-200 ${
-          sidebarOpen ? 'justify-between px-4' : 'flex-col justify-center gap-1 px-2'
-        }`}>
+        {/* Logo */}
+        <div className="flex items-center h-16 border-b border-gray-200 justify-between px-4">
           <Link href="/dashboard">
-            {sidebarOpen ? (
-              <Logo variant="full" color="primary" size="sm" />
-            ) : (
-              <Logo variant="icon" color="primary" size="sm" />
-            )}
+            <Logo variant="full" color="primary" size="sm" />
           </Link>
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-            title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-          >
-            {sidebarOpen ? (
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5" />
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 4.5l7.5 7.5-7.5 7.5m-6-15l7.5 7.5-7.5 7.5" />
-              </svg>
-            )}
-          </button>
         </div>
 
         {/* Nav links */}
@@ -151,10 +112,10 @@ export default function DashboardLayout({
                   active
                     ? 'bg-primary-50 text-primary-700'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                } ${!sidebarOpen ? 'justify-center' : ''}`}
+                }`}
               >
                 <span className={active ? 'text-primary-600' : ''}>{item.icon}</span>
-                {sidebarOpen && <span>{item.label}</span>}
+                <span>{item.label}</span>
               </Link>
             )
           })}
@@ -162,42 +123,26 @@ export default function DashboardLayout({
 
         {/* User info + sign out */}
         <div className="border-t border-gray-200 p-3">
-          {sidebarOpen ? (
-            <div className="flex items-center justify-between">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
-                <p className="text-xs text-primary-600 capitalize">{user?.role || 'Member'}</p>
-              </div>
-              <button
-                onClick={handleSignOut}
-                title="Sign out"
-                className="p-2 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-                </svg>
-              </button>
+          <div className="flex items-center justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+              <p className="text-xs text-primary-600 capitalize">{user.role || 'Member'}</p>
             </div>
-          ) : (
             <button
               onClick={handleSignOut}
               title="Sign out"
-              className="w-full flex justify-center p-2 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+              className="p-2 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
               </svg>
             </button>
-          )}
+          </div>
         </div>
       </aside>
 
       {/* Main content — shifted right on desktop */}
-      <div
-        className={`transition-all duration-300 ${
-          sidebarOpen ? 'md:ml-60' : 'md:ml-16'
-        }`}
-      >
+      <div className="md:ml-60">
         {/* Mobile top bar (hidden on dashboard home where the banner covers this) */}
         {pathname !== '/dashboard' && (
           <header className="md:hidden flex items-center justify-between bg-white border-b border-gray-200 px-4 h-14">
@@ -247,5 +192,17 @@ export default function DashboardLayout({
         </div>
       </nav>
     </div>
+  )
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <UserProvider>
+      <DashboardShell>{children}</DashboardShell>
+    </UserProvider>
   )
 }

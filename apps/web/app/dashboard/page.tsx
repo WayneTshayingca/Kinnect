@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  getCurrentUser,
   getFamily,
   getFamilyMembers,
   getTasks,
@@ -16,6 +15,7 @@ import {
   type CalendarEvent,
   type ListItem,
 } from '@kinnect/core'
+import { useUser } from '@/components/providers/user-provider'
 import CreateTaskModal from '@/components/CreateTaskModal'
 import AddMemberModal from '@/components/AddMemberModal'
 import { Logo } from '@/components/Logo'
@@ -53,7 +53,7 @@ function getWeekRange() {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
+  const { user } = useUser()
   const [family, setFamily] = useState<Family | null>(null)
   const [members, setMembers] = useState<User[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
@@ -65,20 +65,16 @@ export default function DashboardPage() {
   const [showAddMember, setShowAddMember] = useState(false)
 
   useEffect(() => {
-    loadData()
-  }, [])
+    if (!user) return
+    if (!user.family_id) {
+      router.push('/onboarding')
+      return
+    }
+    loadData(user.family_id)
+  }, [user])
 
-  async function loadData() {
+  async function loadData(familyId: string) {
     try {
-      const currentUser = await getCurrentUser()
-      setUser(currentUser)
-
-      if (!currentUser?.family_id) {
-        router.push('/onboarding')
-        return
-      }
-
-      const familyId = currentUser.family_id
       const { weekStart, weekEnd } = getWeekRange()
 
       const [familyData, membersData, tasksData, eventsData, shoppingData] =

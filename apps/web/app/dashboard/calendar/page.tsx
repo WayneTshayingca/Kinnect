@@ -3,12 +3,11 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  getCurrentUser,
   getCalendarEvents,
   deleteCalendarEvent,
-  type User,
   type CalendarEvent,
 } from '@kinnect/core'
+import { useUser } from '@/components/providers/user-provider'
 
 import CreateEventModal from '@/components/CreateEventModal'
 
@@ -46,7 +45,7 @@ const DAY_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 
 export default function CalendarPage() {
   const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
+  const { user } = useUser()
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -62,28 +61,19 @@ export default function CalendarPage() {
   // ── data loading ─────────────────────────────────────
 
   useEffect(() => {
-    loadUser()
-  }, [])
+    if (!user) return
+    if (!user.family_id) {
+      router.push('/onboarding')
+      return
+    }
+    setLoading(false)
+  }, [user])
 
   useEffect(() => {
     if (user?.family_id) {
       loadEvents()
     }
   }, [user, year, month])
-
-  async function loadUser() {
-    try {
-      const currentUser = await getCurrentUser()
-      setUser(currentUser)
-      if (!currentUser?.family_id) {
-        router.push('/onboarding')
-      }
-    } catch {
-      router.push('/')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   async function loadEvents() {
     if (!user?.family_id) return

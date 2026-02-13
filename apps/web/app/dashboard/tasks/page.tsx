@@ -2,39 +2,29 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getCurrentUser, getTasks, completeTask, type User, type Task } from '@kinnect/core'
+import { getTasks, completeTask, type Task } from '@kinnect/core'
+import { useUser } from '@/components/providers/user-provider'
 import CreateTaskModal from '@/components/CreateTaskModal'
 
 export default function TasksPage() {
   const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
+  const { user } = useUser()
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateTask, setShowCreateTask] = useState(false)
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all')
 
   useEffect(() => {
-    loadData()
-  }, [])
-
-  async function loadData() {
-    try {
-      const currentUser = await getCurrentUser()
-      setUser(currentUser)
-
-      if (!currentUser?.family_id) {
-        router.push('/onboarding')
-        return
-      }
-
-      const tasksData = await getTasks(currentUser.family_id)
-      setTasks(tasksData)
-    } catch (error) {
-      console.error('Error loading tasks:', error)
-    } finally {
-      setLoading(false)
+    if (!user) return
+    if (!user.family_id) {
+      router.push('/onboarding')
+      return
     }
-  }
+    getTasks(user.family_id)
+      .then(setTasks)
+      .catch((err) => console.error('Error loading tasks:', err))
+      .finally(() => setLoading(false))
+  }, [user])
 
   async function handleTaskCreated() {
     if (user?.family_id) {
@@ -45,14 +35,12 @@ export default function TasksPage() {
 
   async function handleCompleteTask(taskId: string) {
     if (!user) return
-    
+
     try {
       await completeTask(taskId, user.id)
       if (user.family_id) {
         const tasksData = await getTasks(user.family_id)
         setTasks(tasksData)
-        const updatedUser = await getCurrentUser()
-        setUser(updatedUser)
       }
     } catch (error) {
       console.error('Error completing task:', error)
