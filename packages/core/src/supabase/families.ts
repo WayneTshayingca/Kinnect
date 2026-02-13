@@ -26,7 +26,7 @@ export async function createFamily(name: string, userId: string, primaryLanguage
       auth_user_id: authUser.id,
       family_id: family.id,
       name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-      role: 'parent'
+      role: 'admin'
     }, {  // Remove "as any"
       onConflict: 'id'
     })
@@ -40,7 +40,7 @@ export async function createFamily(name: string, userId: string, primaryLanguage
 export async function addFamilyMember(
   familyId: string,
   name: string,
-  role: 'parent' | 'grandparent' | 'child' | 'domestic_worker'
+  role: 'admin' | 'member' | 'dependent' | 'observer'
 ) {
   const supabase = getSupabase()
   

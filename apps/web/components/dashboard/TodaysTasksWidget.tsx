@@ -5,10 +5,10 @@ import { completeTask, type Task, type User } from '@kinnect/core'
 import { CheckCircle, Circle, Plus } from 'lucide-react'
 
 const ROLE_COLORS: Record<string, string> = {
-  parent: 'bg-primary-500',
-  grandparent: 'bg-purple-500',
-  child: 'bg-accent-500',
-  domestic_worker: 'bg-amber-500',
+  admin: 'bg-primary-500',
+  member: 'bg-purple-500',
+  dependent: 'bg-accent-500',
+  observer: 'bg-amber-500',
 }
 
 interface TodaysTasksWidgetProps {
