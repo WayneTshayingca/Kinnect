@@ -1,7 +1,8 @@
 'use client'
 
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { completeTask, type Task, type User } from '@kinnect/core'
+import { completeTask, createTask, type Task, type User } from '@kinnect/core'
 import { CheckCircle, Circle, Plus } from 'lucide-react'
 
 const ROLE_COLORS: Record<string, string> = {
@@ -15,7 +16,8 @@ interface TodaysTasksWidgetProps {
   tasks: Task[]
   members: User[]
   userId: string
-  onTaskCompleted: () => void
+  familyId: string
+  onTaskCompleted: (taskId?: string) => void
   onCreateTask: () => void
 }
 
@@ -23,24 +25,59 @@ export default function TodaysTasksWidget({
   tasks,
   members,
   userId,
+  familyId,
   onTaskCompleted,
   onCreateTask,
 }: TodaysTasksWidgetProps) {
+  const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [isAdding, setIsAdding] = useState(false)
+
+  // Pre-compute member lookup map for O(1) access
+  const membersMap = useMemo(() => {
+    const map: Record<string, User> = {}
+    for (const m of members) map[m.id] = m
+    return map
+  }, [members])
+
   function getMemberName(id: string) {
-    return members.find((m) => m.id === id)?.name || '?'
+    return membersMap[id]?.name || '?'
   }
 
   function getMemberRole(id: string) {
-    return members.find((m) => m.id === id)?.role || null
+    return membersMap[id]?.role || null
   }
 
   async function handleComplete(taskId: string) {
+    // Optimistic — notify parent immediately for instant UI update
+    onTaskCompleted(taskId)
     try {
       await completeTask(taskId, userId)
-      onTaskCompleted()
     } catch (error) {
       console.error('Failed to complete task:', error)
-      alert('Failed to complete task')
+    }
+  }
+
+  async function handleQuickAdd(e: React.FormEvent) {
+    e.preventDefault()
+    if (!newTaskTitle.trim() || isAdding) return
+
+    setIsAdding(true)
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      await createTask({
+        family_id: familyId,
+        title: newTaskTitle.trim(),
+        created_by: userId,
+        assigned_to: [userId],
+        due_date: today,
+      })
+      setNewTaskTitle('')
+      onTaskCompleted()
+    } catch (error) {
+      console.error('Failed to add task:', error)
+      alert('Failed to add task')
+    } finally {
+      setIsAdding(false)
     }
   }
 
@@ -95,8 +132,11 @@ export default function TodaysTasksWidget({
                   >
                     <Circle className="w-5 h-5" />
                   </button>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-brand-primary">
+                  <Link
+                    href="/dashboard/tasks"
+                    className="flex-1 min-w-0"
+                  >
+                    <div className="text-sm font-bold text-brand-primary group-hover:text-brand-accent transition-colors">
                       {task.title}
                     </div>
                     {task.assigned_to && task.assigned_to.length > 0 && (
@@ -119,7 +159,7 @@ export default function TodaysTasksWidget({
                         </span>
                       </div>
                     )}
-                  </div>
+                  </Link>
                 </div>
               ))}
 
@@ -140,6 +180,26 @@ export default function TodaysTasksWidget({
             </>
           )}
         </div>
+
+        {/* Quick Add Form */}
+        <form onSubmit={handleQuickAdd} className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+          <input
+            type="text"
+            value={newTaskTitle}
+            onChange={(e) => setNewTaskTitle(e.target.value)}
+            placeholder="Quick add task..."
+            className="flex-1 px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent placeholder:text-gray-400"
+            disabled={isAdding}
+          />
+          <button
+            type="submit"
+            disabled={!newTaskTitle.trim() || isAdding}
+            className="px-4 py-2 bg-brand-accent text-white text-sm font-bold rounded-xl hover:bg-accent-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+          >
+            <Plus className="w-4 h-4" />
+            Add
+          </button>
+        </form>
       </div>
     </div>
   )

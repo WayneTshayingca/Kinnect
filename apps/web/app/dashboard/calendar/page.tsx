@@ -67,7 +67,7 @@ export default function CalendarPage() {
       return
     }
     setLoading(false)
-  }, [user])
+  }, [user?.family_id])
 
   useEffect(() => {
     if (user?.family_id) {

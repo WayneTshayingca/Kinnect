@@ -8,33 +8,38 @@ interface CreateTaskModalProps {
   onClose: () => void
   familyId: string
   userId: string
+  members?: User[]
   onTaskCreated: () => void
 }
 
-export default function CreateTaskModal({ 
-  isOpen, 
-  onClose, 
-  familyId, 
+export default function CreateTaskModal({
+  isOpen,
+  onClose,
+  familyId,
   userId,
-  onTaskCreated 
+  members: membersProp,
+  onTaskCreated
 }: CreateTaskModalProps) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [assignedTo, setAssignedTo] = useState<string[]>([])
-  const [members, setMembers] = useState<User[]>([])
+  const [fetchedMembers, setFetchedMembers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
 
+  // Use prop members if provided, otherwise fetch
+  const members = membersProp || fetchedMembers
+
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !membersProp) {
       loadMembers()
     }
-  }, [isOpen, familyId])
+  }, [isOpen, familyId, membersProp])
 
   async function loadMembers() {
     try {
       const familyMembers = await getFamilyMembers(familyId)
-      setMembers(familyMembers)
+      setFetchedMembers(familyMembers)
     } catch (error) {
       console.error('Error loading family members:', error)
     }

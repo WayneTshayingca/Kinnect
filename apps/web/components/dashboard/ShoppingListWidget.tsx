@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import {
   addShoppingListItem,
@@ -16,7 +16,8 @@ interface ShoppingListWidgetProps {
   familyId: string
   userId: string
   members: User[]
-  onItemsChanged: () => void
+  onItemAdded: () => void
+  onItemToggled: (itemId: string) => void
 }
 
 function timeAgo(dateStr: string): string {
@@ -36,13 +37,21 @@ export default function ShoppingListWidget({
   familyId,
   userId,
   members,
-  onItemsChanged,
+  onItemAdded,
+  onItemToggled,
 }: ShoppingListWidgetProps) {
   const [newItem, setNewItem] = useState('')
   const [isAdding, setIsAdding] = useState(false)
 
+  // Pre-compute member lookup map for O(1) access
+  const membersMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const m of members) map[m.id] = m.name
+    return map
+  }, [members])
+
   function getMemberName(id: string) {
-    return members.find((m) => m.id === id)?.name || 'Someone'
+    return membersMap[id] || 'Someone'
   }
 
   async function handleAddItem(e: React.FormEvent) {
@@ -53,7 +62,7 @@ export default function ShoppingListWidget({
     try {
       await addShoppingListItem(familyId, userId, { title: newItem.trim() })
       setNewItem('')
-      onItemsChanged()
+      onItemAdded()
     } catch (error) {
       console.error('Failed to add item:', error)
       alert('Failed to add item')
@@ -63,9 +72,10 @@ export default function ShoppingListWidget({
   }
 
   async function handleToggleItem(itemId: string, completed: boolean) {
+    // Optimistic — notify parent immediately for instant UI update
+    onItemToggled(itemId)
     try {
       await toggleShoppingListItem(itemId, !completed, userId)
-      onItemsChanged()
     } catch (error) {
       console.error('Failed to toggle item:', error)
     }
@@ -110,12 +120,15 @@ export default function ShoppingListWidget({
                   onChange={() => handleToggleItem(item.id, item.completed)}
                   className="mt-1 w-4 h-4 rounded border-gray-300 text-brand-accent focus:ring-accent-500 cursor-pointer"
                 />
-                <div className="flex-1 min-w-0">
+                <Link
+                  href="/dashboard/shopping-list"
+                  className="flex-1 min-w-0"
+                >
                   <span
                     className={`text-sm font-medium ${
                       item.completed
                         ? 'line-through text-gray-400'
-                        : 'text-gray-900'
+                        : 'text-gray-900 group-hover:text-brand-accent transition-colors'
                     }`}
                   >
                     {item.title}
@@ -124,7 +137,7 @@ export default function ShoppingListWidget({
                     {getMemberName(item.added_by)} &middot;{' '}
                     {timeAgo(item.created_at)}
                   </div>
-                </div>
+                </Link>
               </div>
             ))
           )}

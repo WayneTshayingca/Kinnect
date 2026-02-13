@@ -55,7 +55,7 @@ export default function ShoppingListPage() {
       return
     }
     loadData(user.family_id)
-  }, [user])
+  }, [user?.family_id])
 
   async function loadData(familyId: string) {
     try {
@@ -110,21 +110,40 @@ export default function ShoppingListPage() {
 
   async function handleToggleItem(itemId: string, completed: boolean) {
     if (!user) return
+
+    // Optimistic update — move item between lists instantly
+    if (!completed) {
+      const item = incompleteItems.find((i) => i.id === itemId)
+      if (item) {
+        setIncompleteItems((prev) => prev.filter((i) => i.id !== itemId))
+        setCompletedItems((prev) => [{ ...item, completed: true, completed_by: user.id, completed_at: new Date().toISOString() }, ...prev])
+      }
+    } else {
+      const item = completedItems.find((i) => i.id === itemId)
+      if (item) {
+        setCompletedItems((prev) => prev.filter((i) => i.id !== itemId))
+        setIncompleteItems((prev) => [...prev, { ...item, completed: false, completed_by: null, completed_at: null }])
+      }
+    }
+
     try {
       await toggleShoppingListItem(itemId, !completed, user.id)
-      await reloadList()
     } catch (error) {
       console.error('Failed to toggle item:', error)
+      await reloadList()
     }
   }
 
   async function handleDeleteItem(itemId: string) {
+    // Optimistic update — remove from both lists instantly
+    setIncompleteItems((prev) => prev.filter((i) => i.id !== itemId))
+    setCompletedItems((prev) => prev.filter((i) => i.id !== itemId))
+
     try {
       await deleteShoppingListItem(itemId)
-      await reloadList()
     } catch (error) {
       console.error('Failed to delete item:', error)
-      alert('Failed to delete item')
+      await reloadList()
     }
   }
 

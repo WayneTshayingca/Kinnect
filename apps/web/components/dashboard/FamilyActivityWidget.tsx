@@ -1,5 +1,7 @@
 'use client'
 
+import { useMemo } from 'react'
+import Link from 'next/link'
 import { type User, type Task } from '@kinnect/core'
 
 const ROLE_COLORS: Record<string, string> = {
@@ -29,31 +31,27 @@ export default function FamilyActivityWidget({
   currentUserId,
   onAddMember,
 }: FamilyActivityWidgetProps) {
-  // Compute tasks completed this week for each member
-  const now = new Date()
-  const dayOfWeek = now.getDay()
-  const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)
-  const weekStart = new Date(now.getFullYear(), now.getMonth(), diff)
-  weekStart.setHours(0, 0, 0, 0)
+  const membersWithCounts = useMemo(() => {
+    const now = new Date()
+    const dayOfWeek = now.getDay()
+    const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)
+    const weekStart = new Date(now.getFullYear(), now.getMonth(), diff)
+    weekStart.setHours(0, 0, 0, 0)
+    const weekStartTime = weekStart.getTime()
 
-  const membersWithCounts = members
-    .map((member) => {
-      const completedThisWeek = tasks.filter(
-        (t) =>
-          t.completed &&
-          t.assigned_to &&
-          t.assigned_to.includes(member.id) &&
-          t.completed_at &&
-          new Date(t.completed_at) >= weekStart
-      ).length
+    // Pre-filter completed tasks with valid dates once
+    const completedTasks = tasks.filter(
+      (t) => t.completed && t.assigned_to && t.completed_at && new Date(t.completed_at).getTime() >= weekStartTime
+    )
 
-      return {
+    return members
+      .map((member) => ({
         ...member,
-        completedThisWeek,
+        completedThisWeek: completedTasks.filter((t) => t.assigned_to!.includes(member.id)).length,
         isCurrentUser: member.id === currentUserId,
-      }
-    })
-    .sort((a, b) => b.completedThisWeek - a.completedThisWeek)
+      }))
+      .sort((a, b) => b.completedThisWeek - a.completedThisWeek)
+  }, [members, tasks, currentUserId])
 
   return (
     <div className="bg-white rounded-[1.5rem] shadow-sm overflow-hidden">
@@ -71,9 +69,10 @@ export default function FamilyActivityWidget({
 
       <div className="divide-y divide-gray-50">
         {membersWithCounts.map((member) => (
-          <div
+          <Link
             key={member.id}
-            className="flex items-center justify-between p-4 hover:bg-primary-50/30 transition-colors"
+            href="/dashboard/profile"
+            className="flex items-center justify-between p-4 hover:bg-primary-50/30 transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-4">
               <div
@@ -106,7 +105,7 @@ export default function FamilyActivityWidget({
                 this week
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

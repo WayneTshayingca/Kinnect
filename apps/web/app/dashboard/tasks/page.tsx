@@ -24,7 +24,7 @@ export default function TasksPage() {
       .then(setTasks)
       .catch((err) => console.error('Error loading tasks:', err))
       .finally(() => setLoading(false))
-  }, [user])
+  }, [user?.family_id])
 
   async function handleTaskCreated() {
     if (user?.family_id) {
@@ -36,28 +36,46 @@ export default function TasksPage() {
   async function handleCompleteTask(taskId: string) {
     if (!user) return
 
+    // Optimistic update
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? { ...t, completed: true, completed_by: user.id, completed_at: new Date().toISOString() }
+          : t
+      )
+    )
+
     try {
       await completeTask(taskId, user.id)
+    } catch (error) {
+      console.error('Error completing task:', error)
+      // Revert on failure
       if (user.family_id) {
         const tasksData = await getTasks(user.family_id)
         setTasks(tasksData)
       }
-    } catch (error) {
-      console.error('Error completing task:', error)
-      alert('Failed to complete task')
     }
   }
 
   async function handleUncompleteTask(taskId: string) {
     if (!user?.family_id) return
 
+    // Optimistic update
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? { ...t, completed: false, completed_by: null, completed_at: null }
+          : t
+      )
+    )
+
     try {
       await uncompleteTask(taskId)
-      const tasksData = await getTasks(user.family_id)
-      setTasks(tasksData)
     } catch (error) {
       console.error('Error undoing task:', error)
-      alert('Failed to undo task')
+      // Revert on failure
+      const tasksData = await getTasks(user.family_id)
+      setTasks(tasksData)
     }
   }
 

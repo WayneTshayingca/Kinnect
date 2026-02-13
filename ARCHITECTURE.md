@@ -22,22 +22,32 @@ kinnect/
 │       │   │   └── invite/route.ts       # POST - send email invites (server-side)
 │       │   │
 │       │   └── dashboard/
-│       │       ├── layout.tsx            # Nav bar, auth guard, sign out
-│       │       ├── page.tsx              # Dashboard home (stats + recent tasks)
+│       │       ├── layout.tsx            # Nav bar, auth guard, UserProvider
+│       │       ├── page.tsx              # Dashboard home (widgets + stats)
 │       │       ├── tasks/page.tsx        # Task list with filters
 │       │       ├── calendar/page.tsx     # Month grid + agenda views
-│       │       └── family/page.tsx       # Family member management
+│       │       ├── shopping-list/page.tsx # Full shopping list management
+│       │       ├── family/page.tsx       # Family member management
+│       │       └── profile/page.tsx      # User profile + password change
 │       │
 │       ├── components/
 │       │   ├── providers/
-│       │   │   └── supabase-provider.tsx # Initializes Supabase client on app start
-│       │   ├── CreateTaskModal.tsx       # Modal: create task with assignees + points
+│       │   │   ├── supabase-provider.tsx # Initializes Supabase client on app start
+│       │   │   └── user-provider.tsx     # UserContext: fetches user once, shared via useUser()
+│       │   ├── dashboard/
+│       │   │   ├── DashboardStats.tsx    # Stat cards: Done Today, Daily Tasks, This Week
+│       │   │   ├── TodaysTasksWidget.tsx # Today's tasks preview + quick-add form
+│       │   │   ├── ShoppingListWidget.tsx # Shopping list preview + quick-add form
+│       │   │   ├── UpcomingEventsWidget.tsx # This week's events + detail modal
+│       │   │   └── FamilyActivityWidget.tsx # Members ranked by weekly completions
+│       │   ├── CreateTaskModal.tsx       # Modal: create task with assignees + due date
 │       │   ├── CreateEventModal.tsx      # Modal: create/edit calendar event
-│       │   └── AddMemberModal.tsx        # Modal: add/edit family member + invite
+│       │   ├── AddMemberModal.tsx        # Modal: add/edit family member + invite
+│       │   └── Logo.tsx                  # Kinnect logo (full, icon, stacked variants)
 │       │
 │       ├── .env.local                    # Environment variables
 │       ├── next.config.js                # Next.js config
-│       ├── tailwind.config.js            # Tailwind CSS (custom primary colors)
+│       ├── tailwind.config.js            # Tailwind CSS (custom brand colors)
 │       └── package.json
 │
 ├── packages/
@@ -50,17 +60,24 @@ kinnect/
 │           │   │                         # addFamilyMember, updateFamily,
 │           │   │                         # updateFamilyMember, removeFamilyMember
 │           │   ├── tasks.ts              # getTasks, createTask, completeTask,
-│           │   │                         # assignTask, deleteTask
-│           │   └── calendar.ts           # getCalendarEvents, createCalendarEvent,
-│           │                             # updateCalendarEvent, deleteCalendarEvent
+│           │   │                         # uncompleteTask, assignTask, deleteTask
+│           │   ├── calendar.ts           # getCalendarEvents, createCalendarEvent,
+│           │   │                         # updateCalendarEvent, deleteCalendarEvent
+│           │   └── shopping-list.ts      # getShoppingList, getShoppingListPreview,
+│           │                             # getFullShoppingList, addShoppingListItem,
+│           │                             # toggleShoppingListItem, updateShoppingListItem,
+│           │                             # deleteShoppingListItem, clearCompletedItems
 │           ├── types/
 │           │   └── database.ts           # Auto-generated DB types + helper aliases
 │           └── index.ts                  # Public API (re-exports everything)
 │
 ├── supabase/
 │   └── migrations/
+│       ├── 000_initial_schema.sql        # families, users, tasks tables + RLS + triggers
 │       ├── 001_add_calendar_events.sql   # calendar_events table + RLS policies
-│       └── 002_add_location_to_calendar_events.sql  # adds location column
+│       ├── 002_add_location_to_calendar_events.sql  # adds location column
+│       ├── 003_add_shopping_lists.sql    # lists + list_items tables + RLS policies
+│       └── 004_update_user_roles.sql     # Updates role values to admin/member/dependent/observer
 │
 ├── package.json                          # Workspace root
 ├── turbo.json                            # Turborepo task config
@@ -90,7 +107,7 @@ Onboarding page (/onboarding)
   └─ Calls createFamily() from @kinnect/core
       │  → Creates family record in families table
       │  → Links user to family (sets family_id)
-      │  → Sets user role to "parent"
+      │  → Sets user role to "admin"
       │
       ▼
 Dashboard (/dashboard)
@@ -103,9 +120,10 @@ Any /dashboard/* page loads
   └─ Dashboard layout (layout.tsx) runs on mount
       │
       ▼
-Calls getCurrentUser() from @kinnect/core
+UserProvider fetches getCurrentUser() once
   │  → Checks Supabase auth session
   │  → Looks up user record by auth_user_id
+  │  → Shares user via useUser() hook
   │
   ├─ No session → Redirect to /auth/login
   ├─ No family_id → Redirect to /onboarding
@@ -116,28 +134,30 @@ Calls getCurrentUser() from @kinnect/core
 
 ```
 Dashboard page loads (/dashboard)
-  └─ Calls getCurrentUser()
-  └─ Gets user.family_id
+  └─ Gets user from useUser() hook (no duplicate fetch)
+  └─ Uses user.family_id
       │
       ▼
-Parallel fetch:
-  ├─ getFamily(familyId)        → family name
-  ├─ getFamilyMembers(familyId) → member count
-  └─ getTasks(familyId)         → pending/completed tasks
+Parallel fetch (Promise.all):
+  ├─ getFamily(familyId)              → family name
+  ├─ getFamilyMembers(familyId)       → member list
+  ├─ getTasks(familyId)               → all tasks
+  ├─ getCalendarEvents(familyId, ...) → this week's events
+  └─ getShoppingListPreview(familyId) → top 4 shopping items
       │
       ▼
-Renders:
-  ├─ Stat cards: Family Members | Pending Tasks | Your Points
-  ├─ Recent tasks list (first 5)
-  ├─ "Create Task" button → opens CreateTaskModal
-  └─ "Add Member" button → opens AddMemberModal
+Renders widget layout:
+  ├─ Top Banner: family name, welcome message, stat cards
+  ├─ Grid: TodaysTasksWidget + ShoppingListWidget
+  ├─ Full width: UpcomingEventsWidget
+  └─ Full width: FamilyActivityWidget
 ```
 
 ### 4. Task Management
 
 ```
 Tasks page loads (/dashboard/tasks)
-  └─ Fetches user + getTasks(familyId)
+  └─ Fetches getTasks(familyId)
       │
       ▼
 Renders task list with filter tabs: All | Pending | Completed
@@ -147,20 +167,21 @@ Renders task list with filter tabs: All | Pending | Completed
   │       ├─ Title (required), Description, Due Date, Points
   │       ├─ Assign To: checkboxes for each family member
   │       └─ Submit → createTask() from @kinnect/core
-  │           └─ Inserts into tasks table, reloads list
   │
-  └─ Task card actions:
-      └─ Checkbox → completeTask(taskId, userId) from @kinnect/core
-          ├─ Sets completed=true, completed_by, completed_at
-          ├─ Awards points to completing user
-          └─ Reloads task list + user (for updated points)
+  └─ Task card actions (optimistic UI):
+      ├─ Checkbox → completeTask(taskId, userId)
+      │   ├─ Instantly marks as completed in UI
+      │   ├─ Fires API in background
+      │   └─ Reverts on failure
+      └─ Undo → uncompleteTask(taskId)
+          └─ Same optimistic pattern
 ```
 
 ### 5. Calendar
 
 ```
 Calendar page loads (/dashboard/calendar)
-  └─ Fetches user + getCalendarEvents(familyId, monthStart, monthEnd)
+  └─ Fetches getCalendarEvents(familyId, monthStart, monthEnd)
       │
       ▼
 View toggle tabs: Month | Agenda
@@ -191,54 +212,77 @@ CREATE/EDIT EVENT (CreateEventModal):
   └─ Edit mode (event prop): pre-fills fields, calls updateCalendarEvent()
 ```
 
-### 6. Family Management
+### 6. Shopping List
+
+```
+Shopping list page loads (/dashboard/shopping-list)
+  └─ Parallel fetch:
+      ├─ getFamilyMembers(familyId)
+      └─ getFullShoppingList(familyId)
+          │  → Returns incompleteItems + completedItems (max 20)
+          │
+          ▼
+INCOMPLETE ITEMS:
+  ├─ Add form: text input + "Add" button
+  │   └─ addShoppingListItem() → reloads list
+  ├─ Each item: checkbox, title, added by, time ago
+  ├─ Hover actions: edit (pencil), delete (trash)
+  ├─ Checkbox toggle (optimistic):
+  │   └─ Moves item to completed list instantly, API in background
+  └─ Delete (optimistic):
+      └─ Removes from list instantly, API in background
+
+COMPLETED ITEMS (collapsible):
+  ├─ Toggle "Completed (N)" to expand
+  ├─ Checkbox to un-complete (moves back to incomplete)
+  ├─ Edit + Delete actions
+  └─ "Clear All" → clearCompletedItems()
+```
+
+### 7. Family Management
 
 ```
 Family page loads (/dashboard/family)
-  └─ Fetches user + getFamily() + getFamilyMembers() in parallel
+  └─ Fetches getFamily() + getFamilyMembers() in parallel
       │
       ▼
 HEADER:
   ├─ Family name (click pencil to edit inline)
-  │   └─ Edit mode: text input + save/cancel
-  │       └─ Save → updateFamily(familyId, { name })
+  │   └─ Save → updateFamily(familyId, { name })
   ├─ Member count subtitle
   └─ "Add Member" button
 
 MEMBER CARDS (one per member):
-  ├─ Avatar: first letter of name (blue circle)
+  ├─ Avatar: first letter of name (colored circle by role)
   ├─ Name + "(You)" badge for current user
-  ├─ Role badge: Parent (blue) | Grandparent (purple) |
-  │               Child (green) | Helper (amber)
+  ├─ Role badge: Admin (blue) | Member (purple) |
+  │               Dependent (green) | Observer (amber)
   ├─ Phone number (if set)
-  ├─ Points
-  ├─ Joined date
+  ├─ Points + Joined date
   │
-  ├─ "Invite" button (amber, shown when member has no auth account)
+  ├─ "Invite" button (shown when member has no auth account)
   │   └─ Opens edit modal with email field visible
   │
   ├─ Edit (pencil) → opens AddMemberModal in edit mode
-  │   ├─ Pre-fills name, role, phone
-  │   ├─ Shows email field if member has no account
-  │   ├─ Submit → updateFamilyMember() + sendInvite() if email provided
-  │   └─ Invite flow:
-  │       POST /api/invite { email, userId, familyId }
-  │         └─ Server creates Supabase admin client (service role key)
-  │         └─ Calls auth.admin.inviteUserByEmail(email)
-  │         └─ Links auth_user_id to member record
-  │         └─ Supabase sends invite email automatically
-  │
-  ├─ Delete (trash) → confirm dialog → removeFamilyMember()
-  │   (hidden for current user — can't delete yourself)
-  │
-  └─ Add mode (AddMemberModal without member prop):
-      ├─ Name, Role, Phone, Email (optional)
-      ├─ Submit → addFamilyMember() + updateFamilyMember(phone)
-      ├─ If email provided → POST /api/invite
-      └─ Info note: "Creates profile without login credentials"
+  └─ Delete (trash) → confirm dialog → removeFamilyMember()
 ```
 
-### 7. Email Invite Flow (Detailed)
+### 8. Profile
+
+```
+Profile page loads (/dashboard/profile)
+  └─ Gets user from useUser() hook
+      │
+      ▼
+Renders:
+  ├─ User name + role + family info
+  ├─ Password change form
+  │   ├─ New Password + Confirm Password
+  │   └─ Submit → Supabase auth.updateUser()
+  └─ Sign out button
+```
+
+### 9. Email Invite Flow (Detailed)
 
 ```
 User clicks "Invite" or provides email when adding/editing a member
@@ -263,6 +307,108 @@ Invited person receives email
   └─ Sets their password
   └─ Can now log in → their account is linked to the family
 ```
+
+---
+
+## Component Reference
+
+### Pages
+
+| Page | Route | Description |
+|------|-------|-------------|
+| Landing | `/` | Marketing page with signup/login links |
+| Login | `/auth/login` | Email + password login form |
+| Signup | `/auth/signup` | Name + email + password registration |
+| Onboarding | `/onboarding` | Family name creation (post-signup) |
+| Dashboard | `/dashboard` | Widget-based overview with stats |
+| Tasks | `/dashboard/tasks` | Full task list with All/Pending/Completed filters |
+| Calendar | `/dashboard/calendar` | Month grid + agenda views, event CRUD |
+| Shopping List | `/dashboard/shopping-list` | Full shopping list with add/edit/delete/complete |
+| Family | `/dashboard/family` | Member management, inline family name editing |
+| Profile | `/dashboard/profile` | User info + password change |
+
+### Dashboard Widgets
+
+| Widget | File | Props | Description |
+|--------|------|-------|-------------|
+| `DashboardStats` | `components/dashboard/DashboardStats.tsx` | `doneToday`, `dailyTasks`, `upcomingEvents` | Three stat cards in the top banner |
+| `TodaysTasksWidget` | `components/dashboard/TodaysTasksWidget.tsx` | `tasks`, `members`, `userId`, `familyId`, `onTaskCompleted`, `onCreateTask` | Shows up to 3 incomplete tasks for today + quick-add form. Tasks link to `/dashboard/tasks` |
+| `ShoppingListWidget` | `components/dashboard/ShoppingListWidget.tsx` | `items`, `totalCount`, `familyId`, `userId`, `members`, `onItemAdded`, `onItemToggled` | Shows up to 4 shopping items + quick-add form. Items link to `/dashboard/shopping-list` |
+| `UpcomingEventsWidget` | `components/dashboard/UpcomingEventsWidget.tsx` | `events` | This week's events. Click an event to open inline detail modal with date, time, location, description |
+| `FamilyActivityWidget` | `components/dashboard/FamilyActivityWidget.tsx` | `members`, `tasks`, `currentUserId`, `onAddMember` | Members ranked by weekly task completions. Members link to `/dashboard/profile` |
+
+### Modals
+
+| Modal | File | Props | Description |
+|-------|------|-------|-------------|
+| `CreateTaskModal` | `components/CreateTaskModal.tsx` | `isOpen`, `onClose`, `familyId`, `userId`, `members?`, `onTaskCreated` | Create task with title, description, due date, assignees. Accepts optional `members` prop to avoid duplicate fetch |
+| `CreateEventModal` | `components/CreateEventModal.tsx` | `isOpen`, `onClose`, `familyId`, `userId`, `event?`, `defaultDate?`, `onEventCreated` | Create/edit calendar event. All-day toggle, location, start/end times |
+| `AddMemberModal` | `components/AddMemberModal.tsx` | `isOpen`, `onClose`, `familyId`, `member?`, `onMemberAdded` | Add/edit family member. Optional email field triggers invite flow |
+
+### Providers
+
+| Provider | File | Hook | Description |
+|----------|------|------|-------------|
+| `SupabaseProvider` | `components/providers/supabase-provider.tsx` | — | Initializes Supabase client singleton on app start |
+| `UserProvider` | `components/providers/user-provider.tsx` | `useUser()` | Fetches `getCurrentUser()` once on mount, provides `{ user, loading, refreshUser }` to all dashboard pages. Eliminates duplicate auth calls |
+
+### Shared Components
+
+| Component | File | Description |
+|-----------|------|-------------|
+| `Logo` | `components/Logo.tsx` | Kinnect logo with three variants (`full`, `icon`, `stacked`), three color schemes (`primary`, `white`, `dark`), four sizes (`sm`, `md`, `lg`, `xl`) |
+
+### Core Functions (`@kinnect/core`)
+
+**Auth** (`supabase/auth.ts`)
+| Function | Description |
+|----------|-------------|
+| `signUp(name, email, password)` | Creates auth account + user record |
+| `signIn(email, password)` | Signs in via Supabase Auth |
+| `signOut()` | Signs out current session |
+| `getCurrentUser()` | Gets current user record from auth session |
+| `getSession()` | Returns raw Supabase auth session |
+
+**Families** (`supabase/families.ts`)
+| Function | Description |
+|----------|-------------|
+| `createFamily(name, userId)` | Creates family + links user as admin |
+| `getFamily(familyId)` | Returns family record |
+| `getFamilyMembers(familyId)` | Returns all members of a family |
+| `addFamilyMember(familyId, data)` | Adds a member to the family |
+| `updateFamily(familyId, data)` | Updates family name |
+| `updateFamilyMember(memberId, data)` | Updates member name, role, phone |
+| `removeFamilyMember(memberId)` | Deletes a member |
+
+**Tasks** (`supabase/tasks.ts`)
+| Function | Description |
+|----------|-------------|
+| `getTasks(familyId)` | Returns all tasks for a family (newest first) |
+| `createTask(input)` | Creates task with title, assignees, due date, points |
+| `completeTask(taskId, userId)` | Marks task completed by user |
+| `uncompleteTask(taskId)` | Reverts task to incomplete |
+| `assignTask(taskId, userIds)` | Updates task assignees |
+| `deleteTask(taskId)` | Deletes a task |
+
+**Calendar** (`supabase/calendar.ts`)
+| Function | Description |
+|----------|-------------|
+| `getCalendarEvents(familyId, start, end)` | Returns events in date range |
+| `createCalendarEvent(data)` | Creates a new event |
+| `updateCalendarEvent(eventId, data)` | Updates an existing event |
+| `deleteCalendarEvent(eventId)` | Deletes an event |
+
+**Shopping List** (`supabase/shopping-list.ts`)
+| Function | Description |
+|----------|-------------|
+| `getShoppingList(familyId)` | Returns incomplete items |
+| `getShoppingListPreview(familyId, limit)` | Returns top N items + total count (for dashboard widget) |
+| `getFullShoppingList(familyId)` | Returns incomplete + completed items (for full page) |
+| `addShoppingListItem(familyId, userId, data)` | Adds item to the list |
+| `toggleShoppingListItem(itemId, completed, userId)` | Toggles item completed/incomplete |
+| `updateShoppingListItem(itemId, data)` | Updates item title |
+| `deleteShoppingListItem(itemId)` | Deletes an item |
+| `clearCompletedItems(familyId)` | Deletes all completed items |
 
 ---
 
@@ -300,7 +446,7 @@ All database queries, auth logic, and types live in `@kinnect/core`. Web-specifi
 | family_id | uuid | FK → families |
 | auth_user_id | uuid | FK → auth.users (null if no account) |
 | name | text | Display name |
-| role | text | parent, grandparent, child, domestic_worker |
+| role | text | admin, member, dependent, observer |
 | phone | text | Nullable |
 | avatar_url | text | Nullable, for future use |
 | points | integer | Reward points from completing tasks |
@@ -339,6 +485,31 @@ All database queries, auth logic, and types live in `@kinnect/core`. Web-specifi
 | created_by | uuid | FK → users |
 | created_at | timestamptz | |
 
+### lists
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | Primary key |
+| family_id | uuid | FK → families |
+| type | text | e.g. "grocery" |
+| name | text | Display name |
+| created_at | timestamptz | |
+
+### list_items
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | Primary key |
+| list_id | uuid | FK → lists |
+| title | text | Item name |
+| quantity | text | Nullable |
+| notes | text | Nullable |
+| completed | boolean | Default false |
+| completed_by | uuid | FK → users, nullable |
+| completed_at | timestamptz | Nullable |
+| added_by | uuid | FK → users |
+| position | integer | Sort order |
+| created_at | timestamptz | |
+| updated_at | timestamptz | |
+
 All tables have Row Level Security (RLS) policies — users can only access data belonging to their family.
 
 ---
@@ -347,10 +518,19 @@ All tables have Row Level Security (RLS) policies — users can only access data
 
 ### Data Fetching
 Every dashboard page follows the same pattern:
-1. `getCurrentUser()` on mount
+1. `useUser()` hook provides the current user (fetched once by UserProvider)
 2. Guard: no user → redirect to login; no family → redirect to onboarding
-3. Fetch page-specific data using `user.family_id`
-4. Render with loading/empty states
+3. `useEffect` with `[user?.family_id]` dependency (primitive, not object reference)
+4. Fetch page-specific data using `user.family_id`
+5. Render with loading/empty states
+
+### Optimistic Updates
+Mutations that have predictable outcomes use optimistic UI:
+1. Update local state immediately (instant feedback)
+2. Fire API call in background
+3. On failure: revert local state or refetch from server
+
+Used in: task complete/uncomplete, shopping item toggle/delete, dashboard item completion.
 
 ### Modals
 All modals follow a consistent pattern:
@@ -360,13 +540,20 @@ All modals follow a consistent pattern:
 - Same overlay, card, close button, form layout, cancel/submit buttons
 - Loading state on submit button
 
+### Performance
+- **Parallel fetching**: `Promise.all` for independent data on page load
+- **Memoized lookups**: `useMemo` for member maps (O(1) vs O(n) array search)
+- **Link prefetching**: `<Link>` components for navigation (auto-prefetch vs `router.push`)
+- **Shared user context**: `UserProvider` fetches once, all pages use `useUser()`
+- **Optimistic updates**: Instant perceived performance for mutations
+
 ### Styling
 - Tailwind utility classes throughout
-- Custom primary colors: `primary-50/100/500/600/700` (sky blue)
-- Consistent card style: `bg-white rounded-lg shadow p-4 hover:shadow-md`
-- Form inputs: `border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500`
-- Buttons: `bg-blue-600 text-white rounded-lg hover:bg-blue-700`
-- Tab navigation: `border-b-2` active state pattern
+- Custom brand colors: `brand-primary`, `brand-accent`, `brand-success`, `brand-bg`
+- Widget cards: `bg-white rounded-[1.5rem] shadow-sm`
+- Form inputs: `border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-500`
+- Buttons: `bg-brand-accent text-white rounded-xl hover:bg-accent-600`
+- Role colors: Admin (blue), Member (purple), Dependent (green), Observer (amber)
 
 ---
 

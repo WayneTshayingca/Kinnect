@@ -6,14 +6,13 @@
 npm install
 ```
 
-## Step 2: Run Database Migrations
+## Step 2: Configure Environment
 
-Go to Supabase Dashboard > SQL Editor and run these in order:
+Copy the example file and fill in your Supabase credentials:
 
-1. `supabase/migrations/001_add_calendar_events.sql`
-2. `supabase/migrations/002_add_location_to_calendar_events.sql`
-
-## Step 3: Configure Environment
+```bash
+cp apps/web/.env.example apps/web/.env.local
+```
 
 `apps/web/.env.local` needs:
 ```
@@ -22,7 +21,17 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your anon key>
 SUPABASE_SERVICE_ROLE_KEY=<your service role key>
 ```
 
-Get the service role key from Supabase Dashboard > Settings > API. It's only needed for the email invite feature — everything else works without it.
+Get all three values from Supabase Dashboard > Settings > API. The service role key is only needed for the email invite feature — everything else works without it.
+
+## Step 3: Run Database Migrations
+
+Go to Supabase Dashboard > SQL Editor and run these in order:
+
+1. `supabase/migrations/000_initial_schema.sql`
+2. `supabase/migrations/001_add_calendar_events.sql`
+3. `supabase/migrations/002_add_location_to_calendar_events.sql`
+4. `supabase/migrations/003_add_shopping_lists.sql`
+5. `supabase/migrations/004_update_user_roles.sql`
 
 ## Step 4: Start Development
 
@@ -36,13 +45,15 @@ Open http://localhost:3000
 
 1. **Sign up** — Create an account at `/auth/signup`
 2. **Create family** — Enter your family name at `/onboarding`
-3. **Dashboard** — See your stats at `/dashboard`
+3. **Dashboard** — See your widget overview at `/dashboard`
 4. **Add members** — Go to `/dashboard/family`, click "Add Member"
-5. **Create tasks** — Go to `/dashboard/tasks`, click "Create Task", assign to members
-6. **Complete tasks** — Click the checkbox to mark done and earn points
-7. **Calendar** — Go to `/dashboard/calendar`, add events, switch between month/agenda views
-8. **Edit events** — Click the pencil icon on any event to edit title, time, location
-9. **Invite members** — On the family page, click "Invite" next to members without accounts
+5. **Create tasks** — Use the quick-add on the dashboard, or go to `/dashboard/tasks`
+6. **Complete tasks** — Click the checkbox to mark done (instant optimistic feedback)
+7. **Shopping list** — Add items from the dashboard widget, or go to `/dashboard/shopping-list`
+8. **Calendar** — Go to `/dashboard/calendar`, add events, switch between month/agenda views
+9. **Edit events** — Click an event on the dashboard to see details, or use the calendar to edit
+10. **Profile** — Go to `/dashboard/profile` to change your password
+11. **Invite members** — On the family page, click "Invite" next to members without accounts
 
 ## Commands
 
@@ -58,7 +69,9 @@ npm run lint         # Lint code
 | What | Where |
 |------|-------|
 | Pages | `apps/web/app/dashboard/` |
-| Components | `apps/web/components/` |
+| Dashboard widgets | `apps/web/components/dashboard/` |
+| Modals | `apps/web/components/` |
+| Providers | `apps/web/components/providers/` |
 | Database queries | `packages/core/src/supabase/` |
 | Types | `packages/core/src/types/database.ts` |
 | Migrations | `supabase/migrations/` |

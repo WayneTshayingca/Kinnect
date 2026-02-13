@@ -71,7 +71,7 @@ export default function DashboardPage() {
       return
     }
     loadData(user.family_id)
-  }, [user])
+  }, [user?.family_id])
 
   async function loadData(familyId: string) {
     try {
@@ -103,14 +103,37 @@ export default function DashboardPage() {
     }
   }
 
-  async function handleTaskCreated() {
+  // Optimistic: mark task completed locally, then sync
+  function handleTaskCompletedOptimistic(taskId?: string) {
+    if (taskId) {
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId
+            ? { ...t, completed: true, completed_by: user!.id, completed_at: new Date().toISOString() }
+            : t
+        )
+      )
+    }
+    // Background sync — silently refresh to stay consistent
     if (user?.family_id) {
-      const tasksData = await getTasks(user.family_id)
-      setTasks(tasksData)
+      getTasks(user.family_id).then(setTasks).catch(console.error)
     }
   }
 
-  async function handleTaskCompleted() {
+  // Optimistic: remove completed shopping item from preview, then sync
+  function handleShoppingToggleOptimistic(itemId: string) {
+    setShoppingItems((prev) => prev.filter((i) => i.id !== itemId))
+    setShoppingTotalCount((prev) => Math.max(0, prev - 1))
+    // Background sync
+    if (user?.family_id) {
+      getShoppingListPreview(user.family_id, 4).then((data) => {
+        setShoppingItems(data.items)
+        setShoppingTotalCount(data.totalCount)
+      }).catch(console.error)
+    }
+  }
+
+  async function handleTaskCreated() {
     if (user?.family_id) {
       const tasksData = await getTasks(user.family_id)
       setTasks(tasksData)
@@ -124,7 +147,7 @@ export default function DashboardPage() {
     }
   }
 
-  async function handleShoppingItemsChanged() {
+  async function handleShoppingItemAdded() {
     if (user?.family_id) {
       const shoppingData = await getShoppingListPreview(user.family_id, 4)
       setShoppingItems(shoppingData.items)
@@ -198,7 +221,8 @@ export default function DashboardPage() {
             tasks={todaysTasks}
             members={members}
             userId={user.id}
-            onTaskCompleted={handleTaskCompleted}
+            familyId={user.family_id}
+            onTaskCompleted={handleTaskCompletedOptimistic}
             onCreateTask={() => setShowCreateTask(true)}
           />
           <ShoppingListWidget
@@ -207,7 +231,8 @@ export default function DashboardPage() {
             familyId={user.family_id}
             userId={user.id}
             members={members}
-            onItemsChanged={handleShoppingItemsChanged}
+            onItemAdded={handleShoppingItemAdded}
+            onItemToggled={handleShoppingToggleOptimistic}
           />
         </div>
 
@@ -227,6 +252,7 @@ export default function DashboardPage() {
         onClose={() => setShowCreateTask(false)}
         familyId={user.family_id}
         userId={user.id}
+        members={members}
         onTaskCreated={handleTaskCreated}
       />
       <AddMemberModal

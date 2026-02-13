@@ -76,7 +76,7 @@ export default function ProfilePage() {
     }
     loadData(user.family_id)
     loadEmail()
-  }, [user])
+  }, [user?.family_id])
 
   async function loadData(familyId: string) {
     try {
