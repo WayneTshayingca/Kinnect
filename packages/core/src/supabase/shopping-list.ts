@@ -7,21 +7,39 @@ export interface ShoppingListData {
   totalCount: number
 }
 
-export async function getShoppingList(familyId: string): Promise<ShoppingListData> {
+async function getOrCreateList(familyId: string): Promise<List> {
   const supabase = getSupabase()
 
-  // Get the family's shopping list
-  const { data: list, error: listError } = await supabase
+  // Use .limit(1) instead of .single()/.maybeSingle() to avoid errors
+  // when there are 0 or multiple lists for the same family
+  const { data: rows } = await supabase
     .from('lists')
     .select('*')
     .eq('family_id', familyId)
     .eq('type', 'grocery')
+    .order('created_at', { ascending: true })
+    .limit(1)
+
+  if (rows && rows.length > 0) return rows[0]
+
+  const { data: created, error } = await supabase
+    .from('lists')
+    .insert({
+      family_id: familyId,
+      type: 'grocery',
+      name: 'Shopping List',
+    })
+    .select()
     .single()
 
-  if (listError) throw listError
-  if (!list) throw new Error('Shopping list not found')
+  if (error) throw error
+  return created
+}
 
-  // Get incomplete items ordered by creation date
+export async function getShoppingList(familyId: string): Promise<ShoppingListData> {
+  const supabase = getSupabase()
+  const list = await getOrCreateList(familyId)
+
   const { data: items, error: itemsError } = await supabase
     .from('list_items')
     .select('*')
@@ -40,28 +58,12 @@ export async function getShoppingList(familyId: string): Promise<ShoppingListDat
 
 export async function getShoppingListPreview(familyId: string, limit = 4): Promise<ShoppingListData> {
   const supabase = getSupabase()
+  const list = await getOrCreateList(familyId)
 
-  const { data: list, error: listError } = await supabase
-    .from('lists')
-    .select('*')
-    .eq('family_id', familyId)
-    .eq('type', 'grocery')
-    .single()
-
-  if (listError) throw listError
-  if (!list) throw new Error('Shopping list not found')
-
-  // Get total count of incomplete items
-  const { count } = await supabase
+  // Single query: get items + total count together
+  const { data: items, count, error: itemsError } = await supabase
     .from('list_items')
-    .select('*', { count: 'exact', head: true })
-    .eq('list_id', list.id)
-    .eq('completed', false)
-
-  // Get limited items for preview
-  const { data: items, error: itemsError } = await supabase
-    .from('list_items')
-    .select('*')
+    .select('*', { count: 'exact' })
     .eq('list_id', list.id)
     .eq('completed', false)
     .order('created_at', { ascending: false })
@@ -82,16 +84,7 @@ export async function getFullShoppingList(familyId: string): Promise<{
   completedItems: ListItem[]
 }> {
   const supabase = getSupabase()
-
-  const { data: list, error: listError } = await supabase
-    .from('lists')
-    .select('*')
-    .eq('family_id', familyId)
-    .eq('type', 'grocery')
-    .single()
-
-  if (listError) throw listError
-  if (!list) throw new Error('Shopping list not found')
+  const list = await getOrCreateList(familyId)
 
   const [incompleteResult, completedResult] = await Promise.all([
     supabase
@@ -125,28 +118,16 @@ export async function addShoppingListItem(
   data: { title: string; quantity?: string; notes?: string }
 ): Promise<ListItem> {
   const supabase = getSupabase()
+  const list = await getOrCreateList(familyId)
 
-  // Get the family's shopping list
-  const { data: list, error: listError } = await supabase
-    .from('lists')
-    .select('id')
-    .eq('family_id', familyId)
-    .eq('type', 'grocery')
-    .single()
-
-  if (listError) throw listError
-  if (!list) throw new Error('Shopping list not found')
-
-  // Get max position
-  const { data: maxPos } = await supabase
+  const { data: maxPosRows } = await supabase
     .from('list_items')
     .select('position')
     .eq('list_id', list.id)
     .order('position', { ascending: false })
     .limit(1)
-    .single()
 
-  const newPosition = (maxPos?.position || 0) + 1
+  const newPosition = (maxPosRows?.[0]?.position || 0) + 1
 
   const { data: item, error } = await supabase
     .from('list_items')
@@ -196,6 +177,26 @@ export async function toggleShoppingListItem(
   return data
 }
 
+export async function updateShoppingListItem(
+  itemId: string,
+  data: { title: string }
+): Promise<ListItem> {
+  const supabase = getSupabase()
+
+  const { data: item, error } = await supabase
+    .from('list_items')
+    .update({
+      title: data.title,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', itemId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return item
+}
+
 export async function deleteShoppingListItem(itemId: string): Promise<void> {
   const supabase = getSupabase()
 
@@ -209,16 +210,7 @@ export async function deleteShoppingListItem(itemId: string): Promise<void> {
 
 export async function clearCompletedItems(familyId: string): Promise<void> {
   const supabase = getSupabase()
-
-  const { data: list, error: listError } = await supabase
-    .from('lists')
-    .select('id')
-    .eq('family_id', familyId)
-    .eq('type', 'grocery')
-    .single()
-
-  if (listError) throw listError
-  if (!list) throw new Error('Shopping list not found')
+  const list = await getOrCreateList(familyId)
 
   const { error } = await supabase
     .from('list_items')
@@ -230,29 +222,5 @@ export async function clearCompletedItems(familyId: string): Promise<void> {
 }
 
 export async function ensureShoppingList(familyId: string): Promise<List> {
-  const supabase = getSupabase()
-
-  // Try to get existing list
-  const { data: existing } = await supabase
-    .from('lists')
-    .select('*')
-    .eq('family_id', familyId)
-    .eq('type', 'grocery')
-    .single()
-
-  if (existing) return existing
-
-  // Create one if it doesn't exist (for families created before this feature)
-  const { data: created, error } = await supabase
-    .from('lists')
-    .insert({
-      family_id: familyId,
-      type: 'grocery',
-      name: 'Shopping List',
-    })
-    .select()
-    .single()
-
-  if (error) throw error
-  return created
+  return getOrCreateList(familyId)
 }

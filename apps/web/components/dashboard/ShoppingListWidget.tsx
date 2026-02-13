@@ -111,22 +111,15 @@ export default function ShoppingListWidget({
                   className="mt-1 w-4 h-4 rounded border-gray-300 text-brand-accent focus:ring-accent-500 cursor-pointer"
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline gap-2">
-                    <span
-                      className={`text-sm font-medium ${
-                        item.completed
-                          ? 'line-through text-gray-400'
-                          : 'text-gray-900'
-                      }`}
-                    >
-                      {item.title}
-                    </span>
-                    {item.quantity && (
-                      <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
-                        {item.quantity}
-                      </span>
-                    )}
-                  </div>
+                  <span
+                    className={`text-sm font-medium ${
+                      item.completed
+                        ? 'line-through text-gray-400'
+                        : 'text-gray-900'
+                    }`}
+                  >
+                    {item.title}
+                  </span>
                   <div className="text-xs text-gray-400 mt-0.5">
                     {getMemberName(item.added_by)} &middot;{' '}
                     {timeAgo(item.created_at)}
@@ -144,7 +137,7 @@ export default function ShoppingListWidget({
             value={newItem}
             onChange={(e) => setNewItem(e.target.value)}
             placeholder="Add item..."
-            className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent"
+            className="flex-1 px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent placeholder:text-gray-400"
             disabled={isAdding}
           />
           <button

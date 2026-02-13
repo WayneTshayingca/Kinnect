@@ -9,7 +9,6 @@ import {
   getTasks,
   getCalendarEvents,
   getShoppingListPreview,
-  ensureShoppingList,
   signOut,
   type User,
   type Family,
@@ -81,9 +80,6 @@ export default function DashboardPage() {
 
       const familyId = currentUser.family_id
       const { weekStart, weekEnd } = getWeekRange()
-
-      // Ensure shopping list exists for this family
-      await ensureShoppingList(familyId)
 
       const [familyData, membersData, tasksData, eventsData, shoppingData] =
         await Promise.all([

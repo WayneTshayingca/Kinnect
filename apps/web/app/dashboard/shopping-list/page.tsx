@@ -8,13 +8,13 @@ import {
   getFullShoppingList,
   addShoppingListItem,
   toggleShoppingListItem,
+  updateShoppingListItem,
   deleteShoppingListItem,
   clearCompletedItems,
-  ensureShoppingList,
   type User,
   type ListItem,
 } from '@kinnect/core'
-import { ShoppingCart, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { ShoppingCart, Plus, Trash2, ChevronDown, ChevronUp, Pencil, Check, X } from 'lucide-react'
 
 // ── helpers ──────────────────────────────────────────────
 
@@ -42,8 +42,11 @@ export default function ShoppingListPage() {
 
   // Add form
   const [newTitle, setNewTitle] = useState('')
-  const [newQuantity, setNewQuantity] = useState('')
   const [isAdding, setIsAdding] = useState(false)
+
+  // Edit state
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState('')
 
   useEffect(() => {
     loadData()
@@ -58,8 +61,6 @@ export default function ShoppingListPage() {
         router.push('/onboarding')
         return
       }
-
-      await ensureShoppingList(currentUser.family_id)
 
       const [membersData, listData] = await Promise.all([
         getFamilyMembers(currentUser.family_id),
@@ -99,10 +100,8 @@ export default function ShoppingListPage() {
     try {
       await addShoppingListItem(user.family_id, user.id, {
         title: newTitle.trim(),
-        quantity: newQuantity.trim() || undefined,
       })
       setNewTitle('')
-      setNewQuantity('')
       await reloadList()
     } catch (error) {
       console.error('Failed to add item:', error)
@@ -144,6 +143,29 @@ export default function ShoppingListPage() {
     }
   }
 
+  function startEditing(item: ListItem) {
+    setEditingId(item.id)
+    setEditTitle(item.title)
+  }
+
+  function cancelEditing() {
+    setEditingId(null)
+    setEditTitle('')
+  }
+
+  async function handleSaveEdit(itemId: string) {
+    if (!editTitle.trim()) return
+    try {
+      await updateShoppingListItem(itemId, { title: editTitle.trim() })
+      setEditingId(null)
+      setEditTitle('')
+      await reloadList()
+    } catch (error) {
+      console.error('Failed to update item:', error)
+      alert('Failed to update item')
+    }
+  }
+
   if (loading) {
     return <div className="p-8 text-gray-500">Loading shopping list...</div>
   }
@@ -178,15 +200,7 @@ export default function ShoppingListPage() {
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder="Add an item..."
-            className="flex-1 px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent"
-            disabled={isAdding}
-          />
-          <input
-            type="text"
-            value={newQuantity}
-            onChange={(e) => setNewQuantity(e.target.value)}
-            placeholder="Qty"
-            className="w-20 px-3 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent"
+            className="flex-1 px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent placeholder:text-gray-400"
             disabled={isAdding}
           />
           <button
@@ -225,34 +239,68 @@ export default function ShoppingListPage() {
                   onChange={() => handleToggleItem(item.id, item.completed)}
                   className="mt-1 w-5 h-5 rounded border-gray-300 text-brand-accent focus:ring-accent-500 cursor-pointer"
                 />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-sm font-bold text-gray-900">
-                      {item.title}
-                    </span>
-                    {item.quantity && (
-                      <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded font-medium">
-                        {item.quantity}
+                {editingId === item.id ? (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      handleSaveEdit(item.id)
+                    }}
+                    className="flex-1 flex items-center gap-2"
+                  >
+                    <input
+                      type="text"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="flex-1 px-3 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent placeholder:text-gray-400"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') cancelEditing()
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!editTitle.trim()}
+                      className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                      title="Save"
+                    >
+                      <Check className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelEditing}
+                      className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+                      title="Cancel"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-bold text-gray-900">
+                        {item.title}
                       </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-0.5">
-                    Added by {getMemberName(item.added_by)} &middot;{' '}
-                    {timeAgo(item.created_at)}
-                  </div>
-                  {item.notes && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      {item.notes}
+                      <div className="text-xs text-gray-400 mt-0.5">
+                        Added by {getMemberName(item.added_by)} &middot;{' '}
+                        {timeAgo(item.created_at)}
+                      </div>
                     </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => handleDeleteItem(item.id)}
-                  className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                  title="Delete item"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                    <button
+                      onClick={() => startEditing(item)}
+                      className="p-1.5 text-gray-300 hover:text-brand-accent hover:bg-brand-bg rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                      title="Edit item"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteItem(item.id)}
+                      className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                      title="Delete item"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
               </div>
             ))}
           </div>
@@ -302,28 +350,67 @@ export default function ShoppingListPage() {
                     onChange={() => handleToggleItem(item.id, item.completed)}
                     className="mt-1 w-5 h-5 rounded border-gray-300 text-brand-accent focus:ring-accent-500 cursor-pointer"
                   />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-sm font-medium text-gray-400 line-through">
-                        {item.title}
-                      </span>
-                      {item.quantity && (
-                        <span className="text-xs text-gray-300 bg-gray-50 px-1.5 py-0.5 rounded">
-                          {item.quantity}
+                  {editingId === item.id ? (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault()
+                        handleSaveEdit(item.id)
+                      }}
+                      className="flex-1 flex items-center gap-2"
+                    >
+                      <input
+                        type="text"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="flex-1 px-3 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent placeholder:text-gray-400"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') cancelEditing()
+                        }}
+                      />
+                      <button
+                        type="submit"
+                        disabled={!editTitle.trim()}
+                        className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        title="Save"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelEditing}
+                        className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Cancel"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </form>
+                  ) : (
+                    <>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-gray-400 line-through">
+                          {item.title}
                         </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-300 mt-0.5">
-                      Completed by {getMemberName(item.completed_by || item.added_by)}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleDeleteItem(item.id)}
-                    className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                    title="Delete item"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                        <div className="text-xs text-gray-300 mt-0.5">
+                          Completed by {getMemberName(item.completed_by || item.added_by)}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => startEditing(item)}
+                        className="p-1.5 text-gray-300 hover:text-brand-accent hover:bg-brand-bg rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        title="Edit item"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteItem(item.id)}
+                        className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        title="Delete item"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
               ))}
             </div>

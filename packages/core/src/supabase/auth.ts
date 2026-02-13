@@ -46,14 +46,15 @@ export async function signOut() {
 
 export async function getCurrentUser(): Promise<User | null> {
   const supabase = getSupabase()
-  
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser) return null
+
+  // getSession() is instant (reads local storage), unlike getUser() which makes a network call
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user) return null
 
   const { data: userData, error } = await supabase
     .from('users')
     .select('*')
-    .eq('auth_user_id', authUser.id)
+    .eq('auth_user_id', session.user.id)
     .single()
 
   if (error) throw error
