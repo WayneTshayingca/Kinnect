@@ -1,5 +1,5 @@
-import { useEffect, useRef, useCallback } from 'react'
-import { getSupabase } from '@kinnect/core'
+import {useCallback, useEffect, useRef} from 'react'
+import {getSupabase} from '@kinnect/core'
 
 /**
  * Subscribes to Supabase Postgres Changes for live cross-device sync
@@ -73,17 +73,30 @@ export function useRealtimeSync(
     }
   }, [familyId])
 
-  // Broadcast to other tabs instantly
-  const broadcast = useCallback((table: string) => {
+  // Refetch all data when the tab becomes visible again (mobile browsers
+  // kill WebSocket connections in the background, so data may be stale)
+  useEffect(() => {
     if (!familyId) return
-    try {
-      const bc = new BroadcastChannel(`kinnect:${familyId}`)
-      bc.postMessage({ table })
-      bc.close()
-    } catch {
-      // BroadcastChannel not supported
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        Object.values(onSyncRef.current).forEach((reload) => reload())
+      }
     }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [familyId])
 
-  return broadcast
+  // Broadcast to other tabs instantly
+    return useCallback((table: string) => {
+      if (!familyId) return
+      try {
+          const bc = new BroadcastChannel(`kinnect:${familyId}`)
+          bc.postMessage({table})
+          bc.close()
+      } catch {
+          // BroadcastChannel not supported
+      }
+  }, [familyId])
 }
