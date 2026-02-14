@@ -17,6 +17,7 @@ import { useUser } from '@/components/providers/user-provider'
 import { useRealtimeSync } from '@/hooks/useRealtimeSync'
 import toast from 'react-hot-toast'
 import { ShoppingCart, Plus, Trash2, ChevronDown, ChevronUp, Pencil, Check, X } from 'lucide-react'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 // ── helpers ──────────────────────────────────────────────
 
@@ -45,6 +46,9 @@ export default function ShoppingListPage() {
   // Add form
   const [newTitle, setNewTitle] = useState('')
   const [isAdding, setIsAdding] = useState(false)
+
+  // Confirm dialog
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -156,7 +160,6 @@ export default function ShoppingListPage() {
 
   async function handleClearCompleted() {
     if (!user?.family_id) return
-    if (!confirm('Clear all completed items?')) return
     try {
       await clearCompletedItems(user.family_id)
       await reloadList()
@@ -347,7 +350,7 @@ export default function ShoppingListPage() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    handleClearCompleted()
+                    setShowClearConfirm(true)
                   }}
                   className="text-xs text-red-500 hover:text-red-700 font-medium px-2 py-1 hover:bg-red-50 rounded-lg transition-colors"
                 >
@@ -442,6 +445,16 @@ export default function ShoppingListPage() {
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={showClearConfirm}
+        onClose={() => setShowClearConfirm(false)}
+        onConfirm={handleClearCompleted}
+        title="Clear completed items"
+        message="This will permanently remove all completed items from the list. This action cannot be undone."
+        confirmLabel="Clear All"
+        variant="danger"
+      />
     </div>
   )
 }

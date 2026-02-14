@@ -11,6 +11,7 @@ import { useUser } from '@/components/providers/user-provider'
 import { useRealtimeSync } from '@/hooks/useRealtimeSync'
 import toast from 'react-hot-toast'
 import CreateEventModal from '@/components/CreateEventModal'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 // ── helpers ──────────────────────────────────────────────
 
@@ -58,6 +59,7 @@ export default function CalendarPage() {
   const [showCreateEvent, setShowCreateEvent] = useState(false)
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null)
   const [defaultDate, setDefaultDate] = useState<string | undefined>()
+  const [eventToDelete, setEventToDelete] = useState<string | null>(null)
 
   // ── data loading ─────────────────────────────────────
 
@@ -92,7 +94,6 @@ export default function CalendarPage() {
   const broadcast = useRealtimeSync(user?.family_id, { calendar_events: loadEvents })
 
   async function handleDelete(eventId: string) {
-    if (!confirm('Delete this event?')) return
     try {
       await deleteCalendarEvent(eventId)
       await loadEvents()
@@ -377,7 +378,7 @@ export default function CalendarPage() {
                           </svg>
                         </button>
                         <button
-                          onClick={() => handleDelete(ev.id)}
+                          onClick={() => setEventToDelete(ev.id)}
                           className="text-gray-400 hover:text-red-600 transition-colors"
                           title="Delete event"
                         >
@@ -441,7 +442,7 @@ export default function CalendarPage() {
                               </svg>
                             </button>
                             <button
-                              onClick={() => handleDelete(ev.id)}
+                              onClick={() => setEventToDelete(ev.id)}
                               className="text-gray-400 hover:text-red-600 transition-colors"
                               title="Delete event"
                             >
@@ -470,6 +471,16 @@ export default function CalendarPage() {
         onEventCreated={() => { loadEvents(); broadcast('calendar_events') }}
         defaultDate={defaultDate}
         event={editingEvent}
+      />
+
+      <ConfirmDialog
+        isOpen={!!eventToDelete}
+        onClose={() => setEventToDelete(null)}
+        onConfirm={() => { if (eventToDelete) handleDelete(eventToDelete) }}
+        title="Delete event"
+        message="Are you sure you want to delete this event? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
       />
     </div>
   )

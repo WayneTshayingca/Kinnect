@@ -17,6 +17,7 @@ import { useUser } from '@/components/providers/user-provider'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff } from 'lucide-react'
 import AddMemberModal from '@/components/AddMemberModal'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 // ── role helpers ──────────────────────────────────────────
 
@@ -49,6 +50,9 @@ export default function ProfilePage() {
   // modal
   const [showMemberModal, setShowMemberModal] = useState(false)
   const [editingMember, setEditingMember] = useState<User | null>(null)
+
+  // confirm dialog
+  const [memberToRemove, setMemberToRemove] = useState<User | null>(null)
 
   // profile editing
   const [editingProfile, setEditingProfile] = useState(false)
@@ -211,22 +215,23 @@ export default function ProfilePage() {
     setShowMemberModal(true)
   }
 
-  async function handleRemoveMember(m: User) {
+  function handleRemoveMember(m: User) {
     if (m.id === user?.id) {
       toast.error('You cannot remove yourself from the family')
       return
     }
-    if (!confirm(`Remove ${m.name} from the family circle?`)) return
+    setMemberToRemove(m)
+  }
+
+  async function confirmRemoveMember() {
+    if (!memberToRemove) return
     try {
-      await removeFamilyMember(m.id)
-      // Optimistically remove the member from UI immediately
-      setMembers((prev) => prev.filter((member) => member.id !== m.id))
-      // Then sync with server
+      await removeFamilyMember(memberToRemove.id)
+      setMembers((prev) => prev.filter((member) => member.id !== memberToRemove.id))
       await reloadMembers()
     } catch (error) {
       console.error('Error removing member:', error)
       toast.error('Failed to remove member')
-      // Reload to get the true state from server
       await reloadMembers()
     }
   }
@@ -572,6 +577,16 @@ export default function ProfilePage() {
         familyId={user.family_id}
         onMemberAdded={reloadMembers}
         member={editingMember}
+      />
+
+      <ConfirmDialog
+        isOpen={!!memberToRemove}
+        onClose={() => setMemberToRemove(null)}
+        onConfirm={confirmRemoveMember}
+        title="Remove family member"
+        message={`Are you sure you want to remove ${memberToRemove?.name} from the family circle? They will lose access to shared lists, tasks, and events.`}
+        confirmLabel="Remove"
+        variant="danger"
       />
     </div>
   )
