@@ -17,6 +17,7 @@ import {
 } from '@kinnect/core'
 import {useUser} from '@/components/providers/user-provider'
 import CreateTaskModal from '@/components/CreateTaskModal'
+import CreateEventModal from '@/components/CreateEventModal'
 import AddMemberModal from '@/components/AddMemberModal'
 import {Logo} from '@/components/Logo'
 import {AnimatedLogo} from '@/components/AnimatedLogo'
@@ -67,6 +68,7 @@ export default function DashboardPage() {
   const [shoppingTotalCount, setShoppingTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showCreateTask, setShowCreateTask] = useState(false)
+  const [showCreateEvent, setShowCreateEvent] = useState(false)
   const [showAddMember, setShowAddMember] = useState(false)
 
   useEffect(() => {
@@ -267,7 +269,7 @@ export default function DashboardPage() {
 
         {/* Full Width Widgets */}
         <ErrorBoundary>
-          <UpcomingEventsWidget events={events} />
+          <UpcomingEventsWidget events={events} onCreateEvent={() => setShowCreateEvent(true)} />
         </ErrorBoundary>
         <ErrorBoundary>
           <FamilyActivityWidget
@@ -287,6 +289,13 @@ export default function DashboardPage() {
         userId={user.id}
         members={members}
         onTaskCreated={async () => { await reloadTasks(); broadcast('tasks') }}
+      />
+      <CreateEventModal
+        isOpen={showCreateEvent}
+        onClose={() => setShowCreateEvent(false)}
+        familyId={user.family_id}
+        userId={user.id}
+        onEventCreated={() => { reloadEvents(); broadcast('calendar_events') }}
       />
       <AddMemberModal
         isOpen={showAddMember}

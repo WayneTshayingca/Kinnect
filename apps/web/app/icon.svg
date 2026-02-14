@@ -1,0 +1,14 @@
+<svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="40" height="40" rx="10" fill="#312E81"/>
+
+  <!-- Vertical line - centered and balanced -->
+  <path d="M12 11V29" stroke="white" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Curved line - adjusted for better balance -->
+  <path d="M28 11C28 11 18 16.5 18 20C18 23.5 28 29 28 29" stroke="#FB7185" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Dots - repositioned to match new lines -->
+  <circle cx="12" cy="11" r="2.5" fill="#FB7185"/>
+  <circle cx="28" cy="11" r="2.5" fill="#FB7185"/>
+  <circle cx="28" cy="29" r="2.5" fill="#FB7185"/>
+</svg>

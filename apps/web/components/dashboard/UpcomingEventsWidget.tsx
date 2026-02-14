@@ -3,10 +3,11 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { type CalendarEvent } from '@kinnect/core'
-import { Calendar, Clock, MapPin, X } from 'lucide-react'
+import { Calendar, Clock, MapPin, Plus, X } from 'lucide-react'
 
 interface UpcomingEventsWidgetProps {
   events: CalendarEvent[]
+  onCreateEvent?: () => void
 }
 
 function formatEventDate(dateStr: string): string {
@@ -24,7 +25,7 @@ function formatEventTime(dateStr: string): string {
   return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
-export default function UpcomingEventsWidget({ events }: UpcomingEventsWidgetProps) {
+export default function UpcomingEventsWidget({ events, onCreateEvent }: UpcomingEventsWidgetProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
 
   return (
@@ -35,12 +36,23 @@ export default function UpcomingEventsWidget({ events }: UpcomingEventsWidgetPro
             <Calendar className="h-5 w-5 text-brand-accent" />
             This Week
           </h2>
-          <Link
-            href="/dashboard/calendar"
-            className="text-brand-accent text-sm font-bold hover:bg-brand-bg px-3 py-1.5 rounded-lg transition-colors"
-          >
-            View Calendar
-          </Link>
+          <div className="flex items-center gap-2">
+            {onCreateEvent && (
+              <button
+                onClick={onCreateEvent}
+                className="text-brand-accent text-sm font-bold hover:bg-brand-bg px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+              >
+                <Plus className="w-4 h-4" />
+                Add
+              </button>
+            )}
+            <Link
+              href="/dashboard/calendar"
+              className="text-brand-accent text-sm font-bold hover:bg-brand-bg px-3 py-1.5 rounded-lg transition-colors"
+            >
+              View Calendar
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -49,12 +61,21 @@ export default function UpcomingEventsWidget({ events }: UpcomingEventsWidgetPro
           <div className="text-center py-6">
             <Calendar className="h-8 w-8 text-gray-200 mx-auto mb-2" />
             <p className="text-gray-400 text-sm font-medium">No upcoming events this week</p>
-            <Link
-              href="/dashboard/calendar"
-              className="text-brand-accent text-sm font-bold mt-2 inline-block hover:underline"
-            >
-              Add an event
-            </Link>
+            {onCreateEvent ? (
+              <button
+                onClick={onCreateEvent}
+                className="text-brand-accent text-sm font-bold mt-2 inline-block hover:underline"
+              >
+                Add an event
+              </button>
+            ) : (
+              <Link
+                href="/dashboard/calendar"
+                className="text-brand-accent text-sm font-bold mt-2 inline-block hover:underline"
+              >
+                Add an event
+              </Link>
+            )}
           </div>
         ) : (
           <div className="space-y-3">

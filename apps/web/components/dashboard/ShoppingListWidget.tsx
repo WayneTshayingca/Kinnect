@@ -91,7 +91,7 @@ export default function ShoppingListWidget({
             <ShoppingCart className="h-5 w-5 text-brand-success" />
             Shopping List
           </h2>
-          {totalCount > items.length && (
+          {totalCount > 3 && (
             <Link
               href="/dashboard/shopping-list"
               className="text-brand-accent text-sm font-bold hover:bg-brand-bg px-3 py-1.5 rounded-lg transition-colors"
