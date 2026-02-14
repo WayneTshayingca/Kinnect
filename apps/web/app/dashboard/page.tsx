@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useEffect, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 import {useRouter} from 'next/navigation'
 import {
     type CalendarEvent,
@@ -71,6 +71,9 @@ export default function DashboardPage() {
   const [showCreateEvent, setShowCreateEvent] = useState(false)
   const [showAddMember, setShowAddMember] = useState(false)
 
+  // Track in-flight task mutations so realtime refetches don't overwrite optimistic state
+  const inflightTasksRef = useRef<Map<string, Partial<Task>>>(new Map())
+
   useEffect(() => {
     if (!user) return
     if (!user.family_id) {
@@ -114,14 +117,14 @@ export default function DashboardPage() {
   // widget awaits the API call and then triggers onTaskCreated to sync)
   function handleTaskCompletedOptimistic(taskId?: string) {
     if (taskId) {
+      const optimistic: Partial<Task> = { completed: true, completed_by: user!.id, completed_at: new Date().toISOString() }
+      inflightTasksRef.current.set(taskId, optimistic)
       setTasks((prev) =>
-        prev.map((t) =>
-          t.id === taskId
-            ? { ...t, completed: true, completed_by: user!.id, completed_at: new Date().toISOString() }
-            : t
-        )
+        prev.map((t) => t.id === taskId ? { ...t, ...optimistic } : t)
       )
       broadcast('tasks')
+      // Clear in-flight after a short delay to allow realtime events to settle
+      setTimeout(() => inflightTasksRef.current.delete(taskId), 3000)
     }
   }
 
@@ -142,7 +145,13 @@ export default function DashboardPage() {
   const reloadTasks = useCallback(async () => {
     if (user?.family_id) {
       const tasksData = await getTodaysTasks(user.family_id)
-      setTasks(tasksData)
+      // Preserve optimistic state for any tasks still in-flight
+      const inflight = inflightTasksRef.current
+      if (inflight.size > 0) {
+        setTasks(tasksData.map((t) => inflight.has(t.id) ? { ...t, ...inflight.get(t.id) } : t))
+      } else {
+        setTasks(tasksData)
+      }
     }
   }, [user?.family_id])
 

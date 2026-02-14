@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getTasks, completeTask, uncompleteTask, type Task } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
@@ -15,6 +15,9 @@ export default function TasksPage() {
   const [showCreateTask, setShowCreateTask] = useState(false)
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all')
   const [search, setSearch] = useState('')
+
+  // Track in-flight mutations so realtime refetches don't overwrite optimistic state
+  const inflightRef = useRef<Map<string, Partial<Task>>>(new Map())
 
   useEffect(() => {
     if (!user) return
@@ -31,7 +34,13 @@ export default function TasksPage() {
   const reloadTasks = useCallback(async () => {
     if (user?.family_id) {
       const tasksData = await getTasks(user.family_id)
-      setTasks(tasksData)
+      // Preserve optimistic state for any tasks still in-flight
+      const inflight = inflightRef.current
+      if (inflight.size > 0) {
+        setTasks(tasksData.map((t) => inflight.has(t.id) ? { ...t, ...inflight.get(t.id) } : t))
+      } else {
+        setTasks(tasksData)
+      }
     }
   }, [user?.family_id])
 
@@ -40,13 +49,12 @@ export default function TasksPage() {
   async function handleCompleteTask(taskId: string) {
     if (!user) return
 
+    const optimistic: Partial<Task> = { completed: true, completed_by: user.id, completed_at: new Date().toISOString() }
+    inflightRef.current.set(taskId, optimistic)
+
     // Optimistic update
     setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId
-          ? { ...t, completed: true, completed_by: user.id, completed_at: new Date().toISOString() }
-          : t
-      )
+      prev.map((t) => t.id === taskId ? { ...t, ...optimistic } : t)
     )
 
     try {
@@ -58,19 +66,20 @@ export default function TasksPage() {
         const tasksData = await getTasks(user.family_id)
         setTasks(tasksData)
       }
+    } finally {
+      inflightRef.current.delete(taskId)
     }
   }
 
   async function handleUncompleteTask(taskId: string) {
     if (!user?.family_id) return
 
+    const optimistic: Partial<Task> = { completed: false, completed_by: null, completed_at: null }
+    inflightRef.current.set(taskId, optimistic)
+
     // Optimistic update
     setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId
-          ? { ...t, completed: false, completed_by: null, completed_at: null }
-          : t
-      )
+      prev.map((t) => t.id === taskId ? { ...t, ...optimistic } : t)
     )
 
     try {
@@ -80,6 +89,8 @@ export default function TasksPage() {
       console.error('Error undoing task:', error)
       const tasksData = await getTasks(user.family_id)
       setTasks(tasksData)
+    } finally {
+      inflightRef.current.delete(taskId)
     }
   }
 
