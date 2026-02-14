@@ -38,7 +38,8 @@ export function useRealtimeSync(
     const supabase = getSupabase()
     const tables = Object.keys(onSyncRef.current)
 
-    let channel = supabase.channel(`family:${familyId}`)
+    // Unique channel name prevents collisions when effects re-run (e.g. React strict mode)
+    let channel = supabase.channel(`family:${familyId}:${Date.now()}`)
 
     for (const table of tables) {
       // list_items doesn't have family_id — subscribe without filter (RLS handles visibility)
