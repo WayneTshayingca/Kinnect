@@ -3,7 +3,7 @@ import type { User } from '../types/database'
 
 export async function signUp(email: string, password: string, name: string) {
   const supabase = getSupabase()
-  
+
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
@@ -13,16 +13,19 @@ export async function signUp(email: string, password: string, name: string) {
   if (authError) throw authError
   if (!authData.user) throw new Error('No user returned from signup')
 
-  // Create user profile
+  // Create user profile — if this fails, clean up the orphaned auth user
   const { error: profileError } = await supabase
     .from('users')
     .insert({
       auth_user_id: authData.user.id,
       name,
-      role: 'admin', // Default role for account creator
+      role: 'admin',
     })
 
-  if (profileError) throw profileError
+  if (profileError) {
+    await supabase.auth.signOut().catch(() => {})
+    throw new Error(`Signup failed: could not create user profile. ${profileError.message}`)
+  }
 
   return authData
 }
@@ -48,14 +51,15 @@ export async function signOut() {
 export async function getCurrentUser(): Promise<User | null> {
   const supabase = getSupabase()
 
-  // getSession() is instant (reads local storage), unlike getUser() which makes a network call
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session?.user) return null
+  // getUser() validates the JWT against Supabase (network call),
+  // ensuring the token hasn't been tampered with or revoked
+  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+  if (authError || !authUser) return null
 
   const { data: userData, error } = await supabase
     .from('users')
     .select('*')
-    .eq('auth_user_id', session.user.id)
+    .eq('auth_user_id', authUser.id)
     .maybeSingle()
 
   if (error) throw error
