@@ -2,13 +2,13 @@
     <rect width="40" height="40" rx="10" fill="#312E81"/>
 
     <!-- Vertical line for K -->
-    <path d="M12 11V29" stroke="white" stroke-width="4" stroke-linecap="round"/>
+    <path d="M15 11V29.5" stroke="white" stroke-width="4" stroke-linecap="round"/>
 
     <!-- Curved C shape using quadratic bezier -->
-    <path d="M28 11 Q 9 20, 28 29" stroke="#FB7185" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <path d="M26 11 Q 14 20, 26 29" stroke="#FB7185" stroke-width="4" stroke-linecap="round" fill="none"/>
 
     <!-- Accent dots -->
-    <circle cx="12" cy="11" r="2.6" fill="#FB7185"/>
-    <circle cx="28" cy="11" r="2.6" fill="#FB7185"/>
-    <circle cx="28" cy="29" r="2.6" fill="#FB7185"/>
+    <circle cx="15" cy="11" r="2.6" fill="#FB7185"/>
+    <circle cx="26" cy="11" r="2.6" fill="#FB7185"/>
+    <circle cx="26" cy="29" r="2.6" fill="#FB7185"/>
 </svg>
