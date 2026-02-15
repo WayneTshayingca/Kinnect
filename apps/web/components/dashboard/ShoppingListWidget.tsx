@@ -10,6 +10,7 @@ import {
   type User,
 } from '@kinnect/core'
 import { ShoppingCart, Plus } from 'lucide-react'
+import logger from '@/lib/logger'
 
 interface ShoppingListWidgetProps {
   items: ListItem[]
@@ -65,7 +66,7 @@ export default function ShoppingListWidget({
       setNewItem('')
       onItemAdded()
     } catch (error) {
-      console.error('Failed to add item:', error)
+      logger.error('Failed to add item', error)
       toast.error('Failed to add item')
     } finally {
       setIsAdding(false)
@@ -78,7 +79,7 @@ export default function ShoppingListWidget({
     try {
       await toggleShoppingListItem(itemId, !completed, userId)
     } catch (error) {
-      console.error('Failed to toggle item:', error)
+      logger.error('Failed to toggle item', error)
     }
   }
 

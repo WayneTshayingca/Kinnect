@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { getCurrentUser, type User } from '@kinnect/core'
+import logger from '@/lib/logger'
 
 interface UserContextType {
   user: User | null
@@ -24,14 +25,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const u = await getCurrentUser()
       setUser(u)
     } catch (err) {
-      console.error('Auth error:', err)
+      logger.error('Auth error', err)
     }
   }, [])
 
   useEffect(() => {
     getCurrentUser()
       .then(setUser)
-      .catch((err) => console.error('Auth error:', err))
+      .catch((err) => logger.error('Auth error', err))
       .finally(() => setLoading(false))
   }, [])
 

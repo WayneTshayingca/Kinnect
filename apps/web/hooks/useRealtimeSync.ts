@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useRef} from 'react'
 import {getSupabase} from '@kinnect/core'
+import logger from '@/lib/logger'
 
 /**
  * Subscribes to Supabase Postgres Changes for live cross-device sync
@@ -66,7 +67,7 @@ export function useRealtimeSync(
     }
 
     channel.subscribe((status) => {
-      console.log('[Realtime]', status)
+      logger.info('Realtime status', { status })
     })
 
     return () => {

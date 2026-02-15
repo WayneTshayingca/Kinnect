@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import logger from '@/lib/logger'
 
 const inviteSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
       .eq('id', userId)
 
     if (updateError) {
-      console.error('Failed to link auth user to member:', updateError)
+      logger.error('Failed to link auth user to member', updateError, { userId })
     }
   }
 

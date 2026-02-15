@@ -12,6 +12,7 @@ import { useRealtimeSync } from '@/hooks/useRealtimeSync'
 import toast from 'react-hot-toast'
 import CreateEventModal from '@/components/CreateEventModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import logger from '@/lib/logger'
 
 // ── helpers ──────────────────────────────────────────────
 
@@ -87,7 +88,7 @@ export default function CalendarPage() {
       const data = await getCalendarEvents(user.family_id, start, end)
       setEvents(data)
     } catch (error) {
-      console.error('Error loading events:', error)
+      logger.error('Error loading events', error)
     }
   }, [user?.family_id, year, month])
 
@@ -99,7 +100,7 @@ export default function CalendarPage() {
       await loadEvents()
       broadcast('calendar_events')
     } catch (error) {
-      console.error('Error deleting event:', error)
+      logger.error('Error deleting event', error)
       toast.error('Failed to delete event')
     }
   }

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { completeTask, createTask, type Task, type User } from '@kinnect/core'
 import { AlertCircle, CheckCircle, Circle, Plus } from 'lucide-react'
+import logger from '@/lib/logger'
 
 const ROLE_COLORS: Record<string, string> = {
   admin: 'bg-primary-500',
@@ -66,7 +67,7 @@ export default function TodaysTasksWidget({
       // Sync after API confirms
       await onTaskCreated()
     } catch (error) {
-      console.error('Failed to complete task:', error)
+      logger.error('Failed to complete task', error)
       // Revert by refetching
       await onTaskCreated()
     }
@@ -89,7 +90,7 @@ export default function TodaysTasksWidget({
       setNewTaskTitle('')
       await onTaskCreated()
     } catch (error) {
-      console.error('Failed to add task:', error)
+      logger.error('Failed to add task', error)
       toast.error('Failed to add task')
     } finally {
       setIsAdding(false)

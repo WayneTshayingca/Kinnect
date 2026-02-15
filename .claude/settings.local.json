@@ -7,7 +7,10 @@
       "Bash(npm run build:*)",
       "Bash(npm ls:*)",
       "Bash(npx next build:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(npx turbo build --filter=web)",
+      "Bash(npx turbo build:*)"
     ]
   }
 }

@@ -29,6 +29,7 @@ import FamilyActivityWidget from '@/components/dashboard/FamilyActivityWidget'
 import {ErrorBoundary} from '@/components/ErrorBoundary'
 import {useRealtimeSync} from '@/hooks/useRealtimeSync'
 import {LogOut} from 'lucide-react'
+import logger from '@/lib/logger'
 
 // ── helpers ──────────────────────────────────────────────
 
@@ -107,7 +108,7 @@ export default function DashboardPage() {
       setShoppingItems(shoppingData.items)
       setShoppingTotalCount(shoppingData.totalCount)
     } catch (error) {
-      console.error('Error loading dashboard:', error)
+      logger.error('Error loading dashboard', error)
     } finally {
       setLoading(false)
     }
@@ -138,7 +139,7 @@ export default function DashboardPage() {
       getShoppingListPreview(user.family_id, 4).then((data) => {
         setShoppingItems(data.items)
         setShoppingTotalCount(data.totalCount)
-      }).catch(console.error)
+      }).catch((err) => logger.error('Error syncing shopping list', err))
     }
   }
 

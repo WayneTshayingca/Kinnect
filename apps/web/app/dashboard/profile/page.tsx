@@ -18,6 +18,7 @@ import toast from 'react-hot-toast'
 import { Eye, EyeOff } from 'lucide-react'
 import AddMemberModal from '@/components/AddMemberModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import logger from '@/lib/logger'
 
 // ── role helpers ──────────────────────────────────────────
 
@@ -95,7 +96,7 @@ export default function ProfilePage() {
       setFamily(familyData)
       setMembers(membersData)
     } catch (error) {
-      console.error('Error loading family:', error)
+      logger.error('Error loading family', error)
     } finally {
       setLoading(false)
     }
@@ -116,7 +117,7 @@ export default function ProfilePage() {
       const membersData = await getFamilyMembers(user.family_id)
       setMembers(membersData)
     } catch (error) {
-      console.error('Error reloading members:', error)
+      logger.error('Error reloading members', error)
       // Re-fetch from scratch as a fallback
       await refreshUser()
     }
@@ -141,7 +142,7 @@ export default function ProfilePage() {
       await reloadMembers()
       setEditingProfile(false)
     } catch (error) {
-      console.error('Error updating profile:', error)
+      logger.error('Error updating profile', error)
       toast.error('Failed to update profile')
     } finally {
       setSavingProfile(false)
@@ -163,7 +164,7 @@ export default function ProfilePage() {
       setFamily(updated)
       setEditingFamilyName(false)
     } catch (error) {
-      console.error('Error updating family name:', error)
+      logger.error('Error updating family name', error)
       toast.error('Failed to update family name')
     } finally {
       setSavingFamilyName(false)
@@ -230,7 +231,7 @@ export default function ProfilePage() {
       setMembers((prev) => prev.filter((member) => member.id !== memberToRemove.id))
       await reloadMembers()
     } catch (error) {
-      console.error('Error removing member:', error)
+      logger.error('Error removing member', error)
       toast.error('Failed to remove member')
       await reloadMembers()
     }

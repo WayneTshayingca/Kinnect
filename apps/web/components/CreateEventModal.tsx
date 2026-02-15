@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { createCalendarEvent, updateCalendarEvent, type CalendarEvent } from '@kinnect/core'
+import logger from '@/lib/logger'
 
 interface CreateEventModalProps {
   isOpen: boolean
@@ -98,7 +99,7 @@ export default function CreateEventModal({
       onEventCreated()
       onClose()
     } catch (error) {
-      console.error(`Error ${isEditing ? 'updating' : 'creating'} event:`, error)
+      logger.error(`Error ${isEditing ? 'updating' : 'creating'} event`, error)
       toast.error(`Failed to ${isEditing ? 'update' : 'create'} event`)
     } finally {
       setLoading(false)

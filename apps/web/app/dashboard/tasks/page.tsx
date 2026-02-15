@@ -6,6 +6,7 @@ import { getTasks, completeTask, uncompleteTask, type Task } from '@kinnect/core
 import { useUser } from '@/components/providers/user-provider'
 import { useRealtimeSync } from '@/hooks/useRealtimeSync'
 import CreateTaskModal from '@/components/CreateTaskModal'
+import logger from '@/lib/logger'
 
 export default function TasksPage() {
   const router = useRouter()
@@ -27,7 +28,7 @@ export default function TasksPage() {
     }
     getTasks(user.family_id)
       .then(setTasks)
-      .catch((err) => console.error('Error loading tasks:', err))
+      .catch((err) => logger.error('Error loading tasks', err))
       .finally(() => setLoading(false))
   }, [user?.family_id])
 
@@ -61,7 +62,7 @@ export default function TasksPage() {
       await completeTask(taskId, user.id)
       broadcast('tasks')
     } catch (error) {
-      console.error('Error completing task:', error)
+      logger.error('Error completing task', error)
       if (user.family_id) {
         const tasksData = await getTasks(user.family_id)
         setTasks(tasksData)
@@ -86,7 +87,7 @@ export default function TasksPage() {
       await uncompleteTask(taskId)
       broadcast('tasks')
     } catch (error) {
-      console.error('Error undoing task:', error)
+      logger.error('Error undoing task', error)
       const tasksData = await getTasks(user.family_id)
       setTasks(tasksData)
     } finally {

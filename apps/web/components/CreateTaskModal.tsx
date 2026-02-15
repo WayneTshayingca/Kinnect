@@ -3,6 +3,7 @@
 import {useEffect, useState} from 'react'
 import toast from 'react-hot-toast'
 import {createTask, getFamilyMembers, type User} from '@kinnect/core'
+import logger from '@/lib/logger'
 
 interface CreateTaskModalProps {
   isOpen: boolean
@@ -42,7 +43,7 @@ export default function CreateTaskModal({
       const familyMembers = await getFamilyMembers(familyId)
       setFetchedMembers(familyMembers)
     } catch (error) {
-      console.error('Error loading family members:', error)
+      logger.error('Error loading family members', error)
     }
   }
 
@@ -68,7 +69,7 @@ export default function CreateTaskModal({
       onTaskCreated()
       onClose()
     } catch (error) {
-  console.error('Error creating task:', error)
+  logger.error('Error creating task', error)
   toast.error(error instanceof Error ? error.message : 'Failed to create task')
 } finally {
       setLoading(false)

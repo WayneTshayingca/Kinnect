@@ -18,6 +18,7 @@ import { useRealtimeSync } from '@/hooks/useRealtimeSync'
 import toast from 'react-hot-toast'
 import { ShoppingCart, Plus, Trash2, ChevronDown, ChevronUp, Pencil, Check, X } from 'lucide-react'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import logger from '@/lib/logger'
 
 // ── helpers ──────────────────────────────────────────────
 
@@ -74,7 +75,7 @@ export default function ShoppingListPage() {
       setIncompleteItems(listData.incompleteItems)
       setCompletedItems(listData.completedItems)
     } catch (error) {
-      console.error('Error loading shopping list:', error)
+      logger.error('Error loading shopping list', error)
     } finally {
       setLoading(false)
     }
@@ -87,7 +88,7 @@ export default function ShoppingListPage() {
       setIncompleteItems(listData.incompleteItems)
       setCompletedItems(listData.completedItems)
     } catch (error) {
-      console.error('Error reloading list:', error)
+      logger.error('Error reloading list', error)
     }
   }, [user?.family_id])
 
@@ -110,7 +111,7 @@ export default function ShoppingListPage() {
       await reloadList()
       broadcast('list_items')
     } catch (error) {
-      console.error('Failed to add item:', error)
+      logger.error('Failed to add item', error)
       toast.error('Failed to add item')
     } finally {
       setIsAdding(false)
@@ -139,7 +140,7 @@ export default function ShoppingListPage() {
       await toggleShoppingListItem(itemId, !completed, user.id)
       broadcast('list_items')
     } catch (error) {
-      console.error('Failed to toggle item:', error)
+      logger.error('Failed to toggle item', error)
       await reloadList()
     }
   }
@@ -153,7 +154,7 @@ export default function ShoppingListPage() {
       await deleteShoppingListItem(itemId)
       broadcast('list_items')
     } catch (error) {
-      console.error('Failed to delete item:', error)
+      logger.error('Failed to delete item', error)
       await reloadList()
     }
   }
@@ -165,7 +166,7 @@ export default function ShoppingListPage() {
       await reloadList()
       broadcast('list_items')
     } catch (error) {
-      console.error('Failed to clear completed:', error)
+      logger.error('Failed to clear completed', error)
       toast.error('Failed to clear completed items')
     }
   }
@@ -189,7 +190,7 @@ export default function ShoppingListPage() {
       await reloadList()
       broadcast('list_items')
     } catch (error) {
-      console.error('Failed to update item:', error)
+      logger.error('Failed to update item', error)
       toast.error('Failed to update item')
     }
   }
