@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
+import * as Sentry from '@sentry/nextjs'
 import { signOut } from '@kinnect/core'
 import { Logo } from '@/components/Logo'
 import { AnimatedLogo } from '@/components/AnimatedLogo'
@@ -68,6 +69,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   }, [loading, user, router])
 
   async function handleSignOut() {
+    Sentry.setUser(null)
     await signOut()
     router.push('/')
   }

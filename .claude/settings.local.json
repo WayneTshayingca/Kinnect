@@ -10,7 +10,9 @@
       "Bash(grep:*)",
       "Bash(find:*)",
       "Bash(npx turbo build --filter=web)",
-      "Bash(npx turbo build:*)"
+      "Bash(npx turbo build:*)",
+      "Bash(node -e:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

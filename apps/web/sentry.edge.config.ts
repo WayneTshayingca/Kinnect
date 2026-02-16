@@ -4,11 +4,19 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+import { beforeSend, beforeSendTransaction } from "./sentry-utils";
 
 Sentry.init({
-  dsn: "https://a56b21f0b896ed8745b2c91ef7c6da88@o4510878744969216.ingest.us.sentry.io/4510878748835840",
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  environment: process.env.NODE_ENV,
 
-  // Drop traces for static assets to reduce noise
+  // --- Privacy (POPIA) ---
+  sendDefaultPii: false,
+  beforeSend,
+  beforeSendTransaction,
+
+  // --- Performance ---
+  // Drop static asset traces, sample 10% in production
   tracesSampler(samplingContext) {
     const url = samplingContext.transactionContext?.name ?? ''
     if (
@@ -18,13 +26,9 @@ Sentry.init({
     ) {
       return 0
     }
-    return 1
+    return process.env.NODE_ENV === 'production' ? 0.1 : 1.0
   },
 
-  // Enable logs to be sent to Sentry
+  // --- Logs ---
   enableLogs: true,
-
-  // Enable sending user PII (Personally Identifiable Information)
-  // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
-  sendDefaultPii: true,
 });
