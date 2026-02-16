@@ -2,6 +2,7 @@
 
 import {useCallback, useEffect, useRef, useState} from 'react'
 import {useRouter} from 'next/navigation'
+import dynamic from 'next/dynamic'
 import {
     type CalendarEvent,
     type Family,
@@ -16,11 +17,7 @@ import {
     type User,
 } from '@kinnect/core'
 import {useUser} from '@/components/providers/user-provider'
-import CreateTaskModal from '@/components/CreateTaskModal'
-import CreateEventModal from '@/components/CreateEventModal'
-import AddMemberModal from '@/components/AddMemberModal'
 import {Logo} from '@/components/Logo'
-import {AnimatedLogo} from '@/components/AnimatedLogo'
 import DashboardStats from '@/components/dashboard/DashboardStats'
 import TodaysTasksWidget from '@/components/dashboard/TodaysTasksWidget'
 import ShoppingListWidget from '@/components/dashboard/ShoppingListWidget'
@@ -30,6 +27,14 @@ import {ErrorBoundary} from '@/components/ErrorBoundary'
 import {useRealtimeSync} from '@/hooks/useRealtimeSync'
 import {LogOut} from 'lucide-react'
 import logger from '@/lib/logger'
+
+// Lazy-load modals (only needed on user interaction)
+const CreateTaskModal = dynamic(() => import('@/components/CreateTaskModal'), { ssr: false })
+const CreateEventModal = dynamic(() => import('@/components/CreateEventModal'), { ssr: false })
+const AddMemberModal = dynamic(() => import('@/components/AddMemberModal'), { ssr: false })
+
+// Lazy-load AnimatedLogo to defer the motion library (~340KB)
+const AnimatedLogo = dynamic(() => import('@/components/AnimatedLogo').then(mod => ({ default: mod.AnimatedLogo })), { ssr: false })
 
 // ── helpers ──────────────────────────────────────────────
 

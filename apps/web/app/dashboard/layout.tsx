@@ -3,11 +3,17 @@
 import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import * as Sentry from '@sentry/nextjs'
 import { signOut } from '@kinnect/core'
 import { Logo } from '@/components/Logo'
-import { AnimatedLogo } from '@/components/AnimatedLogo'
 import { UserProvider, useUser } from '@/components/providers/user-provider'
+
+// Lazy-load AnimatedLogo to defer the motion library
+const AnimatedLogo = dynamic(
+  () => import('@/components/AnimatedLogo').then(mod => ({ default: mod.AnimatedLogo })),
+  { ssr: false }
+)
 
 const navItems = [
   {
