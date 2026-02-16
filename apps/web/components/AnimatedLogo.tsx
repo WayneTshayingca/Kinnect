@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'motion/react';
 
 interface AnimatedLogoProps {
@@ -8,13 +8,15 @@ interface AnimatedLogoProps {
   color?: 'primary' | 'white' | 'dark';
   className?: string;
   repeat?: boolean;
+  onComplete?: () => void;
 }
 
 export const AnimatedLogo: React.FC<AnimatedLogoProps> = ({
   size = 'md',
   color = 'primary',
   className = '',
-  repeat = true
+  repeat = true,
+  onComplete,
 }) => {
   const iconSizes = {
     sm: '24',
@@ -39,6 +41,15 @@ export const AnimatedLogo: React.FC<AnimatedLogoProps> = ({
   };
 
   const activeColor = colors[color];
+
+  // Fire onComplete after all child animations finish (~1.7s)
+  // delayChildren(0.1) + staggerChildren(0.2) * 4 children + path duration(0.8)
+  useEffect(() => {
+    if (!repeat && onComplete) {
+      const timer = setTimeout(onComplete, 1700)
+      return () => clearTimeout(timer)
+    }
+  }, [repeat, onComplete])
 
   const containerVariants = {
     hidden: { opacity: 0 },

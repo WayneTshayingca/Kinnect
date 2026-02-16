@@ -78,7 +78,7 @@ export default function AuthCallbackPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4">
       <AnimatedLogo size="xl" color="primary" />
       <p className="text-sm text-gray-500 animate-pulse">Verifying invite...</p>
     </div>

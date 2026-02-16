@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Logo } from '@/components/Logo'
+import { AnimatedLogo } from '@/components/AnimatedLogo'
 import { signIn } from '@kinnect/core'
 import { Eye, EyeOff } from 'lucide-react'
 
@@ -14,6 +15,12 @@ export default function Home() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [showTransition, setShowTransition] = useState(false)
+
+  // Prefetch dashboard for faster transition after login
+  useEffect(() => {
+    router.prefetch('/dashboard')
+  }, [router])
 
   // If Supabase redirects here with tokens in the hash, forward appropriately
   useEffect(() => {
@@ -34,12 +41,24 @@ export default function Home() {
 
     try {
       await signIn(email, password)
-      router.push('/dashboard')
+      setShowTransition(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in')
-    } finally {
       setLoading(false)
     }
+  }
+
+  if (showTransition) {
+    return (
+      <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col items-center justify-center gap-4">
+        <AnimatedLogo
+          size="xl"
+          color="primary"
+          repeat={false}
+          onComplete={() => router.push('/dashboard')}
+        />
+      </div>
+    )
   }
 
   return (

@@ -12,7 +12,8 @@
       "Bash(npx turbo build --filter=web)",
       "Bash(npx turbo build:*)",
       "Bash(node -e:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(ls:*)"
     ]
   }
 }
