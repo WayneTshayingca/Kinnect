@@ -14,6 +14,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateTask, setShowCreateTask] = useState(false)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all')
   const [search, setSearch] = useState('')
 
@@ -96,7 +97,36 @@ export default function TasksPage() {
   }
 
   if (loading) {
-    return <div className="p-8">Loading tasks...</div>
+    return (
+      <div className="px-4 sm:px-0 animate-pulse">
+        <div className="flex items-center justify-between mb-8">
+          <div className="space-y-2">
+            <div className="h-8 w-32 bg-gray-200 rounded" />
+            <div className="h-4 w-48 bg-gray-100 rounded" />
+          </div>
+          <div className="h-10 w-32 bg-gray-200 rounded-lg" />
+        </div>
+        <div className="h-10 bg-gray-100 rounded-xl mb-4" />
+        <div className="border-b border-gray-200 mb-6">
+          <div className="flex gap-8 py-4">
+            <div className="h-4 w-16 bg-gray-200 rounded" />
+            <div className="h-4 w-20 bg-gray-100 rounded" />
+            <div className="h-4 w-24 bg-gray-100 rounded" />
+          </div>
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white rounded-lg shadow p-4 flex items-start gap-3">
+              <div className="w-5 h-5 rounded bg-gray-200 mt-0.5" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-3/4 bg-gray-200 rounded" />
+                <div className="h-3 w-1/2 bg-gray-100 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   if (!user?.family_id) {
@@ -233,6 +263,17 @@ export default function TasksPage() {
                     )}
                   </div>
                 </div>
+
+                {/* Edit button */}
+                <button
+                  onClick={() => { setEditingTask(task); setShowCreateTask(true) }}
+                  className="flex-shrink-0 p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                  title="Edit task"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
               </div>
             </div>
           ))}
@@ -241,10 +282,11 @@ export default function TasksPage() {
 
       <CreateTaskModal
         isOpen={showCreateTask}
-        onClose={() => setShowCreateTask(false)}
+        onClose={() => { setShowCreateTask(false); setEditingTask(null) }}
         familyId={user.family_id}
         userId={user.id}
         onTaskCreated={() => { reloadTasks(); broadcast('tasks') }}
+        task={editingTask}
       />
     </div>
   )

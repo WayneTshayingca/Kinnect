@@ -30,4 +30,7 @@ Sentry.init({
 
   // --- Logs ---
   enableLogs: true,
+  integrations: [
+    Sentry.consoleLoggingIntegration({ levels: ["warn", "error"] }),
+  ],
 });

@@ -2,7 +2,7 @@
 
 import {useEffect, useState} from 'react'
 import toast from 'react-hot-toast'
-import {createTask, getFamilyMembers, type User} from '@kinnect/core'
+import {createTask, updateTask, getFamilyMembers, type Task, type User} from '@kinnect/core'
 import logger from '@/lib/logger'
 
 interface CreateTaskModalProps {
@@ -12,6 +12,7 @@ interface CreateTaskModalProps {
   userId: string
   members?: User[]
   onTaskCreated: () => void
+  task?: Task | null
 }
 
 export default function CreateTaskModal({
@@ -20,7 +21,8 @@ export default function CreateTaskModal({
   familyId,
   userId,
   members: membersProp,
-  onTaskCreated
+  onTaskCreated,
+  task
 }: CreateTaskModalProps) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -29,7 +31,7 @@ export default function CreateTaskModal({
   const [fetchedMembers, setFetchedMembers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Use prop members if provided, otherwise fetch
+  const isEditing = !!task
   const members = membersProp || fetchedMembers
 
   useEffect(() => {
@@ -37,6 +39,20 @@ export default function CreateTaskModal({
       loadMembers()
     }
   }, [isOpen, familyId, membersProp])
+
+  useEffect(() => {
+    if (isOpen && task) {
+      setTitle(task.title)
+      setDescription(task.description || '')
+      setDueDate(task.due_date ? task.due_date.split('T')[0] : '')
+      setAssignedTo(task.assigned_to || [])
+    } else if (isOpen) {
+      setTitle('')
+      setDescription('')
+      setDueDate('')
+      setAssignedTo([])
+    }
+  }, [isOpen, task])
 
   async function loadMembers() {
     try {
@@ -52,32 +68,36 @@ export default function CreateTaskModal({
     setLoading(true)
 
     try {
-      await createTask({
-        family_id: familyId,
-        title,
-        description,
-        assigned_to: assignedTo,
-        due_date: dueDate || undefined,
-        created_by: userId
-      })
+      if (isEditing) {
+        await updateTask(task.id, {
+          title,
+          description: description || null,
+          assigned_to: assignedTo,
+          due_date: dueDate || null,
+        })
+      } else {
+        await createTask({
+          family_id: familyId,
+          title,
+          description,
+          assigned_to: assignedTo,
+          due_date: dueDate || undefined,
+          created_by: userId
+        })
+      }
 
-      setTitle('')
-      setDescription('')
-      setDueDate('')
-      setAssignedTo([])
-      
       onTaskCreated()
       onClose()
     } catch (error) {
-  logger.error('Error creating task', error)
-  toast.error(error instanceof Error ? error.message : 'Failed to create task')
-} finally {
+      logger.error(isEditing ? 'Error updating task' : 'Error creating task', error)
+      toast.error(error instanceof Error ? error.message : isEditing ? 'Failed to update task' : 'Failed to create task')
+    } finally {
       setLoading(false)
     }
   }
 
   function toggleAssignee(memberId: string) {
-    setAssignedTo(prev => 
+    setAssignedTo(prev =>
       prev.includes(memberId)
         ? prev.filter(id => id !== memberId)
         : [...prev, memberId]
@@ -90,7 +110,7 @@ export default function CreateTaskModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">Create New Task</h2>
+          <h2 className="text-xl font-bold">{isEditing ? 'Edit Task' : 'Create New Task'}</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
@@ -180,7 +200,10 @@ export default function CreateTaskModal({
               disabled={loading}
               className="flex-1 px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 disabled:opacity-50"
             >
-              {loading ? 'Creating...' : 'Create Task'}
+              {loading
+                ? (isEditing ? 'Saving...' : 'Creating...')
+                : (isEditing ? 'Save Changes' : 'Create Task')
+              }
             </button>
           </div>
         </form>

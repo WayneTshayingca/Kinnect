@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { completeTask, createTask, type Task, type User } from '@kinnect/core'
-import { AlertCircle, CheckCircle, Circle, Plus } from 'lucide-react'
+import { AlertCircle, CheckCircle, Circle, Pencil, Plus } from 'lucide-react'
 import logger from '@/lib/logger'
 
 const ROLE_COLORS: Record<string, string> = {
@@ -22,6 +22,7 @@ interface TodaysTasksWidgetProps {
   onTaskCompleted: (taskId?: string) => void
   onTaskCreated: () => Promise<void>
   onCreateTask: () => void
+  onEditTask: (task: Task) => void
 }
 
 export default function TodaysTasksWidget({
@@ -32,6 +33,7 @@ export default function TodaysTasksWidget({
   onTaskCompleted,
   onTaskCreated,
   onCreateTask,
+  onEditTask,
 }: TodaysTasksWidgetProps) {
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [isAdding, setIsAdding] = useState(false)
@@ -148,10 +150,7 @@ export default function TodaysTasksWidget({
                   >
                     <Circle className="w-5 h-5" />
                   </button>
-                  <Link
-                    href="/dashboard/tasks"
-                    className="flex-1 min-w-0"
-                  >
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-bold text-brand-primary group-hover:text-brand-accent transition-colors">
                         {task.title}
@@ -183,7 +182,14 @@ export default function TodaysTasksWidget({
                         </span>
                       </div>
                     )}
-                  </Link>
+                  </div>
+                  <button
+                    onClick={() => onEditTask(task)}
+                    className="p-1.5 text-gray-300 hover:text-brand-accent hover:bg-brand-bg rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                    title="Edit task"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               ))}
 

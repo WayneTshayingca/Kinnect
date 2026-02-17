@@ -64,6 +64,30 @@ export async function createTask(input: CreateTaskInput) {
   return data
 }
 
+export async function updateTask(
+  taskId: string,
+  updates: {
+    title?: string
+    description?: string | null
+    assigned_to?: string[] | null
+    due_date?: string | null
+    points?: number | null
+    category?: string | null
+  }
+) {
+  const supabase = getSupabase()
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .update(updates)
+    .eq('id', taskId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
 export async function completeTask(taskId: string, userId: string) {
   const supabase = getSupabase()
   

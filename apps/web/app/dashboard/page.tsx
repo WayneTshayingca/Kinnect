@@ -3,6 +3,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react'
 import {useRouter} from 'next/navigation'
 import dynamic from 'next/dynamic'
+import DashboardLoading from './loading'
 import {
     type CalendarEvent,
     type Family,
@@ -32,9 +33,6 @@ import logger from '@/lib/logger'
 const CreateTaskModal = dynamic(() => import('@/components/CreateTaskModal'), { ssr: false })
 const CreateEventModal = dynamic(() => import('@/components/CreateEventModal'), { ssr: false })
 const AddMemberModal = dynamic(() => import('@/components/AddMemberModal'), { ssr: false })
-
-// Lazy-load AnimatedLogo to defer the motion library (~340KB)
-const AnimatedLogo = dynamic(() => import('@/components/AnimatedLogo').then(mod => ({ default: mod.AnimatedLogo })), { ssr: false })
 
 // ── helpers ──────────────────────────────────────────────
 
@@ -74,6 +72,7 @@ export default function DashboardPage() {
   const [shoppingTotalCount, setShoppingTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showCreateTask, setShowCreateTask] = useState(false)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [showCreateEvent, setShowCreateEvent] = useState(false)
   const [showAddMember, setShowAddMember] = useState(false)
 
@@ -198,12 +197,7 @@ export default function DashboardPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 gap-4">
-        <AnimatedLogo size="lg" color="primary" />
-        <p className="text-sm text-gray-500 animate-pulse">Loading dashboard...</p>
-      </div>
-    )
+    return <DashboardLoading />
   }
 
   if (!user?.family_id) {
@@ -267,6 +261,7 @@ export default function DashboardPage() {
               onTaskCompleted={handleTaskCompletedOptimistic}
               onTaskCreated={async () => { await reloadTasks(); broadcast('tasks') }}
               onCreateTask={() => setShowCreateTask(true)}
+              onEditTask={(task) => { setEditingTask(task); setShowCreateTask(true) }}
             />
           </ErrorBoundary>
           <ErrorBoundary>
@@ -299,11 +294,12 @@ export default function DashboardPage() {
       {/* ── Modals ────────────────────────────────────── */}
       <CreateTaskModal
         isOpen={showCreateTask}
-        onClose={() => setShowCreateTask(false)}
+        onClose={() => { setShowCreateTask(false); setEditingTask(null) }}
         familyId={user.family_id}
         userId={user.id}
         members={members}
         onTaskCreated={async () => { await reloadTasks(); broadcast('tasks') }}
+        task={editingTask}
       />
       <CreateEventModal
         isOpen={showCreateEvent}

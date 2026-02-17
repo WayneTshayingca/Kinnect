@@ -36,6 +36,7 @@ const logger = {
     Sentry.captureException(error instanceof Error ? error : new Error(message), {
       extra: { message, ...context },
     })
+    Sentry.logger.error(message, { error: error instanceof Error ? error.message : String(error), ...context })
   },
 
   warn(message: string, context?: Record<string, unknown>) {
@@ -44,6 +45,7 @@ const logger = {
     } else {
       console.warn(`[WARN] ${message}`, context || '')
     }
+    Sentry.logger.warn(message, context ?? {})
   },
 
   info(message: string, context?: Record<string, unknown>) {
@@ -52,6 +54,7 @@ const logger = {
     } else {
       console.info(`[INFO] ${message}`, context || '')
     }
+    Sentry.logger.info(message, context ?? {})
   },
 
   debug(message: string, context?: Record<string, unknown>) {

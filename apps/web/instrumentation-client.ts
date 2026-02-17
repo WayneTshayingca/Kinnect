@@ -28,6 +28,7 @@ Sentry.init({
       maskAllInputs: true,
       blockAllMedia: true,
     }),
+    Sentry.consoleLoggingIntegration({ levels: ["warn", "error"] }),
   ],
 
   // --- Logs ---

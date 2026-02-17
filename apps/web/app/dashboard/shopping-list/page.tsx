@@ -196,7 +196,33 @@ export default function ShoppingListPage() {
   }
 
   if (loading) {
-    return <div className="p-8 text-gray-500">Loading shopping list...</div>
+    return (
+      <div className="px-4 sm:px-0 animate-pulse">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="bg-gray-200 p-2.5 rounded-xl w-11 h-11" />
+          <div className="space-y-2">
+            <div className="h-6 w-40 bg-gray-200 rounded" />
+            <div className="h-4 w-24 bg-gray-100 rounded" />
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm p-4 mb-6">
+          <div className="h-12 bg-gray-100 rounded-xl" />
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="divide-y divide-gray-50">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-3 p-4">
+                <div className="w-5 h-5 rounded bg-gray-200" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-4 w-3/4 bg-gray-200 rounded" />
+                  <div className="h-3 w-1/3 bg-gray-100 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (!user?.family_id) return null

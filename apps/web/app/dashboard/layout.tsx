@@ -9,7 +9,6 @@ import { signOut } from '@kinnect/core'
 import { Logo } from '@/components/Logo'
 import { UserProvider, useUser } from '@/components/providers/user-provider'
 
-// Lazy-load AnimatedLogo to defer the motion library
 const AnimatedLogo = dynamic(
   () => import('@/components/AnimatedLogo').then(mod => ({ default: mod.AnimatedLogo })),
   { ssr: false }
@@ -87,9 +86,8 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <AnimatedLogo size="xl" color="primary" />
-        <p className="text-sm text-gray-500 animate-pulse">Loading...</p>
       </div>
     )
   }

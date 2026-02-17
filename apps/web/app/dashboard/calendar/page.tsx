@@ -165,7 +165,40 @@ export default function CalendarPage() {
   // ── render ───────────────────────────────────────────
 
   if (loading) {
-    return <div className="p-8">Loading calendar...</div>
+    return (
+      <div className="px-4 sm:px-0 animate-pulse">
+        <div className="flex items-center justify-between mb-8">
+          <div className="space-y-2">
+            <div className="h-8 w-36 bg-gray-200 rounded" />
+            <div className="h-4 w-44 bg-gray-100 rounded" />
+          </div>
+          <div className="h-10 w-32 bg-gray-200 rounded-lg" />
+        </div>
+        <div className="border-b border-gray-200 mb-6">
+          <div className="flex gap-8 py-4">
+            <div className="h-4 w-16 bg-gray-200 rounded" />
+            <div className="h-4 w-16 bg-gray-100 rounded" />
+          </div>
+        </div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="w-8 h-8 bg-gray-200 rounded-lg" />
+          <div className="h-6 w-40 bg-gray-200 rounded" />
+          <div className="w-8 h-8 bg-gray-200 rounded-lg" />
+        </div>
+        <div className="grid grid-cols-7 mb-1">
+          {['S','M','T','W','T','F','S'].map((_, i) => (
+            <div key={i} className="h-4 w-8 mx-auto bg-gray-100 rounded" />
+          ))}
+        </div>
+        <div className="grid grid-cols-7 border-t border-l border-gray-200">
+          {Array.from({ length: 35 }).map((_, i) => (
+            <div key={i} className="border-r border-b border-gray-200 min-h-[80px] sm:min-h-[100px] p-2">
+              <div className="h-4 w-4 bg-gray-100 rounded-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
   }
   if (!user?.family_id) return null
 
