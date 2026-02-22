@@ -18,26 +18,6 @@ create table public.families (
 -- Enable Row Level Security
 alter table public.families enable row level security;
 
-create policy "Users can view their own family"
-  on public.families for select
-  using (
-    id in (
-      select family_id from public.users where auth_user_id = auth.uid()
-    )
-  );
-
-create policy "Authenticated users can create a family"
-  on public.families for insert
-  with check (auth.uid() is not null);
-
-create policy "Users can update their own family"
-  on public.families for update
-  using (
-    id in (
-      select family_id from public.users where auth_user_id = auth.uid()
-    )
-  );
-
 -- ── Users ───────────────────────────────────────────────────────
 
 create table public.users (
@@ -96,6 +76,28 @@ create policy "Users can delete members of their family"
   on public.users for delete
   using (
     family_id in (
+      select family_id from public.users where auth_user_id = auth.uid()
+    )
+  );
+
+-- ── Families RLS (defined after users table exists) ─────────────
+
+create policy "Users can view their own family"
+  on public.families for select
+  using (
+    id in (
+      select family_id from public.users where auth_user_id = auth.uid()
+    )
+  );
+
+create policy "Authenticated users can create a family"
+  on public.families for insert
+  with check (auth.uid() is not null);
+
+create policy "Users can update their own family"
+  on public.families for update
+  using (
+    id in (
       select family_id from public.users where auth_user_id = auth.uid()
     )
   );

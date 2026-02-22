@@ -94,7 +94,8 @@ export default function ShoppingListPage() {
 
   const broadcast = useRealtimeSync(user?.family_id, { list_items: reloadList })
 
-  function getMemberName(id: string) {
+  function getMemberName(id: string | null | undefined) {
+    if (!id) return 'Someone'
     return members.find((m) => m.id === id)?.name || 'Someone'
   }
 

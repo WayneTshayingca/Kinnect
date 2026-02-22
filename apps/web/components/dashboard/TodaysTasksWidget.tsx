@@ -53,7 +53,8 @@ export default function TodaysTasksWidget({
     return dateOnly < todayStr
   }
 
-  function getMemberName(id: string) {
+  function getMemberName(id: string | null | undefined) {
+    if (!id) return '?'
     return membersMap[id]?.name || '?'
   }
 

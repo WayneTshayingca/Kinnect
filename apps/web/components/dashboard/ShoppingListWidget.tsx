@@ -52,7 +52,8 @@ export default function ShoppingListWidget({
     return map
   }, [members])
 
-  function getMemberName(id: string) {
+  function getMemberName(id: string | null | undefined) {
+    if (!id) return 'Someone'
     return membersMap[id] || 'Someone'
   }
 

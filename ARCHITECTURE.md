@@ -27,8 +27,8 @@ kinnect/
 │       │       ├── tasks/page.tsx        # Task list with filters
 │       │       ├── calendar/page.tsx     # Month grid + agenda views
 │       │       ├── shopping-list/page.tsx # Full shopping list management
-│       │       ├── family/page.tsx       # Family member management
-│       │       └── profile/page.tsx      # User profile + password change
+│       │       ├── family/page.tsx       # Redirects to /dashboard/profile
+│       │       └── profile/page.tsx      # User profile + family member management
 │       │
 │       ├── components/
 │       │   ├── providers/
@@ -45,6 +45,9 @@ kinnect/
 │       │   ├── AddMemberModal.tsx        # Modal: add/edit family member + invite
 │       │   └── Logo.tsx                  # Kinnect logo (full, icon, stacked variants)
 │       │
+│       ├── hooks/
+│       │   └── useRealtimeSync.ts        # Supabase Realtime + BroadcastChannel sync
+│       │
 │       ├── .env.local                    # Environment variables
 │       ├── next.config.js                # Next.js config
 │       ├── tailwind.config.js            # Tailwind CSS (custom brand colors)
@@ -58,7 +61,8 @@ kinnect/
 │           │   ├── auth.ts               # signUp, signIn, signOut, getCurrentUser, getSession
 │           │   ├── families.ts           # createFamily, getFamily, getFamilyMembers,
 │           │   │                         # addFamilyMember, updateFamily,
-│           │   │                         # updateFamilyMember, removeFamilyMember
+│           │   │                         # updateFamilyMember, removeFamilyMember,
+│           │   │                         # getMyFamilies, switchActiveFamily
 │           │   ├── tasks.ts              # getTasks, createTask, completeTask,
 │           │   │                         # uncompleteTask, assignTask, deleteTask
 │           │   ├── calendar.ts           # getCalendarEvents, createCalendarEvent,
@@ -73,16 +77,25 @@ kinnect/
 │
 ├── supabase/
 │   └── migrations/
-│       ├── 000_initial_schema.sql        # families, users, tasks tables + RLS + triggers
+│       ├── 000_initial_schema.sql        # families, users, tasks tables + RLS
 │       ├── 001_add_calendar_events.sql   # calendar_events table + RLS policies
 │       ├── 002_add_location_to_calendar_events.sql  # adds location column
 │       ├── 003_add_shopping_lists.sql    # lists + list_items tables + RLS policies
 │       ├── 004_update_user_roles.sql     # Updates role values to admin/member/dependent/observer
 │       ├── 005_fix_shopping_list_trigger_rls.sql  # SECURITY DEFINER on default list trigger
-│       └── 006_enable_users_rls.sql      # Enables RLS on users/families, rebuilds all
-│                                         # policies to use get_my_family_id() helper,
-│                                         # adds create_family_with_user() RPC
+│       ├── 006_enable_users_rls.sql      # Enables RLS on users/families, rebuilds all
+│       │                                 # policies to use get_my_family_id() helper,
+│       │                                 # adds create_family_with_user() RPC
+│       ├── 007_unique_auth_user_id.sql   # Unique constraint on users.auth_user_id
+│       ├── 008_fix_cascade_deletes.sql   # Changes created_by/added_by FKs to SET NULL
+│       │                                 # so deleting a member preserves their data
+│       ├── 009_enable_realtime.sql       # Adds tables to supabase_realtime publication
+│       └── 010_multi_family_support.sql  # Adds family_members junction table,
+│                                         # active_family_id on users, updates RLS,
+│                                         # adds get_my_families() + switch_active_family() RPCs,
+│                                         # updates create_family_with_user() RPC
 │
+├── ARCHITECTURE.md                       # This file
 ├── package.json                          # Workspace root
 ├── turbo.json                            # Turborepo task config
 └── tsconfig.json                         # Root TypeScript config
@@ -111,7 +124,8 @@ Onboarding page (/onboarding)
   └─ Calls createFamily() from @kinnect/core
       │  → Calls create_family_with_user() RPC (SECURITY DEFINER)
       │  → Atomically: creates family + links user as admin
-      │  → Then fetches the family record (RLS now passes)
+      │  → Inserts into family_members junction table
+      │  → Sets active_family_id on user
       │
       ▼
 Dashboard (/dashboard)
@@ -130,8 +144,8 @@ UserProvider fetches getCurrentUser() once
   │  → Shares user via useUser() hook
   │
   ├─ No session → Redirect to /auth/login
-  ├─ No family_id → Redirect to /onboarding
-  └─ Has family → Render page content
+  ├─ No active_family_id → Redirect to /onboarding
+  └─ Has active family → Render page content
 ```
 
 ### 3. Dashboard
@@ -139,7 +153,7 @@ UserProvider fetches getCurrentUser() once
 ```
 Dashboard page loads (/dashboard)
   └─ Gets user from useUser() hook (no duplicate fetch)
-  └─ Uses user.family_id
+  └─ Uses user.family_id (scoped to active family via RLS)
       │
       ▼
 Parallel fetch (Promise.all):
@@ -246,7 +260,7 @@ COMPLETED ITEMS (collapsible):
 ### 7. Family Management
 
 ```
-Family page loads (/dashboard/family)
+Profile page loads (/dashboard/profile)
   └─ Fetches getFamily() + getFamilyMembers() in parallel
       │
       ▼
@@ -269,6 +283,8 @@ MEMBER CARDS (one per member):
   │
   ├─ Edit (pencil) → opens AddMemberModal in edit mode
   └─ Delete (trash) → confirm dialog → removeFamilyMember()
+      └─ Auth users: removed from family_members only
+         Dependents/observers (no auth): user record deleted
 ```
 
 ### 8. Profile
@@ -307,10 +323,16 @@ API route (apps/web/app/api/invite/route.ts):
   │
   ▼
 Invited person receives email
-  └─ Clicks invite link
-  └─ Sets their password
-  └─ Can now log in → their account is linked to the family
+  └─ Clicks invite link → /auth/callback
+  └─ Callback extracts userId + familyId from JWT metadata
+  └─ Redirects to /auth/set-password
+  └─ User sets their password → can now log in
 ```
+
+> **Note (multi-family):** The invite flow currently links a user to one family.
+> When inviting an existing user to a *second* family, the `/api/invite` callback
+> will need to insert a row into `family_members` for the new family. This is
+> not yet implemented.
 
 ---
 
@@ -327,8 +349,8 @@ Invited person receives email
 | Tasks | `/dashboard/tasks` | Full task list with All/Pending/Completed filters |
 | Calendar | `/dashboard/calendar` | Month grid + agenda views, event CRUD |
 | Shopping List | `/dashboard/shopping-list` | Full shopping list with add/edit/delete/complete |
-| Family | `/dashboard/family` | Member management, inline family name editing |
-| Profile | `/dashboard/profile` | User info + password change |
+| Family | `/dashboard/family` | Redirects to `/dashboard/profile` |
+| Profile | `/dashboard/profile` | User info, password change, family member management |
 
 ### Dashboard Widgets
 
@@ -375,13 +397,15 @@ Invited person receives email
 **Families** (`supabase/families.ts`)
 | Function | Description |
 |----------|-------------|
-| `createFamily(name, primaryLanguage?)` | Creates family + links user as admin via RPC |
+| `createFamily(name, primaryLanguage?)` | Creates family + links user as admin via RPC; inserts into family_members |
+| `getMyFamilies()` | Returns all families the current user belongs to with their role and active status |
+| `switchActiveFamily(familyId)` | Switches the user's active family (updates active_family_id, changes RLS context) |
 | `getFamily(familyId)` | Returns family record |
-| `getFamilyMembers(familyId)` | Returns all members of a family |
-| `addFamilyMember(familyId, data)` | Adds a member to the family |
+| `getFamilyMembers(familyId)` | Returns all members via family_members junction table |
+| `addFamilyMember(familyId, name, role)` | Creates user record + inserts into family_members |
 | `updateFamily(familyId, data)` | Updates family name |
-| `updateFamilyMember(memberId, data)` | Updates member name, role, phone |
-| `removeFamilyMember(memberId)` | Deletes a member |
+| `updateFamilyMember(memberId, data)` | Updates member name, role, phone; syncs role to family_members |
+| `removeFamilyMember(memberId)` | Removes from family_members; deletes user record only for auth-less members |
 
 **Tasks** (`supabase/tasks.ts`)
 | Function | Description |
@@ -446,16 +470,29 @@ All database queries, auth logic, and types live in `@kinnect/core`. Web-specifi
 | Column | Type | Notes |
 |--------|------|-------|
 | id | uuid | Primary key |
-| family_id | uuid | FK → families |
+| family_id | uuid | FK → families (legacy; first family only) |
+| active_family_id | uuid | FK → families (drives RLS via get_my_family_id()) |
 | auth_user_id | uuid | FK → auth.users (null if no account) |
 | name | text | Display name |
-| role | text | admin, member, dependent, observer |
+| role | text | admin, member, dependent, observer (reflects primary family role) |
 | phone | text | Nullable |
 | avatar_url | text | Nullable, for future use |
 | points | integer | Reward points from completing tasks |
 | language_preference | text | Nullable, for future i18n |
 | push_token | text | Nullable, for future push notifications |
 | created_at | timestamp | |
+
+### family_members
+| Column | Type | Notes |
+|--------|------|-------|
+| family_id | uuid | PK + FK → families |
+| user_id | uuid | PK + FK → users |
+| role | text | admin, member, dependent, observer (per-family role) |
+| joined_at | timestamptz | |
+
+> **Multi-family:** A user can belong to multiple families via this junction table.
+> `users.active_family_id` determines the active family context for all RLS policies.
+> Switch families with `switchActiveFamily()` which calls the `switch_active_family()` RPC.
 
 ### tasks
 | Column | Type | Notes |
@@ -468,10 +505,10 @@ All database queries, auth logic, and types live in `@kinnect/core`. Web-specifi
 | category | text | Nullable |
 | points | integer | Points awarded on completion |
 | completed | boolean | |
-| completed_by | uuid | FK → users |
+| completed_by | uuid | FK → users, SET NULL on member delete |
 | completed_at | timestamp | |
 | due_date | timestamp | Nullable |
-| created_by | uuid | FK → users |
+| created_by | uuid | FK → users, SET NULL on member delete |
 | created_at | timestamp | |
 
 ### calendar_events
@@ -485,7 +522,7 @@ All database queries, auth logic, and types live in `@kinnect/core`. Web-specifi
 | start_time | timestamptz | |
 | end_time | timestamptz | |
 | all_day | boolean | Default false |
-| created_by | uuid | FK → users |
+| created_by | uuid | FK → users, SET NULL on member delete |
 | created_at | timestamptz | |
 
 ### lists
@@ -506,14 +543,23 @@ All database queries, auth logic, and types live in `@kinnect/core`. Web-specifi
 | quantity | text | Nullable |
 | notes | text | Nullable |
 | completed | boolean | Default false |
-| completed_by | uuid | FK → users, nullable |
+| completed_by | uuid | FK → users, SET NULL on member delete |
 | completed_at | timestamptz | Nullable |
-| added_by | uuid | FK → users |
+| added_by | uuid | FK → users, SET NULL on member delete |
 | position | integer | Sort order |
 | created_at | timestamptz | |
 | updated_at | timestamptz | |
 
-All tables have Row Level Security (RLS) policies — users can only access data belonging to their family. All policies use the `get_my_family_id()` helper function (`SECURITY DEFINER`) to look up the current user's family without triggering recursive RLS checks on the `users` table.
+All tables have Row Level Security (RLS) policies — users can only access data belonging to their active family. All policies use the `get_my_family_id()` helper function (`SECURITY DEFINER`) which returns `users.active_family_id` for the authenticated user.
+
+### Database Functions (RPCs)
+
+| Function | Description |
+|----------|-------------|
+| `get_my_family_id()` | Returns `active_family_id` for the current auth user. Used by all RLS policies. |
+| `create_family_with_user(family_name, auth_uid, user_name, primary_lang?)` | Atomically creates a family, links the user as admin, inserts into family_members, and sets active_family_id. |
+| `get_my_families()` | Returns all families the current user belongs to (family_id, family_name, role, is_active). |
+| `switch_active_family(target_family_id)` | Validates membership then updates the user's active_family_id. |
 
 ---
 
@@ -522,10 +568,28 @@ All tables have Row Level Security (RLS) policies — users can only access data
 ### Data Fetching
 Every dashboard page follows the same pattern:
 1. `useUser()` hook provides the current user (fetched once by UserProvider)
-2. Guard: no user → redirect to login; no family → redirect to onboarding
+2. Guard: no user → redirect to login; no `active_family_id` → redirect to onboarding
 3. `useEffect` with `[user?.family_id]` dependency (primitive, not object reference)
-4. Fetch page-specific data using `user.family_id`
+4. Fetch page-specific data using `user.family_id` (scoped to active family by RLS)
 5. Render with loading/empty states
+
+> **Note:** All data fetches use `user.family_id` as the query parameter. RLS enforces
+> that only data for `user.active_family_id` is returned, so the two are effectively
+> equivalent for single-family users. For multi-family users, `active_family_id` controls
+> what data is visible regardless of which `family_id` is passed.
+
+### Multi-Family Support (DB ready, UI pending)
+The database layer fully supports multi-family:
+- `family_members` junction table allows one user → many families
+- `active_family_id` on users drives which family's data is shown
+- `get_my_families()` RPC returns all families for the current user
+- `switch_active_family()` RPC changes the active context
+
+**Still needed in the frontend:**
+- Family switcher UI in the dashboard header
+- `UserProvider` exposing family list and switch function
+- Invite callback inserting into `family_members` for second-family invites
+- Onboarding "join existing family" path
 
 ### Optimistic Updates
 Mutations that have predictable outcomes use optimistic UI:
@@ -579,4 +643,7 @@ npm run dev          # Start development server (all apps via Turborepo)
 npm run build        # Production build
 npm run lint         # ESLint across all packages
 npm run type-check   # TypeScript strict mode check
+
+# Regenerate DB types after schema changes
+npx supabase gen types typescript --project-id <project-id> > packages/core/src/types/database.ts
 ```

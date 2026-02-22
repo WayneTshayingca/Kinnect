@@ -48,7 +48,7 @@ export default function FamilyActivityWidget({
     return members
       .map((member) => ({
         ...member,
-        completedThisWeek: completedTasks.filter((t) => t.assigned_to!.includes(member.id)).length,
+        completedThisWeek: completedTasks.filter((t) => t.assigned_to?.includes(member.id)).length,
         isCurrentUser: member.id === currentUserId,
       }))
       .sort((a, b) => b.completedThisWeek - a.completedThisWeek)
