@@ -10,127 +10,15 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
-      lists: {
-        Row: {
-          id: string
-          family_id: string
-          type: string
-          name: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          family_id: string
-          type?: string
-          name?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          family_id?: string
-          type?: string
-          name?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lists_family_id_fkey"
-            columns: ["family_id"]
-            isOneToOne: false
-            referencedRelation: "families"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      list_items: {
-        Row: {
-          id: string
-          list_id: string
-          title: string
-          quantity: string | null
-          notes: string | null
-          added_by: string
-          assigned_shopper: string | null
-          completed: boolean
-          completed_by: string | null
-          completed_at: string | null
-          position: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          list_id: string
-          title: string
-          quantity?: string | null
-          notes?: string | null
-          added_by: string
-          assigned_shopper?: string | null
-          completed?: boolean
-          completed_by?: string | null
-          completed_at?: string | null
-          position?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          list_id?: string
-          title?: string
-          quantity?: string | null
-          notes?: string | null
-          added_by?: string
-          assigned_shopper?: string | null
-          completed?: boolean
-          completed_by?: string | null
-          completed_at?: string | null
-          position?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "list_items_list_id_fkey"
-            columns: ["list_id"]
-            isOneToOne: false
-            referencedRelation: "lists"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "list_items_added_by_fkey"
-            columns: ["added_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "list_items_assigned_shopper_fkey"
-            columns: ["assigned_shopper"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "list_items_completed_by_fkey"
-            columns: ["completed_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       calendar_events: {
         Row: {
           all_day: boolean
           created_at: string
-          created_by: string
+          created_by: string | null
           description: string | null
           end_time: string
           family_id: string
@@ -142,7 +30,7 @@ export type Database = {
         Insert: {
           all_day?: boolean
           created_at?: string
-          created_by: string
+          created_by?: string | null
           description?: string | null
           end_time: string
           family_id: string
@@ -154,7 +42,7 @@ export type Database = {
         Update: {
           all_day?: boolean
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           description?: string | null
           end_time?: string
           family_id?: string
@@ -201,6 +89,154 @@ export type Database = {
         }
         Relationships: []
       }
+      family_members: {
+        Row: {
+          family_id: string
+          joined_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          family_id: string
+          joined_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          family_id?: string
+          joined_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_members_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      list_items: {
+        Row: {
+          added_by: string | null
+          assigned_shopper: string | null
+          completed: boolean
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          id: string
+          list_id: string
+          notes: string | null
+          position: number
+          quantity: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          added_by?: string | null
+          assigned_shopper?: string | null
+          completed?: boolean
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          list_id: string
+          notes?: string | null
+          position?: number
+          quantity?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          added_by?: string | null
+          assigned_shopper?: string | null
+          completed?: boolean
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          list_id?: string
+          notes?: string | null
+          position?: number
+          quantity?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_items_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_items_assigned_shopper_fkey"
+            columns: ["assigned_shopper"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_items_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_items_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lists: {
+        Row: {
+          created_at: string
+          family_id: string
+          id: string
+          name: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          family_id: string
+          id?: string
+          name?: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          family_id?: string
+          id?: string
+          name?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lists_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assigned_to: string[] | null
@@ -209,7 +245,7 @@ export type Database = {
           completed_at: string | null
           completed_by: string | null
           created_at: string | null
-          created_by: string
+          created_by: string | null
           description: string | null
           due_date: string | null
           family_id: string | null
@@ -224,7 +260,7 @@ export type Database = {
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string | null
-          created_by: string
+          created_by?: string | null
           description?: string | null
           due_date?: string | null
           family_id?: string | null
@@ -239,7 +275,7 @@ export type Database = {
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string | null
-          created_by?: string
+          created_by?: string | null
           description?: string | null
           due_date?: string | null
           family_id?: string | null
@@ -273,6 +309,7 @@ export type Database = {
       }
       users: {
         Row: {
+          active_family_id: string | null
           auth_user_id: string | null
           avatar_url: string | null
           created_at: string | null
@@ -286,6 +323,7 @@ export type Database = {
           role: string | null
         }
         Insert: {
+          active_family_id?: string | null
           auth_user_id?: string | null
           avatar_url?: string | null
           created_at?: string | null
@@ -299,6 +337,7 @@ export type Database = {
           role?: string | null
         }
         Update: {
+          active_family_id?: string | null
           auth_user_id?: string | null
           avatar_url?: string | null
           created_at?: string | null
@@ -313,6 +352,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "users_active_family_id_fkey"
+            columns: ["active_family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "users_family_id_fkey"
             columns: ["family_id"]
             isOneToOne: false
@@ -326,18 +372,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_my_family_id: {
-        Args: Record<string, never>
-        Returns: string
-      }
       create_family_with_user: {
         Args: {
-          family_name: string
           auth_uid: string
-          user_name: string
+          family_name: string
           primary_lang?: string
+          user_name: string
         }
         Returns: string
+      }
+      get_my_families: {
+        Args: never
+        Returns: {
+          family_id: string
+          family_name: string
+          is_active: boolean
+          role: string
+        }[]
+      }
+      get_my_family_id: { Args: never; Returns: string }
+      switch_active_family: {
+        Args: { target_family_id: string }
+        Returns: undefined
       }
     }
     Enums: {
@@ -472,17 +528,37 @@ export const Constants = {
   },
 } as const
 
-// Helper types for easier access
-export type User = Database['public']['Tables']['users']['Row']
-export type Family = Database['public']['Tables']['families']['Row']
-export type Task = Database['public']['Tables']['tasks']['Row']
-export type CalendarEvent = Database['public']['Tables']['calendar_events']['Row']
+// ── Named row types ───────────────────────────────────────────────
+export type User         = Tables<'users'>
+export type Family       = Tables<'families'>
+export type FamilyMember = Tables<'family_members'>
+export type Task         = Tables<'tasks'>
+export type CalendarEvent = Tables<'calendar_events'>
+export type List         = Tables<'lists'>
+export type ListItem     = Tables<'list_items'>
 
-export type List = Database['public']['Tables']['lists']['Row']
-export type ListItem = Database['public']['Tables']['list_items']['Row']
+// ── Insert helpers ────────────────────────────────────────────────
+export type UserInsert         = TablesInsert<'users'>
+export type FamilyInsert       = TablesInsert<'families'>
+export type FamilyMemberInsert = TablesInsert<'family_members'>
+export type TaskInsert         = TablesInsert<'tasks'>
+export type CalendarEventInsert = TablesInsert<'calendar_events'>
+export type ListInsert         = TablesInsert<'lists'>
+export type ListItemInsert     = TablesInsert<'list_items'>
 
-export type UserInsert = Database['public']['Tables']['users']['Insert']
-export type FamilyInsert = Database['public']['Tables']['families']['Insert']
-export type TaskInsert = Database['public']['Tables']['tasks']['Insert']
-export type ListInsert = Database['public']['Tables']['lists']['Insert']
-export type ListItemInsert = Database['public']['Tables']['list_items']['Insert']
+// ── Update helpers ────────────────────────────────────────────────
+export type UserUpdate         = TablesUpdate<'users'>
+export type FamilyUpdate       = TablesUpdate<'families'>
+export type FamilyMemberUpdate = TablesUpdate<'family_members'>
+export type TaskUpdate         = TablesUpdate<'tasks'>
+export type CalendarEventUpdate = TablesUpdate<'calendar_events'>
+export type ListUpdate         = TablesUpdate<'lists'>
+export type ListItemUpdate     = TablesUpdate<'list_items'>
+
+// ── RPC return type ───────────────────────────────────────────────
+export type MyFamily = {
+  family_id: string
+  family_name: string
+  role: string
+  is_active: boolean
+}
