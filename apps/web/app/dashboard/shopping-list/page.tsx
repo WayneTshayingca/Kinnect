@@ -19,19 +19,7 @@ import toast from 'react-hot-toast'
 import { ShoppingCart, Plus, Trash2, ChevronDown, ChevronUp, Pencil, Check, X } from 'lucide-react'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import logger from '@/lib/logger'
-
-// ── helpers ──────────────────────────────────────────────
-
-function timeAgo(dateStr: string): string {
-  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
-  if (seconds < 60) return 'just now'
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
-}
+import { timeAgo } from '@/lib/formatters'
 
 // ── component ────────────────────────────────────────────
 
@@ -76,6 +64,7 @@ export default function ShoppingListPage() {
       setCompletedItems(listData.completedItems)
     } catch (error) {
       logger.error('Error loading shopping list', error)
+      toast.error('Failed to load shopping list')
     } finally {
       setLoading(false)
     }
@@ -142,6 +131,7 @@ export default function ShoppingListPage() {
       broadcast('list_items')
     } catch (error) {
       logger.error('Failed to toggle item', error)
+      toast.error('Failed to update item')
       await reloadList()
     }
   }
@@ -156,6 +146,7 @@ export default function ShoppingListPage() {
       broadcast('list_items')
     } catch (error) {
       logger.error('Failed to delete item', error)
+      toast.error('Failed to delete item')
       await reloadList()
     }
   }

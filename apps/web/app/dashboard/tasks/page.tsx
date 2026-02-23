@@ -7,6 +7,7 @@ import { useUser } from '@/components/providers/user-provider'
 import { useRealtimeSync } from '@/hooks/useRealtimeSync'
 import CreateTaskModal from '@/components/CreateTaskModal'
 import logger from '@/lib/logger'
+import toast from 'react-hot-toast'
 
 export default function TasksPage() {
   const router = useRouter()
@@ -29,7 +30,7 @@ export default function TasksPage() {
     }
     getTasks(user.family_id)
       .then(setTasks)
-      .catch((err) => logger.error('Error loading tasks', err))
+      .catch((err) => { logger.error('Error loading tasks', err); toast.error('Failed to load tasks') })
       .finally(() => setLoading(false))
   }, [user?.family_id])
 
@@ -64,6 +65,7 @@ export default function TasksPage() {
       broadcast('tasks')
     } catch (error) {
       logger.error('Error completing task', error)
+      toast.error('Failed to complete task')
       if (user.family_id) {
         const tasksData = await getTasks(user.family_id)
         setTasks(tasksData)
@@ -89,6 +91,7 @@ export default function TasksPage() {
       broadcast('tasks')
     } catch (error) {
       logger.error('Error undoing task', error)
+      toast.error('Failed to undo task')
       const tasksData = await getTasks(user.family_id)
       setTasks(tasksData)
     } finally {

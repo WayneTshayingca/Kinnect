@@ -10,20 +10,7 @@ interface UpcomingEventsWidgetProps {
   onCreateEvent?: () => void
 }
 
-function formatEventDate(dateStr: string): string {
-  const date = new Date(dateStr)
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ]
-  return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`
-}
-
-function formatEventTime(dateStr: string): string {
-  const date = new Date(dateStr)
-  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-}
+import { formatEventDate, formatEventTime } from '@/lib/formatters'
 
 export default function UpcomingEventsWidget({ events, onCreateEvent }: UpcomingEventsWidgetProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)

@@ -28,6 +28,8 @@ import {ErrorBoundary} from '@/components/ErrorBoundary'
 import {useRealtimeSync} from '@/hooks/useRealtimeSync'
 import {LogOut} from 'lucide-react'
 import logger from '@/lib/logger'
+import toast from 'react-hot-toast'
+import { getTodayStr } from '@/lib/formatters'
 
 // Lazy-load modals (only needed on user interaction)
 const CreateTaskModal = dynamic(() => import('@/components/CreateTaskModal'), { ssr: false })
@@ -36,15 +38,10 @@ const AddMemberModal = dynamic(() => import('@/components/AddMemberModal'), { ss
 
 // ── helpers ──────────────────────────────────────────────
 
-function getLocalTodayStr() {
-  const today = new Date()
-  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-}
-
 function isRelevantTask(dueDateStr: string | null | undefined) {
   if (!dueDateStr) return true // No due date = always relevant
   const dateOnly = dueDateStr.split('T')[0]
-  return dateOnly <= getLocalTodayStr() // Today or overdue
+  return dateOnly <= getTodayStr() // Today or overdue
 }
 
 
@@ -113,6 +110,7 @@ export default function DashboardPage() {
       setShoppingTotalCount(shoppingData.totalCount)
     } catch (error) {
       logger.error('Error loading dashboard', error)
+      toast.error('Failed to load dashboard')
     } finally {
       setLoading(false)
     }
@@ -143,7 +141,7 @@ export default function DashboardPage() {
       getShoppingListPreview(user.family_id, 4).then((data) => {
         setShoppingItems(data.items)
         setShoppingTotalCount(data.totalCount)
-      }).catch((err) => logger.error('Error syncing shopping list', err))
+      }).catch((err) => { logger.error('Error syncing shopping list', err); toast.error('Failed to sync shopping list') })
     }
   }
 

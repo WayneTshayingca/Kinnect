@@ -7,12 +7,8 @@ import dynamic from 'next/dynamic'
 import * as Sentry from '@sentry/nextjs'
 import { signOut } from '@kinnect/core'
 import { Logo } from '@/components/Logo'
+import { ROLE_LABELS } from '@/lib/constants'
 import { UserProvider, useUser } from '@/components/providers/user-provider'
-
-const AnimatedLogo = dynamic(
-  () => import('@/components/AnimatedLogo').then(mod => ({ default: mod.AnimatedLogo })),
-  { ssr: false }
-)
 
 const navItems = [
   {
@@ -84,13 +80,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     return pathname.startsWith(href)
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <AnimatedLogo size="xl" color="primary" />
-      </div>
-    )
-  }
+  if (loading) return null
 
   if (!user) return null
 
@@ -134,7 +124,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center justify-between">
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
-              <p className="text-xs text-primary-600 capitalize">{{ admin: 'Admin', member: 'Member', dependent: 'Dependent', observer: 'Observer' }[user.role || ''] || 'Member'}</p>
+              <p className="text-xs text-primary-600 capitalize">{ROLE_LABELS[user.role || ''] || 'Member'}</p>
             </div>
             <button
               onClick={handleSignOut}

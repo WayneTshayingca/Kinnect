@@ -6,13 +6,8 @@ import toast from 'react-hot-toast'
 import { completeTask, createTask, type Task, type User } from '@kinnect/core'
 import { AlertCircle, CheckCircle, Circle, Pencil, Plus } from 'lucide-react'
 import logger from '@/lib/logger'
-
-const ROLE_COLORS: Record<string, string> = {
-  admin: 'bg-primary-500',
-  member: 'bg-purple-500',
-  dependent: 'bg-accent-500',
-  observer: 'bg-amber-500',
-}
+import { ROLE_COLORS } from '@/lib/constants'
+import { getTodayStr } from '@/lib/formatters'
 
 interface TodaysTasksWidgetProps {
   tasks: Task[]
@@ -47,10 +42,7 @@ export default function TodaysTasksWidget({
 
   function isOverdue(dueDateStr: string | null | undefined) {
     if (!dueDateStr) return false
-    const dateOnly = dueDateStr.split('T')[0]
-    const today = new Date()
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-    return dateOnly < todayStr
+    return dueDateStr.split('T')[0] < getTodayStr()
   }
 
   function getMemberName(id: string | null | undefined) {

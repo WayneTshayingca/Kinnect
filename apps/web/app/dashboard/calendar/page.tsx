@@ -13,6 +13,7 @@ import toast from 'react-hot-toast'
 import CreateEventModal from '@/components/CreateEventModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import logger from '@/lib/logger'
+import { formatEventTime, toLocaleDateStr } from '@/lib/formatters'
 
 // ── helpers ──────────────────────────────────────────────
 
@@ -22,11 +23,6 @@ function daysInMonth(year: number, month: number) {
 
 function startDayOfMonth(year: number, month: number) {
   return new Date(year, month, 1).getDay() // 0 = Sun
-}
-
-function formatTime(dateStr: string) {
-  const d = new Date(dateStr)
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
 function isSameDay(dateStr: string, year: number, month: number, day: number) {
@@ -82,9 +78,8 @@ export default function CalendarPage() {
   const loadEvents = useCallback(async () => {
     if (!user?.family_id) return
     try {
-      const start = `${year}-${String(month + 1).padStart(2, '0')}-01`
-      const endDay = daysInMonth(year, month)
-      const end = `${year}-${String(month + 1).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`
+      const start = toLocaleDateStr(new Date(year, month, 1))
+      const end = toLocaleDateStr(new Date(year, month, daysInMonth(year, month)))
       const data = await getCalendarEvents(user.family_id, start, end)
       setEvents(data)
     } catch (error) {
@@ -126,9 +121,7 @@ export default function CalendarPage() {
   }
 
   function openCreateForDate(day?: number) {
-    const d = day
-      ? `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-      : undefined
+    const d = day ? toLocaleDateStr(new Date(year, month, day)) : undefined
     setEditingEvent(null)
     setDefaultDate(d)
     setShowCreateEvent(true)
@@ -345,7 +338,7 @@ export default function CalendarPage() {
                         className="text-xs truncate rounded px-1 py-0.5 bg-primary-100 text-primary-700"
                         title={ev.title}
                       >
-                        {ev.all_day ? '' : formatTime(ev.start_time) + ' '}{ev.title}
+                        {ev.all_day ? '' : formatEventTime(ev.start_time) + ' '}{ev.title}
                       </div>
                     ))}
                     {dayEvents.length > 2 && (
@@ -389,7 +382,7 @@ export default function CalendarPage() {
                         <p className="text-sm text-gray-500">
                           {ev.all_day
                             ? 'All day'
-                            : `${formatTime(ev.start_time)} – ${formatTime(ev.end_time)}`}
+                            : `${formatEventTime(ev.start_time)} – ${formatEventTime(ev.end_time)}`}
                         </p>
                         {ev.location && (
                           <p className="text-sm text-gray-500 mt-0.5">
@@ -453,7 +446,7 @@ export default function CalendarPage() {
                             <p className="text-sm text-primary-600 mt-0.5">
                               {ev.all_day
                                 ? 'All day'
-                                : `${formatTime(ev.start_time)} – ${formatTime(ev.end_time)}`}
+                                : `${formatEventTime(ev.start_time)} – ${formatEventTime(ev.end_time)}`}
                             </p>
                             {ev.location && (
                               <p className="text-sm text-gray-500 mt-0.5">
