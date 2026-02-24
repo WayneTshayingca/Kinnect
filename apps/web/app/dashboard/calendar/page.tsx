@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   getCalendarEvents,
@@ -140,7 +140,7 @@ export default function CalendarPage() {
   }
 
   /** Events grouped by date string for agenda view */
-  function groupedEvents() {
+  const groupedEvents = useMemo(() => {
     const groups: Record<string, CalendarEvent[]> = {}
     for (const event of events) {
       const key = new Date(event.start_time).toLocaleDateString('en-ZA', {
@@ -153,7 +153,7 @@ export default function CalendarPage() {
       groups[key].push(event)
     }
     return groups
-  }
+  }, [events])
 
   // ── render ───────────────────────────────────────────
 
@@ -432,7 +432,7 @@ export default function CalendarPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              {Object.entries(groupedEvents()).map(([dateLabel, dayEvents]) => (
+              {Object.entries(groupedEvents).map(([dateLabel, dayEvents]) => (
                 <div key={dateLabel}>
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 sticky top-0 bg-gray-50 py-1 px-1 -mx-1 rounded">
                     {dateLabel}

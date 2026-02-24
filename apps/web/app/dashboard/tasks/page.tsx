@@ -1,13 +1,15 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getTasks, completeTask, uncompleteTask, type Task } from '@kinnect/core'
+import { getTasks, completeTask, uncompleteTask, deleteTask, type Task } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
 import { useRealtimeSync } from '@/hooks/useRealtimeSync'
 import CreateTaskModal from '@/components/CreateTaskModal'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import logger from '@/lib/logger'
 import toast from 'react-hot-toast'
+import { timeAgo } from '@/lib/formatters'
 
 export default function TasksPage() {
   const router = useRouter()
@@ -18,6 +20,7 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all')
   const [search, setSearch] = useState('')
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null)
 
   // Track in-flight mutations so realtime refetches don't overwrite optimistic state
   const inflightRef = useRef<Map<string, Partial<Task>>>(new Map())
@@ -75,6 +78,18 @@ export default function TasksPage() {
     }
   }
 
+  async function handleDeleteTask(taskId: string) {
+    setTasks((prev) => prev.filter((t) => t.id !== taskId))
+    try {
+      await deleteTask(taskId)
+      broadcast('tasks')
+    } catch (error) {
+      logger.error('Error deleting task', error)
+      toast.error('Failed to delete task')
+      await reloadTasks()
+    }
+  }
+
   async function handleUncompleteTask(taskId: string) {
     if (!user?.family_id) return
 
@@ -98,6 +113,16 @@ export default function TasksPage() {
       inflightRef.current.delete(taskId)
     }
   }
+
+  const filteredTasks = useMemo(() => tasks.filter(task => {
+    if (filter === 'pending' && task.completed) return false
+    if (filter === 'completed' && !task.completed) return false
+    if (search && !task.title.toLowerCase().includes(search.toLowerCase())) return false
+    return true
+  }), [tasks, filter, search])
+
+  const pendingCount = useMemo(() => tasks.filter(t => !t.completed).length, [tasks])
+  const completedCount = useMemo(() => tasks.filter(t => t.completed).length, [tasks])
 
   if (loading) {
     return (
@@ -135,17 +160,6 @@ export default function TasksPage() {
   if (!user?.family_id) {
     return null
   }
-
-  const filteredTasks = tasks.filter(task => {
-    if (filter === 'pending' && task.completed) return false
-    if (filter === 'completed' && !task.completed) return false
-    if (search && !task.title.toLowerCase().includes(search.toLowerCase())) return false
-    return true
-  })
-
-  const pendingCount = tasks.filter(t => !t.completed).length
-  const completedCount = tasks.filter(t => t.completed).length
-
 
   return (
     <div className="px-4 sm:px-0">
@@ -261,7 +275,7 @@ export default function TasksPage() {
                     )}
                     {task.completed_at && (
                       <span className="text-success-600">
-                        ✓ Completed {new Date(task.completed_at).toLocaleDateString()}
+                        ✓ Completed {timeAgo(task.completed_at)}
                       </span>
                     )}
                   </div>
@@ -277,6 +291,17 @@ export default function TasksPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                 </button>
+
+                {/* Delete button */}
+                <button
+                  onClick={() => setTaskToDelete(task.id)}
+                  className="flex-shrink-0 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Delete task"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
               </div>
             </div>
           ))}
@@ -290,6 +315,16 @@ export default function TasksPage() {
         userId={user.id}
         onTaskCreated={() => { reloadTasks(); broadcast('tasks') }}
         task={editingTask}
+      />
+
+      <ConfirmDialog
+        isOpen={!!taskToDelete}
+        onClose={() => setTaskToDelete(null)}
+        onConfirm={() => { if (taskToDelete) handleDeleteTask(taskToDelete) }}
+        title="Delete task"
+        message="Are you sure you want to delete this task? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
       />
     </div>
   )
