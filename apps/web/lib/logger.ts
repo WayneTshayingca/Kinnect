@@ -4,6 +4,15 @@ function isServer() {
   return typeof window === 'undefined'
 }
 
+// NEXT_PUBLIC_DEBUG_DOMAINS=auth,tasks — only emit debug for listed domains.
+// Leave unset (or set to "*") to show all debug logs.
+function isDebugDomainEnabled(domain?: string): boolean {
+  const raw = process.env.NEXT_PUBLIC_DEBUG_DOMAINS
+  if (!raw || raw === '*') return true
+  if (!domain) return false
+  return raw.split(',').map((d) => d.trim()).includes(domain)
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let pinoInstance: any = null
 
@@ -57,11 +66,14 @@ const logger = {
     Sentry.logger.info(message, context ?? {})
   },
 
-  debug(message: string, context?: Record<string, unknown>) {
+  debug(message: string, context?: Record<string, unknown> & { domain?: string }) {
+    const { domain, ...rest } = context ?? {}
+    if (process.env.NODE_ENV === 'production') return
+    if (!isDebugDomainEnabled(domain)) return
     if (isServer()) {
-      getPino().then((p) => p?.debug(context ?? {}, message))
-    } else if (process.env.NODE_ENV !== 'production') {
-      console.debug(`[DEBUG] ${message}`, context || '')
+      getPino().then((p) => p?.debug({ domain, ...rest }, message))
+    } else {
+      console.debug(`[DEBUG]${domain ? ` [${domain}]` : ''} ${message}`, Object.keys(rest).length ? rest : '')
     }
   },
 }

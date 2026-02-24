@@ -43,6 +43,12 @@ export default function AuthCallbackPage() {
       const userId = payload.user_metadata?.user_id || ''
       const familyId = payload.user_metadata?.family_id || ''
 
+      // Email verification after signup — tokens are present but it's not an invite
+      if (type === 'signup' || type === 'email_change') {
+        router.replace('/onboarding')
+        return
+      }
+
       redirectToSetPassword({
         email,
         name,

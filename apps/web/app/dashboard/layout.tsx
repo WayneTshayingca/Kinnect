@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic'
 import * as Sentry from '@sentry/nextjs'
 import { signOut } from '@kinnect/core'
 import { Logo } from '@/components/Logo'
+import { AnimatedLogo } from '@/components/AnimatedLogo'
 import { ROLE_LABELS } from '@/lib/constants'
 import { UserProvider, useUser } from '@/components/providers/user-provider'
 
@@ -80,7 +81,13 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     return pathname.startsWith(href)
   }
 
-  if (loading) return null
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-50 bg-gray-50 flex items-center justify-center">
+        <AnimatedLogo size="xl" color="primary" repeat={true} />
+      </div>
+    )
+  }
 
   if (!user) return null
 

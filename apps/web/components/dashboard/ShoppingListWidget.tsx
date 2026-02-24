@@ -9,7 +9,7 @@ import {
   type ListItem,
   type User,
 } from '@kinnect/core'
-import { ShoppingCart, Plus } from 'lucide-react'
+import { ShoppingCart, Plus, ShoppingBag } from 'lucide-react'
 import logger from '@/lib/logger'
 import { timeAgo } from '@/lib/formatters'
 
@@ -83,14 +83,24 @@ export default function ShoppingListWidget({
             <ShoppingCart className="h-5 w-5 text-brand-success" />
             Shopping List
           </h2>
-          {totalCount > 3 && (
+          <div className="flex items-center gap-2">
+            {totalCount > 3 && (
+              <Link
+                href="/dashboard/shopping-list"
+                className="text-brand-accent text-sm font-bold hover:bg-brand-bg px-3 py-1.5 rounded-lg transition-colors"
+              >
+                All {totalCount} items
+              </Link>
+            )}
             <Link
-              href="/dashboard/shopping-list"
-              className="text-brand-accent text-sm font-bold hover:bg-brand-bg px-3 py-1.5 rounded-lg transition-colors"
+              href="/dashboard/shopping-list?mode=shopping"
+              className="flex items-center gap-1.5 text-sm font-bold text-white bg-accent-500 hover:bg-accent-600 px-3 py-1.5 rounded-lg transition-colors"
+              title="Start shopping mode"
             >
-              All {totalCount} items
+              <ShoppingBag className="w-3.5 h-3.5" />
+              Shop
             </Link>
-          )}
+          </div>
         </div>
       </div>
 

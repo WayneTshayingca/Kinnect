@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   getFamilyMembers,
   getFullShoppingList,
@@ -15,8 +15,9 @@ import {
 } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
 import { useRealtimeSync } from '@/hooks/useRealtimeSync'
+import { useShoppingPresence } from '@/hooks/useShoppingPresence'
 import toast from 'react-hot-toast'
-import { ShoppingCart, Plus, Trash2, ChevronDown, ChevronUp, Pencil, Check, X } from 'lucide-react'
+import { ShoppingCart, Plus, Trash2, ChevronDown, ChevronUp, Pencil, Check, X, ShoppingBag } from 'lucide-react'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import logger from '@/lib/logger'
 import { timeAgo } from '@/lib/formatters'
@@ -25,12 +26,14 @@ import { timeAgo } from '@/lib/formatters'
 
 export default function ShoppingListPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user } = useUser()
   const [members, setMembers] = useState<User[]>([])
   const [incompleteItems, setIncompleteItems] = useState<ListItem[]>([])
   const [completedItems, setCompletedItems] = useState<ListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [showCompleted, setShowCompleted] = useState(false)
+  const [shoppingMode, setShoppingMode] = useState(() => searchParams.get('mode') === 'shopping')
 
   // Add form
   const [newTitle, setNewTitle] = useState('')
@@ -82,6 +85,7 @@ export default function ShoppingListPage() {
   }, [user?.family_id])
 
   const broadcast = useRealtimeSync(user?.family_id, { list_items: reloadList })
+  const otherShoppers = useShoppingPresence(user?.family_id, user?.id, user?.name, shoppingMode)
 
   function getMemberName(id: string | null | undefined) {
     if (!id) return 'Someone'
@@ -224,20 +228,52 @@ export default function ShoppingListPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="bg-brand-bg p-2.5 rounded-xl">
-            <ShoppingCart className="h-6 w-6 text-brand-primary" />
+          <div className={`p-2.5 rounded-xl ${shoppingMode ? 'bg-accent-100' : 'bg-brand-bg'}`}>
+            {shoppingMode
+              ? <ShoppingBag className="h-6 w-6 text-accent-600" />
+              : <ShoppingCart className="h-6 w-6 text-brand-primary" />
+            }
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Shopping List</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {shoppingMode ? 'Shopping' : 'Shopping List'}
+            </h1>
             <p className="text-sm text-gray-500">
               {incompleteItems.length} item{incompleteItems.length !== 1 ? 's' : ''} remaining
             </p>
           </div>
         </div>
+        <button
+          onClick={() => setShoppingMode((v) => !v)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
+            shoppingMode
+              ? 'bg-accent-500 text-white hover:bg-accent-600'
+              : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+          }`}
+        >
+          <ShoppingBag className="w-4 h-4" />
+          {shoppingMode ? 'Done Shopping' : 'Start Shopping'}
+        </button>
       </div>
 
-      {/* Add Form */}
-      <form
+      {/* Other shoppers presence banner */}
+      {otherShoppers.length > 0 && (
+        <div className="flex items-center gap-2 px-4 py-2.5 mb-4 bg-accent-50 border border-accent-200 rounded-xl text-sm text-accent-800">
+          <ShoppingBag className="w-4 h-4 shrink-0 text-accent-500" />
+          <span>
+            <span className="font-semibold">
+              {otherShoppers.length === 1
+                ? otherShoppers[0]
+                : `${otherShoppers.slice(0, -1).join(', ')} and ${otherShoppers.at(-1)}`}
+            </span>
+            {' '}
+            {otherShoppers.length === 1 ? 'is' : 'are'} shopping right now
+          </span>
+        </div>
+      )}
+
+      {/* Add Form — hidden while shopping */}
+      {!shoppingMode && <form
         onSubmit={handleAddItem}
         className="bg-white rounded-2xl shadow-sm p-4 mb-6"
       >
@@ -259,7 +295,7 @@ export default function ShoppingListPage() {
             Add
           </button>
         </div>
-      </form>
+      </form>}
 
       {/* Incomplete Items */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-6">
@@ -278,7 +314,9 @@ export default function ShoppingListPage() {
             {incompleteItems.map((item) => (
               <div
                 key={item.id}
-                className="flex items-start gap-3 p-4 hover:bg-gray-50 transition-colors group"
+                className={`flex items-start gap-3 hover:bg-gray-50 transition-colors group ${
+                  shoppingMode ? 'p-5' : 'p-4'
+                }`}
               >
                 <input
                   type="checkbox"
@@ -286,7 +324,7 @@ export default function ShoppingListPage() {
                   onChange={() => handleToggleItem(item.id, item.completed)}
                   className="mt-1 w-5 h-5 rounded border-gray-300 text-brand-accent focus:ring-accent-500 cursor-pointer"
                 />
-                {editingId === item.id ? (
+                {!shoppingMode && editingId === item.id ? (
                   <form
                     onSubmit={(e) => {
                       e.preventDefault()
@@ -324,28 +362,34 @@ export default function ShoppingListPage() {
                 ) : (
                   <>
                     <div className="flex-1 min-w-0">
-                      <span className="text-sm font-bold text-gray-900">
+                      <span className={`font-bold text-gray-900 ${shoppingMode ? 'text-lg' : 'text-sm'}`}>
                         {item.title}
                       </span>
-                      <div className="text-xs text-gray-400 mt-0.5">
-                        Added by {getMemberName(item.added_by)} &middot;{' '}
-                        {timeAgo(item.created_at)}
-                      </div>
+                      {!shoppingMode && (
+                        <div className="text-xs text-gray-400 mt-0.5">
+                          Added by {getMemberName(item.added_by)} &middot;{' '}
+                          {timeAgo(item.created_at)}
+                        </div>
+                      )}
                     </div>
-                    <button
-                      onClick={() => startEditing(item)}
-                      className="p-1.5 text-gray-300 hover:text-brand-accent hover:bg-brand-bg rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                      title="Edit item"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteItem(item.id)}
-                      className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                      title="Delete item"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {!shoppingMode && (
+                      <>
+                        <button
+                          onClick={() => startEditing(item)}
+                          className="p-1.5 text-gray-300 hover:text-brand-accent hover:bg-brand-bg rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                          title="Edit item"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteItem(item.id)}
+                          className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                          title="Delete item"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
                   </>
                 )}
               </div>
