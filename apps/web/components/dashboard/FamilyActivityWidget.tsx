@@ -5,19 +5,7 @@ import Link from 'next/link'
 import { type User, type Task } from '@kinnect/core'
 import { Users } from 'lucide-react'
 
-const ROLE_COLORS: Record<string, string> = {
-  admin: 'bg-primary-500',
-  member: 'bg-purple-500',
-  dependent: 'bg-accent-500',
-  observer: 'bg-amber-500',
-}
-
-const ROLE_LABELS: Record<string, string> = {
-  admin: 'Admin',
-  member: 'Member',
-  dependent: 'Dependent',
-  observer: 'Observer',
-}
+import { ROLE_COLORS, ROLE_LABELS } from '@/lib/constants'
 
 interface FamilyActivityWidgetProps {
   members: User[]

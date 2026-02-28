@@ -6,13 +6,8 @@ import toast from 'react-hot-toast'
 import { completeTask, createTask, type Task, type User } from '@kinnect/core'
 import { AlertCircle, CheckCircle, Circle, Pencil, Plus } from 'lucide-react'
 import logger from '@/lib/logger'
-
-const ROLE_COLORS: Record<string, string> = {
-  admin: 'bg-primary-500',
-  member: 'bg-purple-500',
-  dependent: 'bg-accent-500',
-  observer: 'bg-amber-500',
-}
+import { ROLE_COLORS } from '@/lib/constants'
+import { getTodayStr } from '@/lib/formatters'
 
 interface TodaysTasksWidgetProps {
   tasks: Task[]
@@ -47,10 +42,7 @@ export default function TodaysTasksWidget({
 
   function isOverdue(dueDateStr: string | null | undefined) {
     if (!dueDateStr) return false
-    const dateOnly = dueDateStr.split('T')[0]
-    const today = new Date()
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-    return dateOnly < todayStr
+    return dueDateStr.split('T')[0] < getTodayStr()
   }
 
   function getMemberName(id: string | null | undefined) {
@@ -153,9 +145,12 @@ export default function TodaysTasksWidget({
                   </button>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold text-brand-primary group-hover:text-brand-accent transition-colors">
+                      <button
+                        onClick={() => onEditTask(task)}
+                        className="text-sm font-bold text-brand-primary group-hover:text-brand-accent transition-colors text-left"
+                      >
                         {task.title}
-                      </span>
+                      </button>
                       {isOverdue(task.due_date) && (
                         <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 text-[10px] font-bold shrink-0">
                           <AlertCircle className="w-3 h-3" />
@@ -186,7 +181,7 @@ export default function TodaysTasksWidget({
                   </div>
                   <button
                     onClick={() => onEditTask(task)}
-                    className="p-1.5 text-gray-300 hover:text-brand-accent hover:bg-brand-bg rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                    className="p-1.5 text-gray-300 hover:text-brand-accent hover:bg-brand-bg rounded-lg transition-colors opacity-0 group-hover:opacity-100 shrink-0"
                     title="Edit task"
                   >
                     <Pencil className="w-3.5 h-3.5" />

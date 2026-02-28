@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Logo } from '@/components/Logo'
 import { AnimatedLogo } from '@/components/AnimatedLogo'
-import { signIn } from '@kinnect/core'
+import { signIn, getCurrentUser } from '@kinnect/core'
 import { Eye, EyeOff } from 'lucide-react'
 
 export default function Home() {
@@ -16,6 +16,13 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showTransition, setShowTransition] = useState(false)
+
+  // Redirect to dashboard if a session already exists
+  useEffect(() => {
+    getCurrentUser().then((u) => {
+      if (u) router.replace('/dashboard')
+    }).catch(() => {})
+  }, [router])
 
   // Prefetch dashboard for faster transition after login
   useEffect(() => {

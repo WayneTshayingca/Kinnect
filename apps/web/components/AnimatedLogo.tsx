@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect } from 'react';
-import { motion } from 'motion/react';
+import { motion, useAnimationControls } from 'motion/react';
 
 interface AnimatedLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -41,44 +41,94 @@ export const AnimatedLogo: React.FC<AnimatedLogoProps> = ({
   };
 
   const activeColor = colors[color];
+  const controls = useAnimationControls();
 
-  // Fire onComplete after all child animations finish (~1.7s)
-  // delayChildren(0.1) + staggerChildren(0.2) * 4 children + path duration(0.8)
+  // Orchestrate the full loop manually so stagger fires correctly on every
+  // cycle — both draw-in and draw-out — instead of each element looping
+  // independently and falling out of sync.
   useEffect(() => {
-    if (!repeat && onComplete) {
-      const timer = setTimeout(onComplete, 1700)
-      return () => clearTimeout(timer)
+    let active = true;
+    // Durations derived from variant config:
+    // draw-in:  delayChildren(0.1) + stagger(0.2)*4 + path duration(0.8) ≈ 1.7s
+    // draw-out: stagger(0.1)*4 + path duration(0.8) ≈ 1.2s
+    const DRAW_IN_MS = 1800;
+    const HOLD_MS = 1000;
+    const DRAW_OUT_MS = 1300;
+    const PAUSE_MS = 400;
+
+    async function runLoop() {
+      controls.set('hidden');
+      controls.start('visible'); // fire but don't await — resolves immediately on container
+
+      await new Promise(r => setTimeout(r, DRAW_IN_MS));
+
+      if (!repeat) {
+        await new Promise(r => setTimeout(r, HOLD_MS));
+        if (!active) return;
+        controls.start('hidden');
+        await new Promise(r => setTimeout(r, DRAW_OUT_MS));
+        if (active) onComplete?.();
+        return;
+      }
+
+      while (active) {
+        await new Promise(r => setTimeout(r, HOLD_MS));
+        if (!active) break;
+        controls.start('hidden');
+        await new Promise(r => setTimeout(r, DRAW_OUT_MS));
+        if (!active) break;
+        await new Promise(r => setTimeout(r, PAUSE_MS));
+        if (!active) break;
+        controls.start('visible');
+        await new Promise(r => setTimeout(r, DRAW_IN_MS));
+      }
     }
-  }, [repeat, onComplete])
+
+    runLoop();
+    return () => { active = false; };
+  }, [repeat, onComplete]);
 
   const containerVariants = {
-    hidden: { opacity: 0 },
+    hidden: {
+      transition: {
+        staggerChildren: 0.1,
+      }
+    },
     visible: {
-      opacity: 1,
       transition: {
         staggerChildren: 0.2,
-        delayChildren: 0.1
+        delayChildren: 0.1,
       }
     }
   };
 
   const pathVariants = {
-    hidden: { pathLength: 0, opacity: 0 },
+    hidden: {
+      pathLength: 0,
+      opacity: 0,
+      transition: {
+        duration: 0.8,
+        ease: "easeInOut" as const,
+      }
+    },
     visible: {
       pathLength: 1,
       opacity: 1,
       transition: {
         duration: 0.8,
         ease: "easeInOut" as const,
-        repeat: repeat ? Infinity : 0,
-        repeatType: "reverse" as const,
-        repeatDelay: 1
       }
     }
   };
 
   const dotVariants = {
-    hidden: { scale: 0, opacity: 0 },
+    hidden: {
+      scale: 0,
+      opacity: 0,
+      transition: {
+        duration: 0.3,
+      }
+    },
     visible: {
       scale: 1,
       opacity: 1,
@@ -86,9 +136,6 @@ export const AnimatedLogo: React.FC<AnimatedLogoProps> = ({
         type: "spring" as const,
         stiffness: 260,
         damping: 20,
-        repeat: repeat ? Infinity : 0,
-        repeatType: "reverse" as const,
-        repeatDelay: 1
       }
     }
   };
@@ -98,7 +145,7 @@ export const AnimatedLogo: React.FC<AnimatedLogoProps> = ({
       className={`inline-flex items-center justify-center ${className}`}
       variants={containerVariants}
       initial="hidden"
-      animate="visible"
+      animate={controls}
     >
       <svg
         width={iconSizes[size]}

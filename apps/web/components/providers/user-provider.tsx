@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import * as Sentry from '@sentry/nextjs'
-import { getCurrentUser, type User } from '@kinnect/core'
+import { getCurrentUser, getSupabase, type User } from '@kinnect/core'
 import logger from '@/lib/logger'
 
 interface UserContextType {
@@ -31,10 +31,37 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
-    getCurrentUser()
-      .then(setUser)
-      .catch((err) => logger.error('Auth error', err))
-      .finally(() => setLoading(false))
+    const supabase = getSupabase()
+
+    // Fast path: getSession() reads from localStorage — no network round-trip.
+    // We use the cached auth user ID to fetch the profile directly (1 DB call).
+    // After rendering, we validate the token in the background to catch revoked sessions.
+    supabase.auth.getSession()
+      .then(async ({ data: { session } }) => {
+        if (!session?.user) {
+          setLoading(false)
+          return
+        }
+
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('auth_user_id', session.user.id)
+          .maybeSingle()
+
+        if (error) logger.error('Auth error', error)
+        setUser(userData ?? null)
+        setLoading(false)
+
+        // Background: validate JWT with Supabase auth server — detects revoked tokens
+        supabase.auth.getUser().then(({ data: { user: authUser }, error: authErr }) => {
+          if (authErr || !authUser) setUser(null)
+        })
+      })
+      .catch((err) => {
+        logger.error('Auth error', err)
+        setLoading(false)
+      })
   }, [])
 
   // Set Sentry user context (POPIA: only pseudonymous ID, no email/name/phone)
