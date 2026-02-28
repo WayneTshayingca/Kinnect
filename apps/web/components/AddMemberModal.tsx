@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { addFamilyMember, updateFamilyMember, type User } from '@kinnect/core'
+import { updateFamilyMember, getSupabase, type User } from '@kinnect/core'
 import logger from '@/lib/logger'
 
 type Role = 'admin' | 'member' | 'dependent' | 'observer'
@@ -88,7 +88,21 @@ export default function AddMemberModal({
           await sendInvite(member.id)
         }
       } else {
-        const newMember = await addFamilyMember(familyId, name, role)
+        const { data: { session } } = await getSupabase().auth.getSession()
+        const res = await fetch('/api/members', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(session?.access_token && { Authorization: `Bearer ${session.access_token}` }),
+          },
+          body: JSON.stringify({ familyId, name, role }),
+        })
+        if (!res.ok) {
+          const data = await res.json()
+          throw new Error(data.error || 'Failed to add member')
+        }
+        const data = await res.json()
+        const newMember = data.user
 
         // Update phone if provided
         if (phone) {
@@ -105,7 +119,11 @@ export default function AddMemberModal({
       onClose()
     } catch (error) {
       logger.error(`Error ${isEditing ? 'updating' : 'adding'} family member`, error)
-      const message = error instanceof Error ? error.message : ''
+      const message = error instanceof Error
+        ? error.message
+        : (typeof error === 'object' && error !== null && 'message' in error
+            ? String((error as { message: unknown }).message)
+            : '')
       if (message.toLowerCase().includes('duplicate') || message.toLowerCase().includes('already exists')) {
         setSubmitError('A member with this name already exists in your family.')
       } else if (message.toLowerCase().includes('permission') || message.toLowerCase().includes('not allowed')) {

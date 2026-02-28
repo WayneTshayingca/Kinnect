@@ -42,8 +42,18 @@ const logger = {
     } else {
       console.error(`[ERROR] ${message}`, error, context || '')
     }
-    Sentry.captureException(error instanceof Error ? error : new Error(message), {
-      extra: { message, ...context },
+    // PostgrestError and other non-Error objects have a `message` property but aren't
+    // Error instances — extract it so Sentry gets a useful message rather than the
+    // logger call site string.
+    const sentryError = error instanceof Error
+      ? error
+      : new Error(
+          typeof error === 'object' && error !== null && 'message' in error
+            ? String((error as { message: unknown }).message)
+            : message
+        )
+    Sentry.captureException(sentryError, {
+      extra: { message, rawError: error, ...context },
     })
     Sentry.logger.error(message, { error: error instanceof Error ? error.message : String(error), ...context })
   },
