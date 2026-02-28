@@ -26,7 +26,8 @@ import UpcomingEventsWidget from '@/components/dashboard/UpcomingEventsWidget'
 import FamilyActivityWidget from '@/components/dashboard/FamilyActivityWidget'
 import {ErrorBoundary} from '@/components/ErrorBoundary'
 import {useRealtimeSync} from '@/hooks/useRealtimeSync'
-import {LogOut} from 'lucide-react'
+import {LogOut, CheckCircle, ShoppingCart, Calendar, Users} from 'lucide-react'
+import Link from 'next/link'
 import logger from '@/lib/logger'
 import toast from 'react-hot-toast'
 import { getTodayStr } from '@/lib/formatters'
@@ -247,7 +248,52 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Main Content ──────────────────────────────── */}
-      <div className="max-w-4xl mx-auto -mt-4 space-y-6 pb-4">
+      <div className="max-w-4xl mx-auto -mt-6 space-y-6 pb-4">
+
+        {/* Quick Access Cards */}
+        <div className="grid grid-cols-4 gap-3">
+          <Link
+            href="/dashboard/tasks"
+            className="bg-white rounded-2xl shadow-sm p-4 flex flex-col items-center gap-1.5 hover:shadow-md transition-all hover:-translate-y-0.5"
+          >
+            <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center">
+              <CheckCircle className="h-5 w-5 text-primary-500" />
+            </div>
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Tasks</span>
+            <span className="text-xl font-black text-brand-primary">{todaysTasks.length}</span>
+          </Link>
+          <Link
+            href="/dashboard/shopping-list"
+            className="bg-white rounded-2xl shadow-sm p-4 flex flex-col items-center gap-1.5 hover:shadow-md transition-all hover:-translate-y-0.5"
+          >
+            <div className="w-10 h-10 bg-accent-50 rounded-xl flex items-center justify-center">
+              <ShoppingCart className="h-5 w-5 text-brand-accent" />
+            </div>
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Shopping</span>
+            <span className="text-xl font-black text-brand-primary">{shoppingTotalCount}</span>
+          </Link>
+          <Link
+            href="/dashboard/calendar"
+            className="bg-white rounded-2xl shadow-sm p-4 flex flex-col items-center gap-1.5 hover:shadow-md transition-all hover:-translate-y-0.5"
+          >
+            <div className="w-10 h-10 bg-success-50 rounded-xl flex items-center justify-center">
+              <Calendar className="h-5 w-5 text-brand-success" />
+            </div>
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Events</span>
+            <span className="text-xl font-black text-brand-primary">{events.length}</span>
+          </Link>
+          <Link
+            href="/dashboard/family"
+            className="bg-white rounded-2xl shadow-sm p-4 flex flex-col items-center gap-1.5 hover:shadow-md transition-all hover:-translate-y-0.5"
+          >
+            <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
+              <Users className="h-5 w-5 text-amber-500" />
+            </div>
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Family</span>
+            <span className="text-xl font-black text-brand-primary">{members.length}</span>
+          </Link>
+        </div>
+
         {/* Widget Grid: Tasks + Shopping List */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <ErrorBoundary>

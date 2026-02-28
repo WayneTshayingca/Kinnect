@@ -45,7 +45,10 @@ export default function FamilyActivityWidget({
   return (
     <div className="bg-white rounded-[1.5rem] shadow-sm overflow-hidden">
       <div className="px-6 py-5 border-b border-gray-50 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-brand-primary">
+        <h2 className="text-lg font-bold flex items-center gap-2.5 text-brand-primary">
+          <span className="w-8 h-8 bg-amber-50 rounded-xl flex items-center justify-center">
+            <Users className="h-4 w-4 text-amber-500" />
+          </span>
           Family Members
         </h2>
         <button
@@ -55,6 +58,37 @@ export default function FamilyActivityWidget({
           + Add Member
         </button>
       </div>
+
+      {/* Avatar Strip */}
+      {membersWithCounts.length > 0 && (
+        <div className="px-6 py-4 flex items-center gap-4 border-b border-gray-50 overflow-x-auto">
+          {membersWithCounts.map((member) => (
+            <Link
+              key={member.id}
+              href="/dashboard/profile"
+              className="flex flex-col items-center gap-1.5 shrink-0 hover:opacity-80 transition-opacity"
+            >
+              <div className="relative">
+                <div
+                  className={`h-12 w-12 rounded-full shadow-sm flex items-center justify-center text-white font-bold text-base ${
+                    ROLE_COLORS[member.role || ''] || 'bg-gray-500'
+                  }`}
+                >
+                  {member.name.charAt(0).toUpperCase()}
+                </div>
+                {member.completedThisWeek > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-brand-success text-white text-[9px] font-black rounded-full flex items-center justify-center shadow">
+                    {member.completedThisWeek}
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] font-bold text-gray-600 truncate max-w-[52px] text-center">
+                {member.isCurrentUser ? 'You' : member.name.split(' ')[0]}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
 
       <div className="divide-y divide-gray-50">
         {membersWithCounts.length === 0 ? (

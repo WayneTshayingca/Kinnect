@@ -19,8 +19,10 @@ export default function UpcomingEventsWidget({ events, onCreateEvent }: Upcoming
     <div className="bg-white rounded-[1.5rem] shadow-sm overflow-hidden">
       <div className="px-6 pt-6 pb-3 border-b border-gray-50">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold flex items-center gap-2 text-brand-primary">
-            <Calendar className="h-5 w-5 text-brand-accent" />
+          <h2 className="text-lg font-bold flex items-center gap-2.5 text-brand-primary">
+            <span className="w-8 h-8 bg-success-50 rounded-xl flex items-center justify-center">
+              <Calendar className="h-4 w-4 text-brand-success" />
+            </span>
             This Week
           </h2>
           <div className="flex items-center gap-2">

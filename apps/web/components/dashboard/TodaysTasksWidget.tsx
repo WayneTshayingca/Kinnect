@@ -100,8 +100,10 @@ export default function TodaysTasksWidget({
       {/* Header */}
       <div className="px-6 pt-6 pb-3 border-b border-gray-50">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold flex items-center gap-2 text-brand-primary">
-            <CheckCircle className="h-5 w-5 text-brand-success" />
+          <h2 className="text-lg font-bold flex items-center gap-2.5 text-brand-primary">
+            <span className="w-8 h-8 bg-primary-50 rounded-xl flex items-center justify-center">
+              <CheckCircle className="h-4.5 w-4.5 text-primary-500" />
+            </span>
             Today&apos;s Tasks
           </h2>
           <Link

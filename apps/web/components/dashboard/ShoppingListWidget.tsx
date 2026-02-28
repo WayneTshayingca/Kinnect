@@ -79,8 +79,10 @@ export default function ShoppingListWidget({
       {/* Header */}
       <div className="px-6 pt-6 pb-3 border-b border-gray-50">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold flex items-center gap-2 text-brand-primary">
-            <ShoppingCart className="h-5 w-5 text-brand-success" />
+          <h2 className="text-lg font-bold flex items-center gap-2.5 text-brand-primary">
+            <span className="w-8 h-8 bg-accent-50 rounded-xl flex items-center justify-center">
+              <ShoppingCart className="h-4 w-4 text-brand-accent" />
+            </span>
             Shopping List
           </h2>
           <div className="flex items-center gap-2">
