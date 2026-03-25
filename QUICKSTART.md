@@ -21,7 +21,14 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your anon key>
 SUPABASE_SERVICE_ROLE_KEY=<your service role key>
 ```
 
-Get all three values from Supabase Dashboard > Settings > API. The service role key is only needed for the email invite feature — everything else works without it.
+Get all three values from Supabase Dashboard > Settings > API.
+
+The service role key is required for adding family members and sending email invites — both use server-side API routes that bypass RLS.
+
+Optional:
+```
+NEXT_PUBLIC_DEBUG_DOMAINS=auth,shopping   # only emit debug logs for these domains
+```
 
 ## Step 3: Run Database Migrations
 
@@ -34,6 +41,10 @@ Go to Supabase Dashboard > SQL Editor and run these in order:
 5. `supabase/migrations/004_update_user_roles.sql`
 6. `supabase/migrations/005_fix_shopping_list_trigger_rls.sql`
 7. `supabase/migrations/006_enable_users_rls.sql`
+8. `supabase/migrations/007_unique_auth_user_id.sql`
+9. `supabase/migrations/008_fix_cascade_deletes.sql`
+10. `supabase/migrations/009_enable_realtime.sql`
+11. `supabase/migrations/010_multi_family_support.sql`
 
 ## Step 4: Start Development
 
@@ -45,17 +56,18 @@ Open http://localhost:3000
 
 ## Step 5: Test the Full Flow
 
-1. **Sign up** — Create an account at `/auth/signup`
-2. **Create family** — Enter your family name at `/onboarding`
-3. **Dashboard** — See your widget overview at `/dashboard`
-4. **Add members** — Go to `/dashboard/profile`, click "Add Member"
-5. **Create tasks** — Use the quick-add on the dashboard, or go to `/dashboard/tasks`
-6. **Complete tasks** — Click the checkbox to mark done (instant optimistic feedback)
-7. **Shopping list** — Add items from the dashboard widget, or go to `/dashboard/shopping-list`
-8. **Calendar** — Go to `/dashboard/calendar`, add events, switch between month/agenda views
-9. **Edit events** — Click an event on the dashboard to see details, or use the calendar to edit
-10. **Profile** — Go to `/dashboard/profile` to change your password
-11. **Invite members** — On the family page, click "Invite" next to members without accounts
+1. **Sign up** — Create an account at `/auth/signup` (confirm password required)
+2. **Verify email** — Check your inbox and click the verification link
+3. **Create family** — Enter your family name at `/onboarding`
+4. **Dashboard** — See your widget overview at `/dashboard`
+5. **Add members** — Go to `/dashboard/profile`, click "Add Member" (select a role, optionally add email to send an invite)
+6. **Create tasks** — Use the quick-add on the dashboard, or go to `/dashboard/tasks`
+7. **Complete tasks** — Click the checkbox to mark done (instant optimistic feedback)
+8. **Shopping list** — Add items from the dashboard widget, or go to `/dashboard/shopping-list`
+9. **Shopping mode** — Click "Shop" on the dashboard widget or "Start Shopping" on the shopping list page; the presence banner shows who else is shopping
+10. **Calendar** — Go to `/dashboard/calendar`, add events, switch between month/agenda views
+11. **Profile** — Go to `/dashboard/profile` to change your password or manage family members
+12. **Invite members** — On the profile page, click "Invite" next to members without accounts
 
 ## Commands
 
@@ -70,13 +82,16 @@ npm run lint         # Lint code
 
 | What | Where |
 |------|-------|
-| Pages | `apps/web/app/dashboard/` |
+| Sign-in + auth pages | `apps/web/app/` + `apps/web/app/auth/` |
+| Dashboard pages | `apps/web/app/dashboard/` |
 | Dashboard widgets | `apps/web/components/dashboard/` |
 | Modals | `apps/web/components/` |
 | Providers | `apps/web/components/providers/` |
+| Hooks | `apps/web/hooks/` |
+| Logger | `apps/web/lib/logger.ts` |
+| API routes | `apps/web/app/api/` |
 | Database queries | `packages/core/src/supabase/` |
 | Types | `packages/core/src/types/database.ts` |
 | Migrations | `supabase/migrations/` |
-| API routes | `apps/web/app/api/` |
 
 For full architecture details, see `ARCHITECTURE.md`.
