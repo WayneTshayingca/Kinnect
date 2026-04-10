@@ -1,6 +1,18 @@
 import { getSupabase } from './client'
 import type { User } from '../types/database'
 
+export async function signInWithGoogle() {
+  const supabase = getSupabase()
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+    },
+  })
+  if (error) throw error
+  return data
+}
+
 export async function signUp(email: string, password: string, name: string) {
   const supabase = getSupabase()
 
