@@ -307,6 +307,184 @@ export type Database = {
           },
         ]
       }
+      responsibility_templates: {
+        Row: {
+          id: string
+          name: string
+          slug: string
+          icon: string
+          category: string
+          default_start_time: string | null
+          is_system: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          slug: string
+          icon: string
+          category: string
+          default_start_time?: string | null
+          is_system?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          slug?: string
+          icon?: string
+          category?: string
+          default_start_time?: string | null
+          is_system?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      responsibility_flows: {
+        Row: {
+          id: string
+          family_id: string
+          title: string
+          category: string
+          template_id: string | null
+          recurrence_rule: string
+          default_assignee_id: string
+          backup_assignee_ids: string[]
+          start_time: string | null
+          active: boolean
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          family_id: string
+          title: string
+          category: string
+          template_id?: string | null
+          recurrence_rule: string
+          default_assignee_id: string
+          backup_assignee_ids?: string[]
+          start_time?: string | null
+          active?: boolean
+          created_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          family_id?: string
+          title?: string
+          category?: string
+          template_id?: string | null
+          recurrence_rule?: string
+          default_assignee_id?: string
+          backup_assignee_ids?: string[]
+          start_time?: string | null
+          active?: boolean
+          created_by?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "responsibility_flows_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "responsibility_flows_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "responsibility_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "responsibility_flows_default_assignee_id_fkey"
+            columns: ["default_assignee_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "responsibility_flows_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      responsibility_occurrences: {
+        Row: {
+          id: string
+          flow_id: string
+          family_id: string
+          scheduled_for: string
+          scheduled_time: string | null
+          assigned_to: string
+          status: string
+          override_reason: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          flow_id: string
+          family_id: string
+          scheduled_for: string
+          scheduled_time?: string | null
+          assigned_to: string
+          status?: string
+          override_reason?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          flow_id?: string
+          family_id?: string
+          scheduled_for?: string
+          scheduled_time?: string | null
+          assigned_to?: string
+          status?: string
+          override_reason?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "responsibility_occurrences_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "responsibility_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "responsibility_occurrences_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "responsibility_occurrences_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "responsibility_occurrences_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           active_family_id: string | null
@@ -380,6 +558,17 @@ export type Database = {
           user_name: string
         }
         Returns: string
+      }
+      update_responsibility_flow: {
+        Args: {
+          p_flow_id:             string
+          p_title:               string
+          p_category:            string
+          p_recurrence_rule:     string
+          p_default_assignee_id: string
+          p_start_time:          string | null
+        }
+        Returns: undefined
       }
       get_my_families: {
         Args: never
@@ -536,6 +725,9 @@ export type Task         = Tables<'tasks'>
 export type CalendarEvent = Tables<'calendar_events'>
 export type List         = Tables<'lists'>
 export type ListItem     = Tables<'list_items'>
+export type ResponsibilityTemplate  = Tables<'responsibility_templates'>
+export type ResponsibilityFlow      = Tables<'responsibility_flows'>
+export type ResponsibilityOccurrence = Tables<'responsibility_occurrences'>
 
 // ── Insert helpers ────────────────────────────────────────────────
 export type UserInsert         = TablesInsert<'users'>
@@ -545,6 +737,7 @@ export type TaskInsert         = TablesInsert<'tasks'>
 export type CalendarEventInsert = TablesInsert<'calendar_events'>
 export type ListInsert         = TablesInsert<'lists'>
 export type ListItemInsert     = TablesInsert<'list_items'>
+export type ResponsibilityFlowInsert = TablesInsert<'responsibility_flows'>
 
 // ── Update helpers ────────────────────────────────────────────────
 export type UserUpdate         = TablesUpdate<'users'>

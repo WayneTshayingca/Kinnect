@@ -16,5 +16,8 @@ export * from './supabase/calendar'
 // Shopping List
 export * from './supabase/shopping-list'
 
+// Responsibilities
+export * from './supabase/responsibilities'
+
 // Types
 export * from './types/database'

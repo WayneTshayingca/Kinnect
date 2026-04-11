@@ -2,6 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Premium card shadows (brand-tinted) ─────────────────────────── */
+@layer utilities {
+  .shadow-card {
+    box-shadow:
+      0 1px 3px 0 rgb(49 46 129 / 0.07),
+      0 1px 2px -1px rgb(49 46 129 / 0.05);
+  }
+  .shadow-card-hover {
+    box-shadow:
+      0 6px 20px 0 rgb(49 46 129 / 0.09),
+      0 2px 6px -1px rgb(49 46 129 / 0.06);
+  }
+}
+
+/* ── Widget entrance animation ───────────────────────────────────── */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-slide-up {
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Completion pop micro-animation ─────────────────────────────── */
+@keyframes completionPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.35); }
+  65%  { transform: scale(0.88); }
+  100% { transform: scale(1); }
+}
+.animate-completion-pop {
+  animation: completionPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ── Subtle fade-in for completed/done rows ─────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out both;
+}
+
 :root {
   --font-size: 16px;
   --background: #ffffff;
