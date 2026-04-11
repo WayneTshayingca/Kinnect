@@ -11,8 +11,8 @@ kinnect/
 │       ├── app/            # App router pages
 │       │   ├── auth/       # Sign-in, signup, callback, forgot/reset/set password
 │       │   ├── onboarding/ # Family creation after signup
-│       │   ├── dashboard/  # Protected dashboard, tasks, calendar, shopping, profile
-│       │   └── api/        # Server-side API routes (invite, add-member)
+│       │   ├── dashboard/  # Protected dashboard, tasks, calendar, shopping, custody, settings
+│       │   └── api/        # Server-side API routes (invite, add-member, payfast)
 │       ├── components/     # React components (widgets, modals, providers)
 │       ├── hooks/          # useRealtimeSync, useShoppingPresence
 │       └── lib/            # logger, formatters, constants
@@ -20,11 +20,15 @@ kinnect/
 ├── packages/
 │   └── core/               # Shared business logic (60-70% code reuse)
 │       └── src/
-│           ├── supabase/   # Database queries & auth
+│           ├── supabase/   # Database queries & auth (incl. custody, activity, subscriptions)
 │           └── types/      # TypeScript types
 │
-└── supabase/
-    └── migrations/         # Database migrations (000–010)
+├── supabase/
+│   └── migrations/         # Database migrations (000–010 deployed; 011–017 planned)
+│
+├── IMPLEMENTATION.md       # Full phased feature roadmap with specs + API contracts
+├── ARCHITECTURE.md         # System design, flows, component reference
+└── QUICKSTART.md           # Step-by-step setup guide
 ```
 
 ## Tech Stack
@@ -79,6 +83,15 @@ kinnect/
    - `supabase/migrations/009_enable_realtime.sql`
    - `supabase/migrations/010_multi_family_support.sql`
 
+   **Upcoming migrations (run when implementing each phase):**
+   - `supabase/migrations/011_add_responsibility_templates.sql` — Phase 2
+   - `supabase/migrations/012_add_responsibility_flows.sql` — Phase 2
+   - `supabase/migrations/013_add_responsibility_occurrences.sql` — Phase 2
+   - `supabase/migrations/014_enable_realtime_responsibilities.sql` — Phase 2
+   - `supabase/migrations/015_add_activity_log.sql` — Phase 3
+   - `supabase/migrations/016_add_subscriptions.sql` — Phase 4
+   - `supabase/migrations/017_seed_free_subscriptions.sql` — Phase 4
+
 4. **Start the development server:**
    ```bash
    npm run dev
@@ -103,6 +116,11 @@ npm run type-check   # Type check all packages
 | `NEXT_PUBLIC_SUPABASE_URL` | `apps/web/.env.local` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `apps/web/.env.local` | Supabase public key |
 | `SUPABASE_SERVICE_ROLE_KEY` | `apps/web/.env.local` | Server-only key for invites + member creation (bypasses RLS) |
+| `NEXT_PUBLIC_APP_URL` | `apps/web/.env.local` | Full app URL — needed for Google OAuth redirect + PayFast return URLs (e.g. `https://your-domain.co.za`) |
+| `PAYFAST_MERCHANT_ID` | `apps/web/.env.local` | PayFast merchant ID (Phase 4) |
+| `PAYFAST_MERCHANT_KEY` | `apps/web/.env.local` | PayFast merchant key (Phase 4) |
+| `PAYFAST_PASSPHRASE` | `apps/web/.env.local` | PayFast signature passphrase (Phase 4) |
+| `PAYFAST_SANDBOX` | `apps/web/.env.local` | Set `true` for sandbox, `false` for production (Phase 4) |
 | `NEXT_PUBLIC_DEBUG_DOMAINS` | `apps/web/.env.local` | Optional — comma-separated debug log domains (e.g. `auth,shopping`). Unset = all. Production = none |
 
 ## Database Schema
@@ -116,6 +134,11 @@ npm run type-check   # Type check all packages
 | **calendar_events** | Shared family calendar events with location |
 | **lists** | Shopping/grocery lists per family |
 | **list_items** | Individual items within a list |
+| **responsibility_templates** | System templates for recurring routines (school run, shopping duty, etc.) — Phase 2 |
+| **responsibility_flows** | Recurring household responsibilities with assignee + recurrence rule — Phase 2 |
+| **responsibility_occurrences** | Pre-generated daily occurrences from flows (90 days ahead) — Phase 2 |
+| **activity_log** | Family activity feed (task completions, responsibilities, member events, etc.) — Phase 3 |
+| **subscriptions** | Billing tier per family (free / plus / family) via PayFast — Phase 4 |
 
 ## Features
 
@@ -147,7 +170,33 @@ npm run type-check   # Type check all packages
 - [x] Domain-filtered debug logging (`NEXT_PUBLIC_DEBUG_DOMAINS`)
 - [x] Favicon
 
-### Phase 2 (Future)
+### Upcoming Features (see `IMPLEMENTATION.md` for full spec)
+
+**Phase 1 — Google Auth** ✓ Complete
+- [x] "Continue with Google" on sign-in, sign-up, and set-password screens
+- [x] OAuth callback creates profile on first login, routes returning users to dashboard
+- [x] Invited users who sign in with Google instead of their invite link are auto-merged
+
+**Phase 2 — Today's Responsibilities**
+- [ ] Dashboard card: today's active responsibilities (title, assignee, time, category)
+- [ ] Recurring flows with daily/weekday/weekend/custom recurrence rules
+- [ ] Quick reassign: change today's occurrence in under 10 seconds
+- [ ] "New Routine" modal: create a recurring responsibility in under 60 seconds
+- [ ] System templates: school run, shopping duty, household errand, staff visit
+
+**Phase 3 — Activity Tracker**
+- [ ] Family activity feed widget (replaces member completion count)
+- [ ] Grouped by day: "Gogo confirmed pickup of Sipho · 13:04"
+- [ ] Feeds from task completions, handoffs, member adds
+
+**Phase 4 — PayFast Premium**
+- [ ] Billing tiers: Free / Kinnect Plus R99/mo / Kinnect Family R149/mo
+- [ ] PayFast checkout + ITN webhook
+- [ ] Feature gating via `<PremiumGate>` component
+- [ ] Free tier: polling sync (3 min); Paid: WebSocket realtime
+- [ ] `/dashboard/settings` — plan management + upgrade CTAs
+
+**Future**
 - [ ] React Native mobile app (`apps/mobile`)
 - [ ] Push notifications (native — `push_token` column already on `users`)
 - [ ] Offline-first functionality
@@ -165,12 +214,13 @@ npm run type-check   # Type check all packages
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
+   - `NEXT_PUBLIC_APP_URL` (your Vercel deployment URL — required for Google OAuth)
 5. Vercel will auto-detect Next.js and deploy
 
 ### Supabase (Production)
 
 1. Create a new Supabase project for production
-2. Run all migrations (000–010) in the SQL Editor
+2. Run all applicable migrations (000–010, plus 011–017 as you implement each phase) in the SQL Editor
 3. Update environment variables with production Supabase credentials
 4. Configure auth settings in Supabase Dashboard:
    - Site URL: your Vercel deployment URL

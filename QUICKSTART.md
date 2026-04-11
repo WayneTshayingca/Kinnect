@@ -19,11 +19,20 @@ cp apps/web/.env.example apps/web/.env.local
 NEXT_PUBLIC_SUPABASE_URL=<your supabase url>
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<your anon key>
 SUPABASE_SERVICE_ROLE_KEY=<your service role key>
+NEXT_PUBLIC_APP_URL=http://localhost:3000   # change to your deployed URL in production
 ```
 
-Get all three values from Supabase Dashboard > Settings > API.
+Get the Supabase values from Supabase Dashboard > Settings > API.
 
 The service role key is required for adding family members and sending email invites — both use server-side API routes that bypass RLS.
+
+**When implementing Phase 4 (PayFast), also add:**
+```
+PAYFAST_MERCHANT_ID=<your merchant id>
+PAYFAST_MERCHANT_KEY=<your merchant key>
+PAYFAST_PASSPHRASE=<your passphrase>
+PAYFAST_SANDBOX=true
+```
 
 Optional:
 ```
@@ -46,6 +55,21 @@ Go to Supabase Dashboard > SQL Editor and run these in order:
 10. `supabase/migrations/009_enable_realtime.sql`
 11. `supabase/migrations/010_multi_family_support.sql`
 
+### Upcoming Migrations (run per phase)
+
+**Phase 2 — Today's Responsibilities:**
+- `supabase/migrations/011_add_responsibility_templates.sql`
+- `supabase/migrations/012_add_responsibility_flows.sql`
+- `supabase/migrations/013_add_responsibility_occurrences.sql`
+- `supabase/migrations/014_enable_realtime_responsibilities.sql`
+
+**Phase 3 — Activity Tracker:**
+- `supabase/migrations/015_add_activity_log.sql`
+
+**Phase 4 — PayFast Premium:**
+- `supabase/migrations/016_add_subscriptions.sql`
+- `supabase/migrations/017_seed_free_subscriptions.sql`
+
 ## Step 4: Start Development
 
 ```bash
@@ -56,7 +80,7 @@ Open http://localhost:3000
 
 ## Step 5: Test the Full Flow
 
-1. **Sign up** — Create an account at `/auth/signup` (confirm password required)
+1. **Sign up** — Create an account at `/auth/signup` with email/password or "Continue with Google"
 2. **Verify email** — Check your inbox and click the verification link
 3. **Create family** — Enter your family name at `/onboarding`
 4. **Dashboard** — See your widget overview at `/dashboard`
