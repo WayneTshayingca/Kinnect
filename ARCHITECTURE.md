@@ -8,45 +8,62 @@ kinnect/
 ├── apps/
 │   └── web/                              # Next.js 14 Web Application
 │       ├── app/
-│       │   ├── page.tsx                  # Landing page
-│       │   ├── layout.tsx                # Root layout + SupabaseProvider
+│       │   ├── page.tsx                  # Sign-in page (root — also handles hash redirects)
+│       │   ├── layout.tsx                # Root layout + SupabaseProvider + favicon metadata
 │       │   ├── globals.css               # Global styles
 │       │   │
 │       │   ├── auth/
-│       │   │   ├── login/page.tsx        # Login form
-│       │   │   └── signup/page.tsx       # Signup form
+│       │   │   ├── login/page.tsx        # Redirects to /
+│       │   │   ├── signup/page.tsx       # Registration + confirm password + email sent screen
+│       │   │   ├── callback/page.tsx     # Handles Supabase redirect (invite, signup, PKCE)
+│       │   │   ├── forgot-password/page.tsx  # Request password reset email
+│       │   │   ├── reset-password/page.tsx   # Set new password via recovery token
+│       │   │   └── set-password/page.tsx     # Invited user sets password + confirms name
 │       │   │
 │       │   ├── onboarding/page.tsx       # Create family after signup
 │       │   │
 │       │   ├── api/
-│       │   │   └── invite/route.ts       # POST - send email invites (server-side)
+│       │   │   ├── invite/route.ts       # POST — send email invites (service role)
+│       │   │   ├── members/route.ts      # POST — add family member (service role, auth-gated)
+│       │   │   └── auth/
+│       │   │       └── google-callback/route.ts  # POST — merge invited user who signs in via Google
 │       │   │
 │       │   └── dashboard/
-│       │       ├── layout.tsx            # Nav bar, auth guard, UserProvider
+│       │       ├── layout.tsx            # Nav, auth guard, AnimatedLogo loading overlay
 │       │       ├── page.tsx              # Dashboard home (widgets + stats)
 │       │       ├── tasks/page.tsx        # Task list with filters
 │       │       ├── calendar/page.tsx     # Month grid + agenda views
-│       │       ├── shopping-list/page.tsx # Full shopping list management
+│       │       ├── shopping-list/page.tsx # Shopping list + shopping mode + presence banner
 │       │       ├── family/page.tsx       # Redirects to /dashboard/profile
 │       │       └── profile/page.tsx      # User profile + family member management
 │       │
 │       ├── components/
 │       │   ├── providers/
-│       │   │   ├── supabase-provider.tsx # Initializes Supabase client on app start
-│       │   │   └── user-provider.tsx     # UserContext: fetches user once, shared via useUser()
+│       │   │   ├── supabase-provider.tsx # Initializes Supabase client singleton on app start
+│       │   │   └── user-provider.tsx     # UserContext: fast session load via getSession() + background validation
 │       │   ├── dashboard/
 │       │   │   ├── DashboardStats.tsx    # Stat cards: Done Today, Daily Tasks, This Week
 │       │   │   ├── TodaysTasksWidget.tsx # Today's tasks preview + quick-add form
-│       │   │   ├── ShoppingListWidget.tsx # Shopping list preview + quick-add form
+│       │   │   ├── ShoppingListWidget.tsx # Shopping list preview + "Shop" button
 │       │   │   ├── UpcomingEventsWidget.tsx # This week's events + detail modal
 │       │   │   └── FamilyActivityWidget.tsx # Members ranked by weekly completions
+│       │   ├── AnimatedLogo.tsx          # Animated SVG logo (framer-motion, repeat mode)
+│       │   ├── Logo.tsx                  # Static logo (full, icon, stacked variants)
 │       │   ├── CreateTaskModal.tsx       # Modal: create task with assignees + due date
 │       │   ├── CreateEventModal.tsx      # Modal: create/edit calendar event
-│       │   ├── AddMemberModal.tsx        # Modal: add/edit family member + invite
-│       │   └── Logo.tsx                  # Kinnect logo (full, icon, stacked variants)
+│       │   └── AddMemberModal.tsx        # Modal: add/edit family member + invite
 │       │
 │       ├── hooks/
-│       │   └── useRealtimeSync.ts        # Supabase Realtime + BroadcastChannel sync
+│       │   ├── useRealtimeSync.ts        # Supabase Realtime + BroadcastChannel for data sync
+│       │   └── useShoppingPresence.ts    # Supabase Realtime presence for shopping mode
+│       │
+│       ├── lib/
+│       │   ├── logger.ts                 # Pino (server) / console (client) + Sentry capture
+│       │   ├── formatters.ts             # timeAgo, getTodayStr, date helpers
+│       │   └── constants.ts              # ROLE_COLORS, ROLE_LABELS
+│       │
+│       ├── public/
+│       │   └── favicon.svg               # Kinnect favicon
 │       │
 │       ├── .env.local                    # Environment variables
 │       ├── next.config.js                # Next.js config
@@ -57,8 +74,8 @@ kinnect/
 │   └── core/                             # Shared Business Logic
 │       └── src/
 │           ├── supabase/
-│           │   ├── client.ts             # Supabase client singleton
-│           │   ├── auth.ts               # signUp, signIn, signOut, getCurrentUser, getSession
+│           │   ├── client.ts             # Supabase singleton + Realtime JWT sync via onAuthStateChange
+│           │   ├── auth.ts               # signUp, signIn, signOut, signInWithGoogle, getCurrentUser, getSession
 │           │   ├── families.ts           # createFamily, getFamily, getFamilyMembers,
 │           │   │                         # addFamilyMember, updateFamily,
 │           │   │                         # updateFamilyMember, removeFamilyMember,
@@ -90,12 +107,22 @@ kinnect/
 │       ├── 008_fix_cascade_deletes.sql   # Changes created_by/added_by FKs to SET NULL
 │       │                                 # so deleting a member preserves their data
 │       ├── 009_enable_realtime.sql       # Adds tables to supabase_realtime publication
-│       └── 010_multi_family_support.sql  # Adds family_members junction table,
-│                                         # active_family_id on users, updates RLS,
-│                                         # adds get_my_families() + switch_active_family() RPCs,
-│                                         # updates create_family_with_user() RPC
+│       ├── 010_multi_family_support.sql  # Adds family_members junction table,
+│       │                                 # active_family_id on users, updates RLS,
+│       │                                 # adds get_my_families() + switch_active_family() RPCs,
+│       │                                 # updates create_family_with_user() RPC
+│       ├── 011_add_responsibility_templates.sql  # Phase 2: responsibility_templates + 4 system seeds
+│       ├── 012_add_responsibility_flows.sql      # Phase 2: responsibility_flows table + RLS
+│       ├── 013_add_responsibility_occurrences.sql # Phase 2: occurrences table + generate function + trigger
+│       ├── 014_enable_realtime_responsibilities.sql # Phase 2: add responsibility tables to realtime
+│       ├── 015_add_activity_log.sql      # Phase 3: activity_log table + index + RLS
+│       ├── 016_add_subscriptions.sql     # Phase 4: subscriptions table + RLS
+│       └── 017_seed_free_subscriptions.sql  # Phase 4: backfill existing families with free tier
 │
 ├── ARCHITECTURE.md                       # This file
+├── IMPLEMENTATION.md                     # Phased feature roadmap + specs
+├── README.md
+├── QUICKSTART.md
 ├── package.json                          # Workspace root
 ├── turbo.json                            # Turborepo task config
 └── tsconfig.json                         # Root TypeScript config
@@ -105,20 +132,28 @@ kinnect/
 
 ## Application Flows
 
-### 1. Signup & Onboarding
+### 1. Sign Up & Onboarding
 
 ```
-Landing page (/)
-  └─ User clicks "Sign Up"
-      │
-      ▼
+Sign-in page (/)
+  └─ User clicks "Sign Up" → /auth/signup
+
 Signup page (/auth/signup)
-  └─ User enters name, email, password
+  └─ User enters name, email, password, confirm password
+  └─ Live password-match validation
   └─ Calls signUp() from @kinnect/core
-      │  → Supabase Auth creates auth account
-      │  → Creates user record in users table
+      │  → supabase.auth.signUp() creates auth account
+      │  → Creates user record in users table (role: 'admin')
+      │  → On failure: signOut() cleans up the orphaned auth user
       │
       ▼
+"Check your email" screen (same page, emailSent=true)
+  └─ User clicks the email verification link
+      │
+      ▼
+/auth/callback (type=signup in hash)
+  └─ Redirects to /onboarding
+
 Onboarding page (/onboarding)
   └─ User enters family name
   └─ Calls createFamily() from @kinnect/core
@@ -131,24 +166,216 @@ Onboarding page (/onboarding)
 Dashboard (/dashboard)
 ```
 
-### 2. Authentication & Route Protection
+### 2. Google OAuth Sign-In
+
+```
+Sign-in or sign-up page
+  └─ User clicks "Continue with Google"
+      └─ signInWithGoogle() → supabase.auth.signInWithOAuth({ provider: 'google' })
+          → Redirects to Google consent screen
+
+Google consent → Supabase processes → /auth/callback#access_token=...&refresh_token=...
+
+Callback page (/auth/callback):
+  ├─ Reads hash: access_token, refresh_token
+  ├─ Decodes JWT payload → checks app_metadata.providers includes 'google'
+  ├─ supabase.auth.setSession({ access_token, refresh_token })
+  └─ POST /api/auth/google-callback { authUserId, email }
+      │  (service role — checks for invite account with same email)
+      │
+      ├─ { merged: true }  → invited user signed in with Google instead of invite link
+      │   └─ Profile re-linked to Google auth user, old invite auth user deleted
+      │   └─ router.replace('/dashboard')
+      │
+      ├─ { merged: false, isNewUser: false }  → returning Google user
+      │   └─ router.replace('/dashboard')
+      │
+      └─ { merged: false, isNewUser: true }  → first-time Google user
+          └─ supabase.from('users').insert({ auth_user_id, name, role: 'admin' })
+          └─ router.replace('/onboarding')
+```
+
+**Invite + Google merge flow** (`POST /api/auth/google-callback`):
+```
+1. Validate Bearer token — confirm authUserId matches session user
+2. Check users table for existing profile linked to authUserId → if found, return { isNewUser: false }
+3. Fetch all auth users, find one with same email but different ID (the invite auth user)
+4. If found + has a users row:
+   ├─ UPDATE users SET auth_user_id = googleAuthUserId WHERE auth_user_id = inviteAuthUserId
+   └─ supabase.auth.admin.deleteUser(inviteAuthUserId)  ← removes orphaned invite auth entry
+   └─ return { merged: true }
+5. If not found: return { isNewUser: true }
+```
+
+### 3. Sign In
+
+```
+Sign-in page (/) on mount:
+  ├─ getCurrentUser() → if session exists, router.replace('/dashboard')
+  ├─ router.prefetch('/dashboard') pre-loads the bundle
+  └─ Checks URL hash for fragments:
+      ├─ type=invite → /auth/callback
+      └─ type=recovery → /auth/reset-password
+
+User submits form:
+  └─ signIn(email, password)
+      │  → supabase.auth.signInWithPassword()
+      │  → On error: show inline error
+      │
+      ▼
+  AnimatedLogo transition overlay (repeat=true while navigating)
+      │  → router.push('/dashboard') fires immediately
+      │
+      ▼
+Dashboard (/dashboard)
+  └─ UserProvider resolves (see Session Persistence below)
+  └─ Dashboard content appears
+```
+
+### 4. Forgot Password / Reset Password
+
+```
+Forgot password page (/auth/forgot-password)
+  └─ User enters email
+  └─ resetPasswordForEmail(email, redirectTo=/auth/reset-password)
+      │  → supabase.auth.resetPasswordForEmail()
+      │  → Supabase emails a recovery link
+      │
+      ▼
+"Check your email" confirmation screen
+
+User clicks the recovery email link:
+  └─ Browser lands on /auth/reset-password#access_token=...&type=recovery
+
+Reset password page (/auth/reset-password) on mount:
+  ├─ Reads access_token + refresh_token from URL hash
+  ├─ supabase.auth.setSession({ access_token, refresh_token })
+  │   ├─ On error: "Invalid or expired reset link" + link to request new one
+  │   └─ On success: form is enabled (ready=true)
+  │
+  └─ User sets new password (min 6 chars, confirm match)
+      └─ supabase.auth.updateUser({ password })
+          │
+          ▼
+      Dashboard (/dashboard)
+```
+
+### 5. Family Member Invite (Admin → Invitee)
+
+**Admin side:**
+```
+AddMemberModal — user clicks "Add Member" + provides email
+  │
+  ▼
+1. POST /api/members  (with Authorization: Bearer <user JWT>)
+   ├─ Verifies JWT via supabase.auth.getUser()
+   ├─ Checks caller has role='admin' in users table
+   ├─ Uses service role client to INSERT into users (bypasses RLS)
+   ├─ Uses service role client to INSERT into family_members
+   └─ Returns { user: newUser }
+
+2. POST /api/invite  (if email was provided)
+   ├─ Uses service role client
+   ├─ supabase.auth.admin.inviteUserByEmail(email, { data: { user_id, family_id } })
+   │   → Supabase creates auth account + sends invite email
+   └─ Links auth_user_id on the existing users row
+```
+
+**Invitee side:**
+```
+Invitee clicks email link → /auth/callback#access_token=...&type=invite
+
+Callback page (/auth/callback):
+  ├─ Reads hash fragment: access_token, refresh_token, type
+  ├─ Decodes JWT payload: email, name, user_id, family_id from user_metadata
+  └─ Calls redirectToSetPassword() → /auth/set-password?email=...&access_token=...
+
+Set password page (/auth/set-password):
+  ├─ Option A: "Continue with Google" button
+  │   └─ signInWithGoogle() → triggers Google OAuth → merge flow (see flow 2)
+  │       → invited user lands on /dashboard with family intact, no password needed
+  │
+  └─ Option B: Set password form
+      ├─ supabase.auth.setSession({ access_token, refresh_token })
+      │   ├─ On error: "Invalid invite link"
+      │   └─ On success: form enabled (sessionReady=true)
+      └─ User confirms name + sets password
+          ├─ supabase.auth.updateUser({ password })
+          └─ updateFamilyMember(userId, { name }) (non-critical, name already set)
+              │
+              ▼
+          Dashboard (/dashboard)
+```
+
+> **PKCE fallback:** If Supabase sends the invite via PKCE (`?code=` query param instead of
+> hash tokens), the callback page exchanges the code client-side via
+> `supabase.auth.exchangeCodeForSession(code)`, then follows the same
+> `redirectToSetPassword()` path.
+
+### 6. Session Persistence & Auth Guard
 
 ```
 Any /dashboard/* page loads
-  └─ Dashboard layout (layout.tsx) runs on mount
-      │
-      ▼
-UserProvider fetches getCurrentUser() once
-  │  → Checks Supabase auth session
-  │  → Looks up user record by auth_user_id
-  │  → Shares user via useUser() hook
   │
-  ├─ No session → Redirect to /auth/login
-  ├─ No active_family_id → Redirect to /onboarding
-  └─ Has active family → Render page content
+  ▼
+UserProvider (in dashboard layout) on mount — FAST PATH:
+  1. supabase.auth.getSession()  ← reads from localStorage, no network
+     └─ If no session: setLoading(false) → DashboardShell redirects to /
+     └─ If session found:
+  2. supabase.from('users').select('*').eq('auth_user_id', session.user.id)
+     └─ One DB query — resolves in ~100–300ms
+     └─ setUser(userData), setLoading(false)  ← dashboard renders
+  3. Background: supabase.auth.getUser()  ← validates JWT against Supabase auth server
+     └─ If revoked/invalid: setUser(null) → DashboardShell redirects to /
+
+DashboardShell while loading=true:
+  └─ Shows AnimatedLogo overlay (seamless continuation from sign-in transition)
+
+DashboardShell once loading=false:
+  ├─ No user → router.push('/')
+  ├─ No active_family_id → router.push('/onboarding')
+  └─ Has user + family → renders nav + page content
 ```
 
-### 3. Dashboard
+**Realtime JWT sync** (`packages/core/src/supabase/client.ts`):
+```
+initSupabase() registers onAuthStateChange listener:
+  └─ On every session change (login, refresh, logout):
+      └─ supabase.realtime.setAuth(session?.access_token ?? null)
+          → keeps the Realtime WebSocket JWT in sync
+          → required for presence channels (Postgres changes work without this,
+            but presence authentication fails without a user JWT)
+```
+
+### 7. Shopping Mode & Presence
+
+```
+Shopping list page (/dashboard/shopping-list)
+  └─ URL param ?mode=shopping initialises shopping mode
+
+Shopping mode active:
+  ├─ "Done Shopping" button in header (toggles mode off)
+  ├─ Add-item form hidden
+  ├─ Items have larger touch targets, no edit/delete actions
+  └─ useShoppingPresence hook tracks user in Supabase Realtime presence
+
+useShoppingPresence (apps/web/hooks/useShoppingPresence.ts):
+  ├─ Channel: shopping:{familyId}  (one per family)
+  ├─ On mount:
+  │   ├─ supabase.auth.getSession() → setAuth(token) BEFORE subscribing
+  │   │   (presence channels require user JWT — anon key alone causes TIMED_OUT)
+  │   ├─ channel.on('presence', { event: 'sync' }, ...) → updates otherShoppers[]
+  │   └─ channel.subscribe() → if shopping mode, channel.track({ userId, name })
+  ├─ On isShoppingMode toggle (separate effect):
+  │   ├─ true  → channel.track({ userId, name })
+  │   └─ false → channel.untrack()
+  └─ On unmount: supabase.removeChannel()
+
+Presence banner (shown when otherShoppers.length > 0):
+  └─ "Wayne and Sarah are shopping right now"
+```
+
+### 8. Dashboard
 
 ```
 Dashboard page loads (/dashboard)
@@ -171,7 +398,7 @@ Renders widget layout:
   └─ Full width: FamilyActivityWidget
 ```
 
-### 4. Task Management
+### 9. Task Management
 
 ```
 Tasks page loads (/dashboard/tasks)
@@ -180,11 +407,11 @@ Tasks page loads (/dashboard/tasks)
       ▼
 Renders task list with filter tabs: All | Pending | Completed
   │
-  ├─ "Create Task" button
-  │   └─ Opens CreateTaskModal
+  ├─ "Create Task" button / task title click
+  │   └─ Opens CreateTaskModal (edit mode pre-fills fields)
   │       ├─ Title (required), Description, Due Date, Points
   │       ├─ Assign To: checkboxes for each family member
-  │       └─ Submit → createTask() from @kinnect/core
+  │       └─ Submit → createTask() / updateTask() from @kinnect/core
   │
   └─ Task card actions (optimistic UI):
       ├─ Checkbox → completeTask(taskId, userId)
@@ -195,7 +422,7 @@ Renders task list with filter tabs: All | Pending | Completed
           └─ Same optimistic pattern
 ```
 
-### 5. Calendar
+### 10. Calendar
 
 ```
 Calendar page loads (/dashboard/calendar)
@@ -209,8 +436,6 @@ MONTH VIEW:
   ├─ Today: blue circle highlight
   ├─ Events: blue pills in cells (max 2 shown, "+N more" overflow)
   ├─ Click a day → detail panel below grid
-  │   ├─ Shows all events for that day
-  │   ├─ Each event: title, time, location (pin icon), description
   │   ├─ Edit (pencil) → opens CreateEventModal with event data
   │   └─ Delete (trash) → confirm + deleteCalendarEvent()
   ├─ Navigation: ◀ Month Year ▶ + "Today" button
@@ -218,121 +443,73 @@ MONTH VIEW:
 
 AGENDA VIEW:
   ├─ Events grouped by date (sticky date headers)
-  ├─ Event cards: title, time range, location, description
   ├─ Edit + Delete buttons on each card
   └─ Empty state: "No events this month"
-
-CREATE/EDIT EVENT (CreateEventModal):
-  ├─ Title (required), Description, Location
-  ├─ All-day toggle (hides time fields when checked)
-  ├─ Start Date + Time, End Date + Time
-  ├─ Create mode: calls createCalendarEvent()
-  └─ Edit mode (event prop): pre-fills fields, calls updateCalendarEvent()
 ```
 
-### 6. Shopping List
+### 11. Shopping List
 
 ```
 Shopping list page loads (/dashboard/shopping-list)
   └─ Parallel fetch:
       ├─ getFamilyMembers(familyId)
       └─ getFullShoppingList(familyId)
-          │  → Returns incompleteItems + completedItems (max 20)
-          │
-          ▼
-INCOMPLETE ITEMS:
+
+NORMAL MODE:
   ├─ Add form: text input + "Add" button
-  │   └─ addShoppingListItem() → reloads list
-  ├─ Each item: checkbox, title, added by, time ago
   ├─ Hover actions: edit (pencil), delete (trash)
-  ├─ Checkbox toggle (optimistic):
-  │   └─ Moves item to completed list instantly, API in background
-  └─ Delete (optimistic):
-      └─ Removes from list instantly, API in background
+  ├─ Checkbox toggle (optimistic): moves item to completed list
+  └─ "Start Shopping" button → activates shopping mode (?mode=shopping)
+
+SHOPPING MODE (see flow 6 above):
+  ├─ Larger touch targets for in-store use
+  ├─ No add/edit/delete actions visible
+  ├─ Presence banner shows other family members who are also shopping
+  └─ "Done Shopping" button → exits mode
 
 COMPLETED ITEMS (collapsible):
-  ├─ Toggle "Completed (N)" to expand
-  ├─ Checkbox to un-complete (moves back to incomplete)
-  ├─ Edit + Delete actions
+  ├─ Checkbox to un-complete
   └─ "Clear All" → clearCompletedItems()
 ```
 
-### 7. Family Management
+### 12. Family Management
 
 ```
 Profile page loads (/dashboard/profile)
   └─ Fetches getFamily() + getFamilyMembers() in parallel
       │
       ▼
-HEADER:
-  ├─ Family name (click pencil to edit inline)
-  │   └─ Save → updateFamily(familyId, { name })
-  ├─ Member count subtitle
-  └─ "Add Member" button
+MEMBER CARDS:
+  ├─ Role badge + avatar (colored circle by role)
+  ├─ "Invite" button → opens edit modal with email field
+  │   └─ On save: POST /api/invite → email sent
+  ├─ Edit (pencil) → AddMemberModal in edit mode
+  │   └─ updateFamilyMember() for name/role/phone changes
+  └─ Delete (trash) → confirm → removeFamilyMember()
+      ├─ Auth users: removed from family_members only
+      └─ Dependents/observers (no auth): user record deleted
 
-MEMBER CARDS (one per member):
-  ├─ Avatar: first letter of name (colored circle by role)
-  ├─ Name + "(You)" badge for current user
-  ├─ Role badge: Admin (blue) | Member (purple) |
-  │               Dependent (green) | Observer (amber)
-  ├─ Phone number (if set)
-  ├─ Points + Joined date
-  │
-  ├─ "Invite" button (shown when member has no auth account)
-  │   └─ Opens edit modal with email field visible
-  │
-  ├─ Edit (pencil) → opens AddMemberModal in edit mode
-  └─ Delete (trash) → confirm dialog → removeFamilyMember()
-      └─ Auth users: removed from family_members only
-         Dependents/observers (no auth): user record deleted
+ADD MEMBER flow:
+  └─ AddMemberModal → POST /api/members (service role, RLS bypass)
+      └─ Optional: POST /api/invite if email provided
 ```
 
-### 8. Profile
+---
 
-```
-Profile page loads (/dashboard/profile)
-  └─ Gets user from useUser() hook
-      │
-      ▼
-Renders:
-  ├─ User name + role + family info
-  ├─ Password change form
-  │   ├─ New Password + Confirm Password
-  │   └─ Submit → Supabase auth.updateUser()
-  └─ Sign out button
-```
+## API Routes
 
-### 9. Email Invite Flow (Detailed)
+| Route | Method | Auth | Description |
+|-------|--------|------|-------------|
+| `/api/invite` | POST | Service role | Sends email invite via `supabase.auth.admin.inviteUserByEmail()`, links auth user to existing member record |
+| `/api/members` | POST | Bearer JWT + admin role check | Creates user record + family_members row using service role (bypasses RLS which blocks client-side insert of rows without auth_user_id) |
+| `/api/auth/google-callback` | POST | Bearer JWT | Detects if a Google sign-in matches a pending invite account (same email). If so: re-links the users row to the Google auth user and deletes the orphaned invite auth user. Returns `{ merged, isNewUser }` |
 
-```
-User clicks "Invite" or provides email when adding/editing a member
-  │
-  ▼
-Client calls POST /api/invite
-  Body: { email, userId, familyId }
-  │
-  ▼
-API route (apps/web/app/api/invite/route.ts):
-  ├─ Creates Supabase admin client using SUPABASE_SERVICE_ROLE_KEY
-  ├─ Calls supabase.auth.admin.inviteUserByEmail(email, {
-  │     data: { user_id, family_id }
-  │   })
-  ├─ Supabase creates an auth account and sends invite email
-  ├─ Links auth_user_id on the existing user record
-  └─ Returns { success: true }
-  │
-  ▼
-Invited person receives email
-  └─ Clicks invite link → /auth/callback
-  └─ Callback extracts userId + familyId from JWT metadata
-  └─ Redirects to /auth/set-password
-  └─ User sets their password → can now log in
-```
-
-> **Note (multi-family):** The invite flow currently links a user to one family.
-> When inviting an existing user to a *second* family, the `/api/invite` callback
-> will need to insert a row into `family_members` for the new family. This is
-> not yet implemented.
+### `/api/members` auth flow
+1. Extract `Authorization: Bearer <token>` from request headers
+2. `callerClient.auth.getUser()` — validates JWT against Supabase (network call)
+3. Query `users` table to confirm caller has `role='admin'`
+4. Switch to `adminClient` (service role) only after both checks pass
+5. Insert into `users` + `family_members`; on `family_members` failure, delete the `users` row to avoid orphans
 
 ---
 
@@ -342,75 +519,94 @@ Invited person receives email
 
 | Page | Route | Description |
 |------|-------|-------------|
-| Sign In | `/` | Email + password sign-in form |
-| Signup | `/auth/signup` | Name + email + password registration |
+| Sign In | `/` | Email/password sign-in + Google OAuth. Redirects to dashboard if session exists. Handles hash fragments for invites/recovery |
+| Signup | `/auth/signup` | Name + email + password + confirm password + Google OAuth. Shows "check email" screen after email submit |
+| Auth Callback | `/auth/callback` | Handles all Supabase auth redirects: Google OAuth (hash tokens → setSession → merge check), email invite (hash tokens → set-password), email verification (PKCE code → exchangeCodeForSession) |
+| Forgot Password | `/auth/forgot-password` | Sends password reset email |
+| Reset Password | `/auth/reset-password` | Sets new password via recovery token from URL hash |
+| Set Password | `/auth/set-password` | Invited user sets password and confirms name, or signs in with Google instead |
 | Onboarding | `/onboarding` | Family name creation (post-signup) |
 | Dashboard | `/dashboard` | Widget-based overview with stats |
 | Tasks | `/dashboard/tasks` | Full task list with All/Pending/Completed filters |
 | Calendar | `/dashboard/calendar` | Month grid + agenda views, event CRUD |
-| Shopping List | `/dashboard/shopping-list` | Full shopping list with add/edit/delete/complete |
-| Family | `/dashboard/family` | Redirects to `/dashboard/profile` |
+| Shopping List | `/dashboard/shopping-list` | Shopping list + shopping mode + presence |
 | Profile | `/dashboard/profile` | User info, password change, family member management |
 
 ### Dashboard Widgets
 
-| Widget | File | Props | Description |
-|--------|------|-------|-------------|
-| `DashboardStats` | `components/dashboard/DashboardStats.tsx` | `doneToday`, `dailyTasks`, `upcomingEvents` | Three stat cards in the top banner |
-| `TodaysTasksWidget` | `components/dashboard/TodaysTasksWidget.tsx` | `tasks`, `members`, `userId`, `familyId`, `onTaskCompleted`, `onTaskCreated`, `onCreateTask` | Shows up to 3 incomplete tasks (today + overdue + no due date) with overdue badges + quick-add form |
-| `ShoppingListWidget` | `components/dashboard/ShoppingListWidget.tsx` | `items`, `totalCount`, `familyId`, `userId`, `members`, `onItemAdded`, `onItemToggled` | Shows up to 4 shopping items + quick-add form. Items link to `/dashboard/shopping-list` |
-| `UpcomingEventsWidget` | `components/dashboard/UpcomingEventsWidget.tsx` | `events` | This week's events. Click an event to open inline detail modal with date, time, location, description |
-| `FamilyActivityWidget` | `components/dashboard/FamilyActivityWidget.tsx` | `members`, `tasks`, `currentUserId`, `onAddMember` | Members ranked by weekly task completions. Members link to `/dashboard/profile` |
+| Widget | File | Description |
+|--------|------|-------------|
+| `DashboardStats` | `components/dashboard/DashboardStats.tsx` | Three stat cards: Done Today, Daily Tasks, This Week |
+| `TodaysTasksWidget` | `components/dashboard/TodaysTasksWidget.tsx` | Up to 3 incomplete tasks. Task title is a clickable button that opens edit modal. Overdue badge. Quick-add form |
+| `ShoppingListWidget` | `components/dashboard/ShoppingListWidget.tsx` | Up to 4 shopping items + quick-add. "Shop" button links to `?mode=shopping` |
+| `UpcomingEventsWidget` | `components/dashboard/UpcomingEventsWidget.tsx` | This week's events. Click to open inline detail modal |
+| `FamilyActivityWidget` | `components/dashboard/FamilyActivityWidget.tsx` | Members ranked by weekly task completions |
 
 ### Modals
 
-| Modal | File | Props | Description |
-|-------|------|-------|-------------|
-| `CreateTaskModal` | `components/CreateTaskModal.tsx` | `isOpen`, `onClose`, `familyId`, `userId`, `members?`, `onTaskCreated` | Create task with title, description, due date, assignees. Accepts optional `members` prop to avoid duplicate fetch |
-| `CreateEventModal` | `components/CreateEventModal.tsx` | `isOpen`, `onClose`, `familyId`, `userId`, `event?`, `defaultDate?`, `onEventCreated` | Create/edit calendar event. All-day toggle, location, start/end times |
-| `AddMemberModal` | `components/AddMemberModal.tsx` | `isOpen`, `onClose`, `familyId`, `member?`, `onMemberAdded` | Add/edit family member. Optional email field triggers invite flow |
+| Modal | File | Description |
+|-------|------|-------------|
+| `CreateTaskModal` | `components/CreateTaskModal.tsx` | Create/edit task: title, description, due date, assignees |
+| `CreateEventModal` | `components/CreateEventModal.tsx` | Create/edit calendar event: all-day toggle, location, start/end times |
+| `AddMemberModal` | `components/AddMemberModal.tsx` | Add/edit family member. Add uses `POST /api/members` (service role). Optional email triggers `POST /api/invite`. Role cards with descriptions. Inline specific error messages |
 
 ### Providers
 
 | Provider | File | Hook | Description |
 |----------|------|------|-------------|
-| `SupabaseProvider` | `components/providers/supabase-provider.tsx` | — | Initializes Supabase client singleton on app start |
-| `UserProvider` | `components/providers/user-provider.tsx` | `useUser()` | Fetches `getCurrentUser()` once on mount, provides `{ user, loading, refreshUser }` to all dashboard pages. Eliminates duplicate auth calls |
+| `SupabaseProvider` | `components/providers/supabase-provider.tsx` | — | Initializes Supabase singleton via `initSupabase()` on first render |
+| `UserProvider` | `components/providers/user-provider.tsx` | `useUser()` | Fast initial load via `getSession()` (localStorage) + 1 DB query. Background `getUser()` validates the JWT. Provides `{ user, loading, refreshUser }` |
+
+### Hooks
+
+| Hook | File | Description |
+|------|------|-------------|
+| `useRealtimeSync` | `hooks/useRealtimeSync.ts` | Subscribes to Supabase Realtime Postgres changes for a table. Also syncs across tabs via `BroadcastChannel`. Accepts optional `tier` — free tier falls back to polling (3 min) except for `active_custody` which stays realtime |
+| `useShoppingPresence` | `hooks/useShoppingPresence.ts` | Tracks which family members are in shopping mode using Supabase Realtime presence. Requires `getSession()` + `setAuth()` before channel creation |
 
 ### Shared Components
 
 | Component | File | Description |
 |-----------|------|-------------|
-| `Logo` | `components/Logo.tsx` | Kinnect logo with three variants (`full`, `icon`, `stacked`), three color schemes (`primary`, `white`, `dark`), four sizes (`sm`, `md`, `lg`, `xl`) |
+| `AnimatedLogo` | `components/AnimatedLogo.tsx` | Framer Motion animated SVG logo. Props: `size`, `color`, `repeat` (loop vs once), `onComplete`. Used for sign-in transition and dashboard loading overlay |
+| `Logo` | `components/Logo.tsx` | Static Kinnect logo: `full`, `icon`, `stacked` variants × `primary`, `white`, `dark` colors × `sm`, `md`, `lg`, `xl` sizes |
 
 ### Core Functions (`@kinnect/core`)
 
 **Auth** (`supabase/auth.ts`)
-| Function | Description |
-|----------|-------------|
-| `signUp(email, password, name)` | Creates auth account (with name in metadata) + user record |
-| `signIn(email, password)` | Signs in via Supabase Auth |
-| `signOut()` | Signs out current session |
-| `getCurrentUser()` | Gets current user record from auth session |
-| `getSession()` | Returns raw Supabase auth session |
+
+| Function | Network | Description |
+|----------|---------|-------------|
+| `signUp(email, password, name)` | Yes | Creates auth account + user record (role: admin). Cleans up on failure |
+| `signIn(email, password)` | Yes | Signs in via `supabase.auth.signInWithPassword()` |
+| `signInWithGoogle()` | Yes | Initiates Google OAuth (redirects to `NEXT_PUBLIC_APP_URL/auth/callback`) |
+| `signOut()` | Yes | Signs out current session |
+| `getCurrentUser()` | Yes × 2 | `getUser()` (validates JWT) + DB query for user profile. Use only when validation is required |
+| `getSession()` | No | Returns raw Supabase session from localStorage cache. Use for fast initial reads |
+
+> **Note:** `UserProvider` uses `getSession()` + a direct DB query for the initial load,
+> then calls `getUser()` in the background for token validation. This avoids 2 sequential
+> network calls on every dashboard visit.
 
 **Families** (`supabase/families.ts`)
+
 | Function | Description |
 |----------|-------------|
-| `createFamily(name, primaryLanguage?)` | Creates family + links user as admin via RPC; inserts into family_members |
-| `getMyFamilies()` | Returns all families the current user belongs to with their role and active status |
-| `switchActiveFamily(familyId)` | Switches the user's active family (updates active_family_id, changes RLS context) |
+| `createFamily(name, primaryLanguage?)` | Creates family + links user as admin via RPC |
+| `getMyFamilies()` | All families the current user belongs to |
+| `switchActiveFamily(familyId)` | Updates `active_family_id` (changes RLS context) |
 | `getFamily(familyId)` | Returns family record |
 | `getFamilyMembers(familyId)` | Returns all members via family_members junction table |
-| `addFamilyMember(familyId, name, role)` | Creates user record + inserts into family_members |
+| `addFamilyMember(familyId, name, role)` | **Web: use `POST /api/members` instead** — direct client insert is blocked by RLS when inserting rows without `auth_user_id` |
 | `updateFamily(familyId, data)` | Updates family name |
-| `updateFamilyMember(memberId, data)` | Updates member name, role, phone; syncs role to family_members |
-| `removeFamilyMember(memberId)` | Removes from family_members; deletes user record only for auth-less members |
+| `updateFamilyMember(memberId, data)` | Updates name, role, phone; syncs role to family_members |
+| `removeFamilyMember(memberId)` | Removes from family_members; deletes user record for auth-less members |
 
 **Tasks** (`supabase/tasks.ts`)
+
 | Function | Description |
 |----------|-------------|
-| `getTasks(familyId)` | Returns all tasks for a family (newest first) |
+| `getTasks(familyId)` | All tasks for a family (newest first) |
 | `createTask(input)` | Creates task with title, assignees, due date, points |
 | `completeTask(taskId, userId)` | Marks task completed by user |
 | `uncompleteTask(taskId)` | Reverts task to incomplete |
@@ -418,21 +614,22 @@ Invited person receives email
 | `deleteTask(taskId)` | Deletes a task |
 
 **Calendar** (`supabase/calendar.ts`)
+
 | Function | Description |
 |----------|-------------|
-| `getCalendarEvents(familyId, start, end)` | Returns events in date range |
-| `createCalendarEvent(data)` | Creates a new event |
+| `getCalendarEvents(familyId, start, end)` | Events in date range |
+| `createCalendarEvent(data)` | Creates a new calendar event |
 | `updateCalendarEvent(eventId, data)` | Updates an existing event |
 | `deleteCalendarEvent(eventId)` | Deletes an event |
 
 **Shopping List** (`supabase/shopping-list.ts`)
+
 | Function | Description |
 |----------|-------------|
-| `getShoppingList(familyId)` | Returns incomplete items |
-| `getShoppingListPreview(familyId, limit)` | Returns top N items + total count (for dashboard widget) |
-| `getFullShoppingList(familyId)` | Returns incomplete + completed items (for full page) |
+| `getShoppingListPreview(familyId, limit)` | Top N items + total count (dashboard widget) |
+| `getFullShoppingList(familyId)` | Incomplete + completed items (full page) |
 | `addShoppingListItem(familyId, userId, data)` | Adds item to the list |
-| `toggleShoppingListItem(itemId, completed, userId)` | Toggles item completed/incomplete |
+| `toggleShoppingListItem(itemId, completed, userId)` | Toggles completed/incomplete |
 | `updateShoppingListItem(itemId, data)` | Updates item title |
 | `deleteShoppingListItem(itemId)` | Deletes an item |
 | `clearCompletedItems(familyId)` | Deletes all completed items |
@@ -454,6 +651,10 @@ Invited person receives email
 
 All database queries, auth logic, and types live in `@kinnect/core`. Web-specific UI lives in `apps/web`. When a mobile app is added, it imports `@kinnect/core` and only needs its own UI layer.
 
+> **Notifications:** Push notifications are deferred to when the mobile app is built.
+> The `push_token` column on `users` is already in place. Presence (via Supabase Realtime)
+> is used as the current real-time awareness mechanism for features like shopping mode.
+
 ---
 
 ## Database Schema
@@ -472,7 +673,7 @@ All database queries, auth logic, and types live in `@kinnect/core`. Web-specifi
 | id | uuid | Primary key |
 | family_id | uuid | FK → families (legacy; first family only) |
 | active_family_id | uuid | FK → families (drives RLS via get_my_family_id()) |
-| auth_user_id | uuid | FK → auth.users (null if no account) |
+| auth_user_id | uuid | FK → auth.users (null if no account — dependents/observers) |
 | name | text | Display name |
 | role | text | admin, member, dependent, observer (reflects primary family role) |
 | phone | text | Nullable |
@@ -481,6 +682,10 @@ All database queries, auth logic, and types live in `@kinnect/core`. Web-specifi
 | language_preference | text | Nullable, for future i18n |
 | push_token | text | Nullable, for future push notifications |
 | created_at | timestamp | |
+
+> **RLS note:** Inserting a `users` row without `auth_user_id` (dependents/observers) cannot
+> be done client-side — RLS has no basis to allow it. Use `POST /api/members` which uses the
+> service role key after verifying the caller is an admin.
 
 ### family_members
 | Column | Type | Notes |
@@ -519,6 +724,7 @@ All database queries, auth logic, and types live in `@kinnect/core`. Web-specifi
 | title | text | Event name |
 | description | text | Nullable |
 | location | text | Nullable |
+| event_type | text | `standard` \| `handoff` (migration 011) |
 | start_time | timestamptz | |
 | end_time | timestamptz | |
 | all_day | boolean | Default false |
@@ -550,16 +756,88 @@ All database queries, auth logic, and types live in `@kinnect/core`. Web-specifi
 | created_at | timestamptz | |
 | updated_at | timestamptz | |
 
+### responsibility_templates *(migration 011 — Phase 2)*
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | Primary key |
+| name | text | Display name e.g. "School Run" |
+| slug | text | e.g. `school_run` |
+| icon | text | Emoji or icon identifier |
+| category | text | e.g. `transport`, `household`, `care` |
+| default_start_time | time | Optional suggested time |
+| is_system | boolean | true = visible to all families |
+| created_at | timestamptz | |
+
+### responsibility_flows *(migration 012 — Phase 2)*
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | Primary key |
+| family_id | uuid | FK → families |
+| title | text | e.g. "School pickup" |
+| category | text | e.g. `transport` |
+| template_id | uuid | FK → responsibility_templates. Nullable |
+| recurrence_rule | text | `daily` \| `weekdays` \| `weekends` \| `weekly:1,3,5` (ISO day nums) |
+| default_assignee_id | uuid | FK → users |
+| backup_assignee_ids | uuid[] | Array of user IDs |
+| start_time | time | Daily time of day |
+| active | boolean | Default true |
+| created_by | uuid | FK → users |
+| created_at | timestamptz | |
+
+### responsibility_occurrences *(migration 013 — Phase 2)*
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | Primary key |
+| flow_id | uuid | FK → responsibility_flows |
+| family_id | uuid | Denormalized for RLS |
+| scheduled_for | date | The occurrence date |
+| scheduled_time | time | |
+| assigned_to | uuid | FK → users |
+| status | text | `pending` \| `completed` \| `missed` \| `reassigned` |
+| override_reason | text | Nullable — why it was reassigned |
+| completed_at | timestamptz | Nullable |
+| completed_by | uuid | FK → users. Nullable |
+| created_at | timestamptz | |
+
+> Unique constraint on `(flow_id, scheduled_for)`. Occurrences are pre-generated 90 days ahead by a Postgres trigger on `responsibility_flows` INSERT.
+
+### activity_log *(migration 015 — Phase 3)*
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | Primary key |
+| family_id | uuid | FK → families |
+| user_id | uuid | FK → users. Who performed the action |
+| action_type | text | `task_completed` \| `task_created` \| `event_created` \| `responsibility_completed` \| `member_added` \| `shopping_item_added` |
+| entity_type | text | `task` \| `event` \| `responsibility` \| `member` |
+| entity_id | uuid | ID of the related entity |
+| metadata | jsonb | e.g. `{task_title: "Fetch groceries", points: 10}` |
+| created_at | timestamptz | Indexed with `family_id` for fast feed queries |
+
+### subscriptions *(migration 016 — Phase 4)*
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | Primary key |
+| family_id | uuid | FK → families. UNIQUE |
+| tier | text | `free` \| `plus` \| `family` |
+| status | text | `active` \| `cancelled` \| `past_due` \| `trialing` |
+| payfast_subscription_token | text | Token for PayFast recurring billing API |
+| next_billing_date | date | Nullable |
+| trial_ends_at | timestamptz | Nullable |
+| created_at | timestamptz | |
+| updated_at | timestamptz | |
+
+> **Subscription security:** `subscriptions` rows are readable by family members via RLS, but inserts and updates are only performed by the service role (PayFast ITN webhook route). Client code can never self-upgrade.
+
 All tables have Row Level Security (RLS) policies — users can only access data belonging to their active family. All policies use the `get_my_family_id()` helper function (`SECURITY DEFINER`) which returns `users.active_family_id` for the authenticated user.
 
 ### Database Functions (RPCs)
 
 | Function | Description |
 |----------|-------------|
-| `get_my_family_id()` | Returns `active_family_id` for the current auth user. Used by all RLS policies. |
-| `create_family_with_user(family_name, auth_uid, user_name, primary_lang?)` | Atomically creates a family, links the user as admin, inserts into family_members, and sets active_family_id. |
-| `get_my_families()` | Returns all families the current user belongs to (family_id, family_name, role, is_active). |
-| `switch_active_family(target_family_id)` | Validates membership then updates the user's active_family_id. |
+| `get_my_family_id()` | Returns `active_family_id` for the current auth user. Used by all RLS policies |
+| `create_family_with_user(family_name, auth_uid, user_name, primary_lang?)` | Atomically creates a family, links the user as admin, inserts into family_members, sets active_family_id |
+| `get_my_families()` | Returns all families the current user belongs to (family_id, family_name, role, is_active) |
+| `switch_active_family(target_family_id)` | Validates membership then updates the user's active_family_id |
 
 ---
 
@@ -567,16 +845,11 @@ All tables have Row Level Security (RLS) policies — users can only access data
 
 ### Data Fetching
 Every dashboard page follows the same pattern:
-1. `useUser()` hook provides the current user (fetched once by UserProvider)
+1. `useUser()` hook provides the current user (fetched once by `UserProvider`)
 2. Guard: no user → redirect to login; no `active_family_id` → redirect to onboarding
 3. `useEffect` with `[user?.family_id]` dependency (primitive, not object reference)
 4. Fetch page-specific data using `user.family_id` (scoped to active family by RLS)
 5. Render with loading/empty states
-
-> **Note:** All data fetches use `user.family_id` as the query parameter. RLS enforces
-> that only data for `user.active_family_id` is returned, so the two are effectively
-> equivalent for single-family users. For multi-family users, `active_family_id` controls
-> what data is visible regardless of which `family_id` is passed.
 
 ### Multi-Family Support (DB ready, UI pending)
 The database layer fully supports multi-family:
@@ -599,20 +872,49 @@ Mutations that have predictable outcomes use optimistic UI:
 
 Used in: task complete/uncomplete, shopping item toggle/delete, dashboard item completion.
 
+### Auth Guard & Loading
+`DashboardShell` in `apps/web/app/dashboard/layout.tsx`:
+- While `loading=true`: renders a full-screen `AnimatedLogo` overlay (same visual as the sign-in transition, so the user never sees a blank screen)
+- Once loaded: redirects to `/` if no user, `/onboarding` if no active family, otherwise renders content
+- Signs out automatically if background JWT validation fails (no user returned by `getUser()`)
+
+### Supabase Realtime
+Two patterns are used:
+
+**Data sync** (`useRealtimeSync`):
+- Subscribes to Postgres changes on a table
+- On change: calls a `refetch` callback
+- Also syncs across tabs via `BroadcastChannel` so other open tabs update without a separate WebSocket subscription
+
+**Presence** (`useShoppingPresence`):
+- Uses Supabase Realtime presence channels (not Postgres changes)
+- Requires a user JWT — `getSession()` + `setAuth(token)` must be called before creating the channel, otherwise subscriptions time out
+- Channel is stable per identity (created once, not recreated on mode toggle)
+- A separate `useEffect` handles `track()` / `untrack()` when shopping mode changes
+
+### Logging & Error Monitoring
+`apps/web/lib/logger.ts`:
+- Server: Pino with `pino-pretty` in development
+- Client: `console.*`
+- All `logger.error()` calls capture to Sentry
+- Supabase throws `PostgrestError` (plain object, not `Error` instance) — the logger extracts `.message` from any object with that property so Sentry gets a useful error title, with the full raw error attached as `extra` context
+- Debug logs filtered by domain: `NEXT_PUBLIC_DEBUG_DOMAINS=auth,shopping` — only emit those domains. Unset or `*` = show all
+
+### Performance
+- **Parallel fetching**: `Promise.all` for independent data on page load
+- **Memoized lookups**: `useMemo` for member maps (O(1) vs O(n) array search)
+- **Link prefetching**: `<Link>` components auto-prefetch; `router.prefetch('/dashboard')` on sign-in page mount
+- **Shared user context**: `UserProvider` fetches once, all pages use `useUser()`
+- **Optimistic updates**: Instant perceived performance for mutations
+- **Fast auth**: `getSession()` (localStorage, no network) for initial render; `getUser()` validation in background
+- **No blank loading screen**: `AnimatedLogo` overlay shown during auth check instead of `null`
+
 ### Modals
 All modals follow a consistent pattern:
 - Props: `isOpen`, `onClose`, `familyId`, `userId`, callback (e.g. `onEventCreated`)
 - Optional entity prop for edit mode (e.g. `event?: CalendarEvent`)
 - `useEffect` populates form when `isOpen` changes
-- Same overlay, card, close button, form layout, cancel/submit buttons
-- Loading state on submit button
-
-### Performance
-- **Parallel fetching**: `Promise.all` for independent data on page load
-- **Memoized lookups**: `useMemo` for member maps (O(1) vs O(n) array search)
-- **Link prefetching**: `<Link>` components for navigation (auto-prefetch vs `router.push`)
-- **Shared user context**: `UserProvider` fetches once, all pages use `useUser()`
-- **Optimistic updates**: Instant perceived performance for mutations
+- Loading state on submit button; inline error display above the form
 
 ### Styling
 - Tailwind utility classes throughout
@@ -630,9 +932,15 @@ All modals follow a consistent pattern:
 |----------|--------|---------|---------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Public | Client + Server | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public | Client + Server | Public API key (RLS enforced) |
-| `SUPABASE_SERVICE_ROLE_KEY` | None | Server only | Admin key for invites (bypasses RLS) |
+| `SUPABASE_SERVICE_ROLE_KEY` | None | Server only | Admin key — bypasses RLS. Used in `/api/invite`, `/api/members`, and `/api/payfast/*` |
+| `NEXT_PUBLIC_APP_URL` | Public | Client + Server | Full deployment URL (e.g. `https://app.kinnect.co.za`). Required for Google OAuth `redirectTo` and PayFast return/cancel/notify URLs |
+| `PAYFAST_MERCHANT_ID` | None | Server only | PayFast merchant ID (Phase 4) |
+| `PAYFAST_MERCHANT_KEY` | None | Server only | PayFast merchant key (Phase 4) |
+| `PAYFAST_PASSPHRASE` | None | Server only | PayFast MD5 signature passphrase (Phase 4) |
+| `PAYFAST_SANDBOX` | None | Server only | `true` for sandbox testing, `false` for production (Phase 4) |
+| `NEXT_PUBLIC_DEBUG_DOMAINS` | Public | Client + Server | Comma-separated domains to enable debug logs (e.g. `auth,shopping`). Leave unset or set to `*` for all. Debug logs are suppressed in production regardless |
 
-The service role key is **never** exposed to the client. It's only used in the `/api/invite` route handler.
+The service role key is **never** exposed to the client. It is only used in server-side API route handlers.
 
 ---
 
