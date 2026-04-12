@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import {
   deactivateFlow,
+  deleteFlow,
   getResponsibilityFlows,
   type ResponsibilityFlowWithDetails,
   type User,
@@ -13,7 +14,7 @@ import {
 import { useUser } from '@/components/providers/user-provider'
 import { useRealtimeSync } from '@/hooks/useRealtimeSync'
 import ConfirmDialog from '@/components/ConfirmDialog'
-import { RefreshCw, Plus, Power, Pencil } from 'lucide-react'
+import { RefreshCw, Plus, Power, Pencil, Trash2 } from 'lucide-react'
 import logger from '@/lib/logger'
 import toast from 'react-hot-toast'
 import { ROLE_COLORS } from '@/lib/constants'
@@ -68,6 +69,7 @@ export default function RoutinesPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [editingFlow, setEditingFlow] = useState<ResponsibilityFlowWithDetails | null>(null)
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null)
+  const [deletingId,     setDeletingId]     = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -114,6 +116,23 @@ export default function RoutinesPage() {
     } catch (err) {
       logger.error('Failed to deactivate routine', err)
       toast.error('Failed to deactivate routine')
+    }
+  }
+
+  async function handleDelete(flowId: string) {
+    setDeletingId(null)
+    setFlows((prev) => prev.filter((f) => f.id !== flowId))
+    try {
+      await deleteFlow(flowId)
+      broadcast('responsibility_flows')
+    } catch (err) {
+      logger.error('Failed to delete routine', err)
+      toast.error('Failed to delete routine')
+      // Reload to restore state on failure
+      if (user?.family_id) {
+        const data = await getResponsibilityFlows(user.family_id)
+        setFlows(data)
+      }
     }
   }
 
@@ -261,24 +280,33 @@ export default function RoutinesPage() {
               </div>
 
               {/* Actions */}
-              {flow.active && (
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => setEditingFlow(flow)}
-                    title="Edit routine"
-                    className="p-2 text-gray-300 hover:text-brand-accent hover:bg-brand-bg rounded-xl transition-colors"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setDeactivatingId(flow.id)}
-                    title="Deactivate routine"
-                    className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                  >
-                    <Power className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-1 shrink-0">
+                {flow.active && (
+                  <>
+                    <button
+                      onClick={() => setEditingFlow(flow)}
+                      title="Edit routine"
+                      className="p-2 text-gray-300 hover:text-brand-accent hover:bg-brand-bg rounded-xl transition-colors"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setDeactivatingId(flow.id)}
+                      title="Deactivate routine"
+                      className="p-2 text-gray-300 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-colors"
+                    >
+                      <Power className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={() => setDeletingId(flow.id)}
+                  title="Delete routine permanently"
+                  className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -309,6 +337,16 @@ export default function RoutinesPage() {
         title="Deactivate routine"
         message="This routine will stop appearing on the dashboard. Past occurrences are kept. You can't reactivate it yet."
         confirmLabel="Deactivate"
+        variant="danger"
+      />
+
+      <ConfirmDialog
+        isOpen={!!deletingId}
+        onClose={() => setDeletingId(null)}
+        onConfirm={() => { if (deletingId) handleDelete(deletingId) }}
+        title="Delete routine"
+        message="This will permanently delete the routine and all its scheduled occurrences. This cannot be undone."
+        confirmLabel="Delete permanently"
         variant="danger"
       />
     </div>

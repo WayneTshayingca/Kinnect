@@ -33,6 +33,7 @@ export default function TodaysTasksWidget({
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [isAdding, setIsAdding] = useState(false)
   const [poppingId, setPoppingId] = useState<string | null>(null)
+  const [inputFocused, setInputFocused] = useState(false)
 
   const membersMap = useMemo(() => {
     const map: Record<string, User> = {}
@@ -74,13 +75,12 @@ export default function TodaysTasksWidget({
 
     setIsAdding(true)
     try {
-      const today = new Date().toISOString().split('T')[0]
       await createTask({
         family_id: familyId,
         title: newTaskTitle.trim(),
         created_by: userId,
         assigned_to: [userId],
-        due_date: today,
+        due_date: getTodayStr(),
       })
       setNewTaskTitle('')
       await onTaskCreated()
@@ -96,7 +96,7 @@ export default function TodaysTasksWidget({
   const recentComplete = tasks.find((t) => t.completed)
 
   return (
-    <div className="bg-white rounded-[1.5rem] shadow-card overflow-hidden transition-shadow duration-200 hover:shadow-card-hover animate-slide-up">
+    <div className="bg-white rounded-[1.5rem] shadow-card overflow-hidden transition-shadow duration-200 hover:shadow-card-hover animate-slide-up flex flex-col">
       {/* Header */}
       <div className="px-6 pt-6 pb-3 border-b border-gray-100/70">
         <div className="flex items-center justify-between">
@@ -115,21 +115,14 @@ export default function TodaysTasksWidget({
         </div>
       </div>
 
-      <div className="px-6 py-4">
+      <div className="px-6 py-4 flex-1 flex flex-col">
         {/* Tasks List */}
-        <div className="space-y-1">
+        <div className="flex-1 space-y-1">
           {incompleteTasks.length === 0 && !recentComplete ? (
-            <div className="text-center py-5">
-              <p className="text-gray-400 text-sm font-medium mb-4">
+            <div className="text-center py-4">
+              <p className="text-gray-400 text-sm font-medium">
                 All clear for today!
               </p>
-              <button
-                onClick={onCreateTask}
-                className="px-4 py-2 bg-brand-accent text-white text-sm font-bold rounded-xl hover:bg-accent-600 transition-colors inline-flex items-center gap-1"
-              >
-                <Plus className="w-4 h-4" />
-                New Task
-              </button>
             </div>
           ) : (
             <>
@@ -208,24 +201,41 @@ export default function TodaysTasksWidget({
           )}
         </div>
 
-        {/* Quick Add Form */}
-        <form onSubmit={handleQuickAdd} className="flex gap-2 mt-4 pt-4 border-t border-gray-100/70">
-          <input
-            type="text"
-            value={newTaskTitle}
-            onChange={(e) => setNewTaskTitle(e.target.value)}
-            placeholder="Quick add task…"
-            className="flex-1 px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-300 focus:border-transparent placeholder:text-gray-400 transition-shadow"
-            disabled={isAdding}
-          />
-          <button
-            type="submit"
-            disabled={!newTaskTitle.trim() || isAdding}
-            className="px-4 py-2 bg-brand-accent text-white text-sm font-bold rounded-xl hover:bg-accent-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-          >
-            <Plus className="w-4 h-4" />
-            Add
-          </button>
+        {/* Quick Add */}
+        <form onSubmit={handleQuickAdd} className="mt-auto pt-3 border-t border-gray-100/70">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setTimeout(() => setInputFocused(false), 150)}
+              placeholder="Add a task…"
+              className="flex-1 px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-300 focus:border-transparent placeholder:text-gray-400 transition-all"
+              disabled={isAdding}
+            />
+            <button
+              type="submit"
+              disabled={!newTaskTitle.trim() || isAdding}
+              className="px-3 py-2 bg-brand-accent text-white rounded-xl hover:bg-accent-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+              aria-label="Add task"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* More options — expands on focus */}
+          {inputFocused && (
+            <div className="flex items-center justify-end mt-1.5 animate-fade-in">
+              <button
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); onCreateTask() }}
+                className="flex items-center gap-1 text-sm font-bold text-brand-accent hover:bg-brand-bg px-3 py-1.5 rounded-lg transition-colors"
+              >
+                More options →
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>

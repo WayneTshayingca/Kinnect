@@ -1,73 +1,75 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
 import * as Sentry from '@sentry/nextjs'
 import { signOut } from '@kinnect/core'
 import { Logo } from '@/components/Logo'
 import { AnimatedLogo } from '@/components/AnimatedLogo'
 import { ROLE_LABELS } from '@/lib/constants'
 import { UserProvider, useUser } from '@/components/providers/user-provider'
+import {
+  LayoutDashboard,
+  CheckCircle2,
+  ShoppingBasket,
+  Calendar,
+  User,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
+
+// ── Constants ──────────────────────────────────────────────────────────
 
 const navItems = [
-  {
-    href: '/dashboard',
-    label: 'Dashboard',
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-        <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955a1.126 1.126 0 0 1 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-      </svg>
-    ),
-  },
-  {
-    href: '/dashboard/tasks',
-    label: 'Tasks',
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-      </svg>
-    ),
-  },
-  {
-    href: '/dashboard/shopping-list',
-    label: 'Shopping',
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-      </svg>
-    ),
-  },
-  {
-    href: '/dashboard/calendar',
-    label: 'Calendar',
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-      </svg>
-    ),
-  },
-  {
-    href: '/dashboard/profile',
-    label: 'Profile',
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-      </svg>
-    ),
-  },
+  { href: '/dashboard',               label: 'Dashboard', Icon: LayoutDashboard },
+  { href: '/dashboard/tasks',         label: 'Tasks',     Icon: CheckCircle2    },
+  { href: '/dashboard/shopping-list', label: 'Shopping',  Icon: ShoppingBasket  },
+  { href: '/dashboard/calendar',      label: 'Calendar',  Icon: Calendar        },
+  { href: '/dashboard/profile',       label: 'Profile',   Icon: User            },
 ]
 
+const SIDEBAR_KEY    = 'kinnect-sidebar-collapsed'
+const SIDEBAR_FULL   = 220
+const SIDEBAR_NARROW = 64
+
+// ── Hover helpers (avoids Tailwind inline-style conflict) ──────────────
+
+function hoverDark(e: React.MouseEvent<HTMLElement>) {
+  (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.10)'
+  ;(e.currentTarget as HTMLElement).style.color = '#fff'
+}
+function hoverDarkLeave(e: React.MouseEvent<HTMLElement>) {
+  (e.currentTarget as HTMLElement).style.background = 'transparent'
+  ;(e.currentTarget as HTMLElement).style.color = 'rgba(165,163,220,0.75)'
+}
+
+// ── Shell ─────────────────────────────────────────────────────────────
+
 function DashboardShell({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
+  const router   = useRouter()
   const pathname = usePathname()
   const { user, loading } = useUser()
 
+  const [collapsed, setCollapsed] = useState(false)
+  const [hydrated,  setHydrated]  = useState(false)
+
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/')
-    }
+    if (localStorage.getItem(SIDEBAR_KEY) === 'true') setCollapsed(true)
+    setHydrated(true)
+  }, [])
+
+  const toggle = useCallback(() => {
+    setCollapsed(prev => {
+      const next = !prev
+      localStorage.setItem(SIDEBAR_KEY, String(next))
+      return next
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!loading && !user) router.push('/')
   }, [loading, user, router])
 
   async function handleSignOut() {
@@ -91,120 +93,270 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   if (!user) return null
 
+  const sidebarW = hydrated ? (collapsed ? SIDEBAR_NARROW : SIDEBAR_FULL) : SIDEBAR_FULL
+  const initials = user.name.split(' ').filter(Boolean).map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Desktop Sidebar */}
-      <aside
-        className="hidden md:flex md:flex-col fixed inset-y-0 left-0 z-30 bg-white border-r border-gray-200 w-60"
-      >
-        {/* Logo */}
-        <div className="flex items-center h-16 border-b border-gray-200 justify-between px-4">
-          <Link href="/dashboard">
-            <Logo variant="full" color="primary" size="sm" />
-          </Link>
-        </div>
+    <>
+      {/*
+        Dynamic CSS: drives sidebar-width variable used by sidebar + content.
+        Using a <style> tag ensures both elements share the exact same value
+        and transition simultaneously without media-query workarounds.
+      */}
+      <style>{`
+        :root { --sidebar-w: ${sidebarW}px; }
+        @media (min-width: 768px) {
+          .sidebar-offset {
+            margin-left: var(--sidebar-w);
+            transition: margin-left 280ms cubic-bezier(0.4,0,0.2,1);
+          }
+        }
+      `}</style>
 
-        {/* Nav links */}
-        <nav className="flex-1 py-4 space-y-1 px-2 overflow-y-auto">
-          {navItems.map((item) => {
-            const active = isActive(item.href)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                title={item.label}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  active
-                    ? 'bg-primary-50 text-primary-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}
+      <div className="min-h-screen bg-gray-50">
+
+        {/* ── Sidebar — md+ ────────────────────────────── */}
+        <aside
+          className="hidden md:flex flex-col fixed inset-y-0 left-0 z-30 overflow-hidden"
+          style={{
+            width: 'var(--sidebar-w)',
+            transition: 'width 280ms cubic-bezier(0.4,0,0.2,1)',
+            background: 'linear-gradient(180deg, #1e1b4b 0%, #191640 100%)',
+            borderRight: '1px solid rgba(255,255,255,0.06)',
+          }}
+        >
+          {/* Logo + toggle */}
+          <div
+            className="flex items-center shrink-0"
+            style={{
+              height: 64,
+              borderBottom: '1px solid rgba(255,255,255,0.08)',
+              padding: collapsed ? '0 12px' : '0 12px 0 16px',
+              justifyContent: collapsed ? 'center' : 'space-between',
+              gap: 8,
+            }}
+          >
+            {collapsed ? (
+              <button
+                onClick={toggle}
+                title="Expand sidebar"
+                className="flex items-center justify-center w-9 h-9 rounded-xl transition-colors"
+                style={{ background: 'rgba(255,255,255,0.08)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.15)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)' }}
               >
-                <span className={active ? 'text-primary-600' : ''}>{item.icon}</span>
-                <span>{item.label}</span>
-              </Link>
-            )
-          })}
-        </nav>
-
-        {/* User info + sign out */}
-        <div className="border-t border-gray-200 p-3">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
-              <p className="text-xs text-primary-600 capitalize">{ROLE_LABELS[user.role || ''] || 'Member'}</p>
-            </div>
-            <button
-              onClick={handleSignOut}
-              title="Sign out"
-              className="p-2 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-              </svg>
-            </button>
+                <ChevronRight className="w-3.5 h-3.5 text-white/60" />
+              </button>
+            ) : (
+              <>
+                <Link href="/dashboard" className="shrink-0">
+                  <Logo variant="full" color="white" size="sm" />
+                </Link>
+                <button
+                  onClick={toggle}
+                  title="Collapse sidebar"
+                  className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
+                  style={{ color: 'rgba(255,255,255,0.35)', transition: 'background 150ms, color 150ms' }}
+                  onMouseEnter={e => {
+                    const el = e.currentTarget as HTMLElement
+                    el.style.background = 'rgba(255,255,255,0.10)'
+                    el.style.color = '#fff'
+                  }}
+                  onMouseLeave={e => {
+                    const el = e.currentTarget as HTMLElement
+                    el.style.background = 'transparent'
+                    el.style.color = 'rgba(255,255,255,0.35)'
+                  }}
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+              </>
+            )}
           </div>
-        </div>
-      </aside>
 
-      {/* Main content — shifted right on desktop */}
-      <div className="md:ml-60">
-        {/* Mobile top bar (hidden on dashboard home where the banner covers this) */}
-        {pathname !== '/dashboard' && (
-          <header className="md:hidden flex items-center justify-between bg-white border-b border-gray-200 px-4 h-14">
-            <Link href="/dashboard">
-              <Logo variant="full" color="primary" size="sm" />
-            </Link>
-            <div className="flex items-center gap-3">
+          {/* Nav */}
+          <nav className="flex-1 overflow-y-auto overflow-x-hidden" style={{ padding: '10px 8px' }}>
+            <div className="space-y-0.5">
+              {navItems.map(({ href, label, Icon }) => {
+                const active = isActive(href)
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="relative group flex items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                    style={{
+                      padding: collapsed ? '10px 0' : '9px 10px',
+                      justifyContent: collapsed ? 'center' : 'flex-start',
+                      gap: 10,
+                      color: active ? '#fff' : 'rgba(165,163,220,0.75)',
+                      background: active ? 'rgba(255,255,255,0.10)' : 'transparent',
+                      transition: 'background 150ms, color 150ms',
+                    }}
+                    onMouseEnter={e => {
+                      if (!active) {
+                        ;(e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'
+                        ;(e.currentTarget as HTMLElement).style.color = '#fff'
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!active) {
+                        ;(e.currentTarget as HTMLElement).style.background = 'transparent'
+                        ;(e.currentTarget as HTMLElement).style.color = 'rgba(165,163,220,0.75)'
+                      }
+                    }}
+                  >
+                    {/* Active bar */}
+                    {active && (
+                      <span
+                        className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full"
+                        style={{ width: 3, height: 20, background: '#fb7185' }}
+                      />
+                    )}
+
+                    <Icon className="shrink-0 w-[18px] h-[18px]" strokeWidth={active ? 2.5 : 1.75} />
+
+                    {/* Label */}
+                    {!collapsed && (
+                      <span
+                        className="text-sm font-semibold whitespace-nowrap overflow-hidden"
+                        style={{ opacity: hydrated ? 1 : 0, transition: 'opacity 150ms 100ms' }}
+                      >
+                        {label}
+                      </span>
+                    )}
+
+                    {/* Tooltip (collapsed) */}
+                    {collapsed && (
+                      <span
+                        className="absolute z-50 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-bold shadow-xl pointer-events-none opacity-0 group-hover:opacity-100"
+                        style={{
+                          left: 'calc(100% + 14px)',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: '#1e1b4b',
+                          color: '#fff',
+                          border: '1px solid rgba(255,255,255,0.14)',
+                          transition: 'opacity 120ms',
+                        }}
+                      >
+                        {label}
+                      </span>
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
+          </nav>
+
+          {/* User footer */}
+          <div
+            className="shrink-0"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.08)', padding: collapsed ? '12px 8px' : '12px 10px' }}
+          >
+            {collapsed ? (
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-white"
+                  title={user.name}
+                  style={{ background: 'rgba(255,255,255,0.15)' }}
+                >
+                  {initials}
+                </div>
+                <button
+                  onClick={handleSignOut}
+                  title="Sign out"
+                  className="p-1.5 rounded-lg"
+                  style={{ color: 'rgba(165,163,220,0.75)', transition: 'background 150ms, color 150ms' }}
+                  onMouseEnter={hoverDark}
+                  onMouseLeave={hoverDarkLeave}
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-white shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.15)' }}
+                >
+                  {initials}
+                </div>
+                <div
+                  className="flex-1 min-w-0"
+                  style={{ opacity: hydrated ? 1 : 0, transition: 'opacity 150ms 100ms' }}
+                >
+                  <p className="text-sm font-semibold text-white truncate leading-tight">{user.name}</p>
+                  <p className="text-[11px] capitalize leading-tight truncate" style={{ color: 'rgba(165,163,220,0.65)' }}>
+                    {ROLE_LABELS[user.role || ''] || 'Member'}
+                  </p>
+                </div>
+                <button
+                  onClick={handleSignOut}
+                  title="Sign out"
+                  className="shrink-0 p-1.5 rounded-lg"
+                  style={{ color: 'rgba(165,163,220,0.75)', transition: 'background 150ms, color 150ms' }}
+                  onMouseEnter={hoverDark}
+                  onMouseLeave={hoverDarkLeave}
+                >
+                  <LogOut className="w-[15px] h-[15px]" />
+                </button>
+              </div>
+            )}
+          </div>
+        </aside>
+
+        {/* ── Content ─────────────────────────────────── */}
+        <div className="sidebar-offset min-h-screen flex flex-col">
+          {/* Mobile top bar */}
+          {pathname !== '/dashboard' && (
+            <header className="md:hidden flex items-center justify-between bg-white border-b border-gray-200 px-4 h-14">
+              <Link href="/dashboard">
+                <Logo variant="full" color="primary" size="sm" />
+              </Link>
               <button
                 onClick={handleSignOut}
                 className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100"
                 title="Sign out"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-                </svg>
+                <LogOut className="w-5 h-5" />
               </button>
-            </div>
-          </header>
-        )}
+            </header>
+          )}
 
-        {/* Page content */}
-        <main className="py-6 px-4 sm:px-6 lg:px-8 pb-20 md:pb-6">
-          {children}
-        </main>
-      </div>
-
-      {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-gray-200">
-        <div className="flex justify-around items-center h-16">
-          {navItems.map((item) => {
-            const active = isActive(item.href)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex flex-col items-center justify-center flex-1 h-full text-xs font-medium transition-colors ${
-                  active
-                    ? 'text-primary-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <span>{item.icon}</span>
-                <span className="mt-1">{item.label}</span>
-              </Link>
-            )
-          })}
+          <main className="flex-1 py-6 px-4 sm:px-6 lg:px-8 pb-20 md:pb-6">
+            {children}
+          </main>
         </div>
-      </nav>
-    </div>
+
+        {/* ── Mobile Bottom Nav ───────────────────────── */}
+        <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-gray-200">
+          <div className="flex justify-around items-center h-16">
+            {navItems.map(({ href, label, Icon }) => {
+              const active = isActive(href)
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`flex flex-col items-center justify-center flex-1 h-full text-[10px] font-semibold transition-colors ${
+                    active ? 'text-primary-600' : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  <Icon className="w-5 h-5 mb-0.5" strokeWidth={active ? 2.5 : 1.75} />
+                  <span>{label}</span>
+                </Link>
+              )
+            })}
+          </div>
+        </nav>
+
+      </div>
+    </>
   )
 }
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+// ── Layout ────────────────────────────────────────────────────────────
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <UserProvider>
       <DashboardShell>{children}</DashboardShell>

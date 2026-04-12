@@ -75,7 +75,7 @@ export default function ShoppingListWidget({
   const previewItems = items.slice(0, 4)
 
   return (
-    <div className="bg-white rounded-[1.5rem] shadow-card overflow-hidden transition-shadow duration-200 hover:shadow-card-hover animate-slide-up">
+    <div className="bg-white rounded-[1.5rem] shadow-card overflow-hidden transition-shadow duration-200 hover:shadow-card-hover animate-slide-up flex flex-col">
       {/* Header */}
       <div className="px-6 pt-6 pb-3 border-b border-gray-100/70">
         <div className="flex items-center justify-between">
@@ -106,9 +106,9 @@ export default function ShoppingListWidget({
         </div>
       </div>
 
-      <div className="px-6 py-4">
+      <div className="px-6 py-4 flex-1 flex flex-col">
         {/* Items List */}
-        <div className="space-y-1 mb-4">
+        <div className="flex-1 space-y-1">
           {previewItems.length === 0 ? (
             <p className="text-gray-400 text-sm font-medium py-3 text-center">
               List is empty — add something below!
@@ -145,7 +145,7 @@ export default function ShoppingListWidget({
         </div>
 
         {/* Quick Add Form */}
-        <form onSubmit={handleAddItem} className="flex gap-2 pt-3 border-t border-gray-100/70">
+        <form onSubmit={handleAddItem} className="flex gap-2 mt-auto pt-3 border-t border-gray-100/70">
           <input
             type="text"
             value={newItem}

@@ -43,21 +43,16 @@ const CreateRoutineModal = dynamic(() => import('@/components/CreateRoutineModal
 // ── helpers ──────────────────────────────────────────────
 
 function isRelevantTask(dueDateStr: string | null | undefined) {
-  if (!dueDateStr) return true // No due date = always relevant
+  if (!dueDateStr) return true // No due date = always relevantnicenic
   const dateOnly = dueDateStr.split('T')[0]
   return dateOnly <= getTodayStr() // Today or overdue
 }
 
 
-function getWeekRange() {
-  const now = new Date()
-  const dayOfWeek = now.getDay()
-  const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)
-  const weekStart = new Date(now.getFullYear(), now.getMonth(), diff)
-  weekStart.setHours(0, 0, 0, 0)
-  const weekEnd = new Date(weekStart)
-  weekEnd.setDate(weekEnd.getDate() + 7)
-  return { weekStart, weekEnd }
+function getUpcomingRange() {
+  const start = new Date(); start.setHours(0, 0, 0, 0)
+  const end   = new Date(); end.setDate(end.getDate() + 14); end.setHours(23, 59, 59, 999)
+  return { weekStart: start, weekEnd: end }
 }
 
 // ── component ────────────────────────────────────────────
@@ -110,7 +105,7 @@ export default function DashboardPage() {
 
   async function loadData(familyId: string) {
     try {
-      const { weekStart, weekEnd } = getWeekRange()
+      const { weekStart, weekEnd } = getUpcomingRange()
 
       const [familyData, membersData, tasksData, eventsData, shoppingData, responsibilitiesData] =
         await Promise.all([
@@ -204,7 +199,7 @@ export default function DashboardPage() {
 
   const reloadEvents = useCallback(async () => {
     if (user?.family_id) {
-      const { weekStart, weekEnd } = getWeekRange()
+      const { weekStart, weekEnd } = getUpcomingRange()
       const eventsData = await getCalendarEvents(user.family_id, weekStart.toISOString(), weekEnd.toISOString())
       setEvents(eventsData)
     }

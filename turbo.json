@@ -8,6 +8,7 @@
       "passThroughEnv": ["SUPABASE_SERVICE_ROLE_KEY","SENTRY_AUTH_TOKEN","SUPABASE_SERVICE_ROLE_KEY"]
     },
     "dev": {
+      "dependsOn": ["^build"],
       "cache": false,
       "persistent": true
     },

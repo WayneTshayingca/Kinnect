@@ -9,6 +9,7 @@ export interface ResponsibilityOccurrenceWithFlow extends ResponsibilityOccurren
   flow_title: string
   category: string
   icon: string | null
+  end_time: string | null
   assignee_name: string
   assignee_role: string | null
 }
@@ -35,6 +36,7 @@ export interface CreateResponsibilityFlowInput {
   default_assignee_id: string
   backup_assignee_ids?: string[]
   start_time?: string | null
+  end_time?: string | null
   created_by: string
 }
 
@@ -53,6 +55,7 @@ export async function createResponsibilityFlow(
       default_assignee_id: input.default_assignee_id,
       backup_assignee_ids: input.backup_assignee_ids ?? [],
       start_time:          input.start_time ?? null,
+      end_time:            input.end_time ?? null,
       created_by:          input.created_by,
     })
     .select()
@@ -78,6 +81,7 @@ export async function getTodaysResponsibilities(
         title,
         category,
         active,
+        end_time,
         responsibility_templates ( icon )
       ),
       users!responsibility_occurrences_assigned_to_fkey ( name, role )
@@ -93,6 +97,7 @@ export async function getTodaysResponsibilities(
     const flow = row.responsibility_flows as {
       title: string
       category: string
+      end_time: string | null
       responsibility_templates: { icon: string } | null
     }
     const user = row.users as { name: string; role: string | null } | null
@@ -111,6 +116,7 @@ export async function getTodaysResponsibilities(
       flow_title:      flow.title,
       category:        flow.category,
       icon:            flow.responsibility_templates?.icon ?? null,
+      end_time:        flow.end_time ?? null,
       assignee_name:   user?.name ?? '?',
       assignee_role:   user?.role ?? null,
     }
@@ -139,6 +145,7 @@ export async function getWeekResponsibilities(
         title,
         category,
         active,
+        end_time,
         responsibility_templates ( icon )
       ),
       users!responsibility_occurrences_assigned_to_fkey ( name, role )
@@ -156,6 +163,7 @@ export async function getWeekResponsibilities(
     const flow = row.responsibility_flows as {
       title: string
       category: string
+      end_time: string | null
       responsibility_templates: { icon: string } | null
     }
     const user = row.users as { name: string; role: string | null } | null
@@ -174,6 +182,7 @@ export async function getWeekResponsibilities(
       flow_title:      flow.title,
       category:        flow.category,
       icon:            flow.responsibility_templates?.icon ?? null,
+      end_time:        flow.end_time ?? null,
       assignee_name:   user?.name ?? '?',
       assignee_role:   user?.role ?? null,
     }
@@ -225,6 +234,7 @@ export interface UpdateResponsibilityFlowInput {
   recurrence_rule:     string
   default_assignee_id: string
   start_time:          string | null
+  end_time:            string | null
 }
 
 export async function updateResponsibilityFlow(
@@ -239,6 +249,7 @@ export async function updateResponsibilityFlow(
     p_recurrence_rule:     input.recurrence_rule,
     p_default_assignee_id: input.default_assignee_id,
     p_start_time:          input.start_time,
+    p_end_time:            input.end_time,
   })
   if (error) throw error
 }
@@ -298,6 +309,7 @@ export async function getResponsibilityFlows(
       default_assignee_id: row.default_assignee_id,
       backup_assignee_ids: row.backup_assignee_ids,
       start_time:          row.start_time,
+      end_time:            row.end_time,
       active:              row.active,
       created_by:          row.created_by,
       created_at:          row.created_at,
@@ -313,6 +325,15 @@ export async function deactivateFlow(flowId: string): Promise<void> {
   const { error } = await supabase
     .from('responsibility_flows')
     .update({ active: false })
+    .eq('id', flowId)
+  if (error) throw error
+}
+
+export async function deleteFlow(flowId: string): Promise<void> {
+  const supabase = getSupabase()
+  const { error } = await supabase
+    .from('responsibility_flows')
+    .delete()
     .eq('id', flowId)
   if (error) throw error
 }

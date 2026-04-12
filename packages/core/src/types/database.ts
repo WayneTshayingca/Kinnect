@@ -351,6 +351,7 @@ export type Database = {
           default_assignee_id: string
           backup_assignee_ids: string[]
           start_time: string | null
+          end_time: string | null
           active: boolean
           created_by: string
           created_at: string
@@ -365,6 +366,7 @@ export type Database = {
           default_assignee_id: string
           backup_assignee_ids?: string[]
           start_time?: string | null
+          end_time?: string | null
           active?: boolean
           created_by: string
           created_at?: string
@@ -379,6 +381,7 @@ export type Database = {
           default_assignee_id?: string
           backup_assignee_ids?: string[]
           start_time?: string | null
+          end_time?: string | null
           active?: boolean
           created_by?: string
           created_at?: string
@@ -567,6 +570,7 @@ export type Database = {
           p_recurrence_rule:     string
           p_default_assignee_id: string
           p_start_time:          string | null
+          p_end_time?:           string | null
         }
         Returns: undefined
       }

@@ -13,11 +13,12 @@ export async function getCalendarEvents(
     .select('*')
     .eq('family_id', familyId)
 
-  if (startDate) {
-    query = query.gte('start_time', startDate)
-  }
-  if (endDate) {
-    query = query.lte('start_time', endDate)
+  if (startDate && endDate) {
+    // Overlap: event overlaps [startDate, endDate) if start_time < endDate AND end_time >= startDate
+    query = query.lt('start_time', endDate).gte('end_time', startDate)
+  } else {
+    if (startDate) query = query.gte('start_time', startDate)
+    if (endDate) query = query.lt('start_time', endDate)
   }
 
   const { data, error } = await query.order('start_time', { ascending: true })

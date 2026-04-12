@@ -176,8 +176,19 @@ export default function TodaysResponsibilitiesWidget({
                       {r.assignee_name.charAt(0)}
                     </div>
                     <span className="text-xs text-gray-400">{r.assignee_name}</span>
-                    {r.scheduled_time && (
+                    {r.scheduled_time && !r.end_time && (
                       <span className="text-xs text-gray-300">· {formatTime(r.scheduled_time)}</span>
+                    )}
+                    {r.scheduled_time && r.end_time && (
+                      <span className="text-xs text-gray-300">
+                        · {r.category === 'transport' ? 'Drop-off' : 'Start'} {formatTime(r.scheduled_time)}
+                        {' · '}{r.category === 'transport' ? 'Pick-up' : 'End'} {formatTime(r.end_time)}
+                      </span>
+                    )}
+                    {!r.scheduled_time && r.end_time && (
+                      <span className="text-xs text-gray-300">
+                        · {r.category === 'transport' ? 'Pick-up' : 'End'} {formatTime(r.end_time)}
+                      </span>
                     )}
                     {r.status === 'reassigned' && (
                       <span className="text-[10px] text-violet-500 font-bold">reassigned</span>

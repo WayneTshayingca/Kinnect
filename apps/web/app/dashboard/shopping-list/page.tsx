@@ -145,8 +145,16 @@ export default function ShoppingListPage() {
     } else {
       const item = completedItems.find((i) => i.id === itemId)
       if (item) {
+        const restored = { ...item, completed: false, completed_by: null, completed_at: null }
         setCompletedItems((prev) => prev.filter((i) => i.id !== itemId))
-        setIncompleteItems((prev) => [...prev, { ...item, completed: false, completed_by: null, completed_at: null }])
+        setIncompleteItems((prev) => {
+          // DB orders incompleteItems by created_at DESC (newest first).
+          // Insert at the matching position so the optimistic state matches the
+          // Realtime reload — avoids the visible jump on re-sync.
+          const t = new Date(restored.created_at).getTime()
+          const idx = prev.findIndex((i) => new Date(i.created_at).getTime() < t)
+          return idx === -1 ? [...prev, restored] : [...prev.slice(0, idx), restored, ...prev.slice(idx)]
+        })
       }
     }
     try {
@@ -254,7 +262,7 @@ export default function ShoppingListPage() {
             {/* Other shoppers */}
             {otherShoppers.length > 0 && (
               <div className="flex -space-x-1.5">
-                {otherShoppers.slice(0, 3).map((name, i) => (
+                {otherShoppers.slice(0, 3).map((name: string, i: number) => (
                   <div
                     key={i}
                     title={`${name} is shopping`}
@@ -406,7 +414,7 @@ export default function ShoppingListPage() {
       {otherShoppers.length > 0 && (
         <div className="flex items-center gap-3 px-4 py-3 bg-accent-50 border border-accent-200/60 rounded-2xl">
           <div className="flex -space-x-1.5 shrink-0">
-            {otherShoppers.slice(0, 4).map((name, i) => (
+            {otherShoppers.slice(0, 4).map((name: string, i: number) => (
               <div
                 key={i}
                 className="w-7 h-7 rounded-full bg-accent-500 text-white text-xs font-black flex items-center justify-center ring-2 ring-accent-50"

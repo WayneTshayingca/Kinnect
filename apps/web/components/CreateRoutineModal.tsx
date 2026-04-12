@@ -76,6 +76,7 @@ export default function CreateRoutineModal({
   const [recurrenceBase, setRecurrenceBase] = useState<string>('weekdays')
   const [selectedDays, setSelectedDays] = useState<number[]>([1])
   const [startTime, setStartTime] = useState('07:15')
+  const [endTime, setEndTime] = useState('')
 
   // Step 3 — assignee
   const [assigneeId, setAssigneeId] = useState<string>('')
@@ -98,6 +99,7 @@ export default function CreateRoutineModal({
       setRecurrenceBase(base)
       setSelectedDays(days)
       setStartTime(flow.start_time?.slice(0, 5) ?? '')
+      setEndTime(flow.end_time?.slice(0, 5) ?? '')
       setAssigneeId(flow.default_assignee_id)
     } else {
       setSelectedTemplate(null)
@@ -106,6 +108,7 @@ export default function CreateRoutineModal({
       setRecurrenceBase('weekdays')
       setSelectedDays([1])
       setStartTime('07:15')
+      setEndTime('')
       setAssigneeId(userId)
     }
     setSaving(false)
@@ -167,6 +170,7 @@ export default function CreateRoutineModal({
           recurrence_rule:     recurrenceRule,
           default_assignee_id: assigneeId,
           start_time:          startTime || null,
+          end_time:            endTime || null,
         })
       } else {
         await createResponsibilityFlow({
@@ -177,6 +181,7 @@ export default function CreateRoutineModal({
           recurrence_rule:     recurrenceRule,
           default_assignee_id: assigneeId,
           start_time:          startTime || null,
+          end_time:            endTime || null,
           created_by:          userId,
         })
       }
@@ -376,16 +381,31 @@ export default function CreateRoutineModal({
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">
-                  Start time (optional)
-                </label>
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-500 text-gray-900"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                    {customCategory === 'transport' ? 'Drop-off time' : 'Start time'}{' '}
+                    <span className="text-gray-400">(optional)</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-500 text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                    {customCategory === 'transport' ? 'Pick-up time' : 'End time'}{' '}
+                    <span className="text-gray-400">(optional)</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-500 text-gray-900"
+                  />
+                </div>
               </div>
 
               <div className="flex gap-3">

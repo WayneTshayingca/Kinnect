@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { type CalendarEvent } from '@kinnect/core'
-import { Calendar, Clock, MapPin, Plus, X } from 'lucide-react'
+import { type CalendarEvent, type SAHoliday, getSAHolidays } from '@kinnect/core'
+import { Calendar, Clock, MapPin, Plus, X, Flag } from 'lucide-react'
 import { formatEventDate, formatEventTime } from '@/lib/formatters'
 
 interface UpcomingEventsWidgetProps {
@@ -11,16 +11,37 @@ interface UpcomingEventsWidgetProps {
   onCreateEvent?: () => void
 }
 
-const EVENT_DOT_COLORS = [
-  'bg-blue-400',
-  'bg-violet-400',
-  'bg-rose-400',
-  'bg-emerald-400',
-  'bg-amber-400',
-]
+type Item =
+  | { kind: 'event';   event: CalendarEvent; dateMs: number }
+  | { kind: 'holiday'; holiday: SAHoliday;   dateMs: number }
 
 export default function UpcomingEventsWidget({ events, onCreateEvent }: UpcomingEventsWidgetProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
+
+  // Merge family events with SA public holidays for the next 14 days
+  const items = useMemo<Item[]>(() => {
+    const now   = new Date(); now.setHours(0, 0, 0, 0)
+    const end14 = new Date(now); end14.setDate(end14.getDate() + 14)
+
+    // Holidays for current year + next year (covers Dec→Jan window)
+    const yr = now.getFullYear()
+    const allHolidays: SAHoliday[] = [...getSAHolidays(yr), ...getSAHolidays(yr + 1)]
+
+    const holidayItems: Item[] = allHolidays
+      .filter(h => {
+        const d = new Date(h.date + 'T00:00:00')
+        return d >= now && d <= end14
+      })
+      .map(h => ({ kind: 'holiday', holiday: h, dateMs: new Date(h.date + 'T00:00:00').getTime() }))
+
+    const eventItems: Item[] = events.map(ev => ({
+      kind: 'event',
+      event: ev,
+      dateMs: new Date(ev.start_time).getTime(),
+    }))
+
+    return [...eventItems, ...holidayItems].sort((a, b) => a.dateMs - b.dateMs)
+  }, [events])
 
   return (
     <div className="bg-white rounded-[1.5rem] shadow-card overflow-hidden transition-shadow duration-200 hover:shadow-card-hover animate-slide-up">
@@ -31,7 +52,7 @@ export default function UpcomingEventsWidget({ events, onCreateEvent }: Upcoming
             <div className="w-7 h-7 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
               <Calendar className="h-4 w-4 text-blue-500" />
             </div>
-            This Week
+            Upcoming
           </h2>
           <Link
             href="/dashboard/calendar"
@@ -43,12 +64,12 @@ export default function UpcomingEventsWidget({ events, onCreateEvent }: Upcoming
       </div>
 
       <div className="px-6 py-4">
-        {events.length === 0 ? (
+        {items.length === 0 ? (
           <div className="text-center py-6">
             <div className="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
               <Calendar className="h-5 w-5 text-blue-400" />
             </div>
-            <p className="text-gray-400 text-sm font-medium">No events this week</p>
+            <p className="text-gray-400 text-sm font-medium">Nothing coming up</p>
             {onCreateEvent ? (
               <button
                 onClick={onCreateEvent}
@@ -69,42 +90,61 @@ export default function UpcomingEventsWidget({ events, onCreateEvent }: Upcoming
           </div>
         ) : (
           <div className="space-y-1">
-            {events.map((event, i) => (
-              <button
-                key={event.id}
-                className="w-full flex items-center gap-3 p-3 -mx-1 hover:bg-gray-50/80 rounded-xl transition-colors text-left group"
-                onClick={() => setSelectedEvent(event)}
-              >
-                {/* Colored dot */}
-                <div className={`w-2 h-2 rounded-full shrink-0 ${EVENT_DOT_COLORS[i % EVENT_DOT_COLORS.length]}`} />
-
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold text-brand-primary group-hover:text-brand-accent transition-colors truncate">
-                    {event.title}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-2">
-                    <span>{formatEventDate(event.start_time)}</span>
-                    {!event.all_day && (
-                      <>
-                        <span className="text-gray-200">·</span>
-                        <span>{formatEventTime(event.start_time)}</span>
-                      </>
-                    )}
-                    {event.location && (
-                      <>
-                        <span className="text-gray-200">·</span>
-                        <span className="truncate">{event.location}</span>
-                      </>
-                    )}
+            {items.map((item, i) =>
+              item.kind === 'holiday' ? (
+                <div
+                  key={`holiday-${item.holiday.date}`}
+                  className="flex items-center gap-3 p-3 -mx-1 rounded-xl bg-amber-50/60"
+                >
+                  <div className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-amber-800 truncate flex items-center gap-1.5">
+                      <Flag className="w-3 h-3 shrink-0 text-amber-500" />
+                      {item.holiday.name}
+                    </div>
+                    <div className="text-xs text-amber-600/70 mt-0.5">
+                      {new Date(item.holiday.date + 'T00:00:00').toLocaleDateString('en-ZA', {
+                        weekday: 'short', month: 'short', day: 'numeric',
+                      })}
+                      {' · '}Public holiday
+                    </div>
                   </div>
                 </div>
-              </button>
-            ))}
+              ) : (
+                <button
+                  key={item.event.id}
+                  className="w-full flex items-center gap-3 p-3 -mx-1 hover:bg-gray-50/80 rounded-xl transition-colors text-left group"
+                  onClick={() => setSelectedEvent(item.event)}
+                >
+                  <div className="w-2 h-2 rounded-full shrink-0 bg-blue-400" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-brand-primary group-hover:text-brand-accent transition-colors truncate">
+                      {item.event.title}
+                    </div>
+                    <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-2">
+                      <span>{formatEventDate(item.event.start_time)}</span>
+                      {!item.event.all_day && (
+                        <>
+                          <span className="text-gray-200">·</span>
+                          <span>{formatEventTime(item.event.start_time)}</span>
+                        </>
+                      )}
+                      {item.event.location && (
+                        <>
+                          <span className="text-gray-200">·</span>
+                          <span className="truncate">{item.event.location}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              )
+            )}
           </div>
         )}
 
-        {/* Add event CTA (when events exist) */}
-        {events.length > 0 && onCreateEvent && (
+        {/* Add event CTA */}
+        {items.length > 0 && onCreateEvent && (
           <div className="mt-3 pt-3 border-t border-gray-100/70">
             <button
               onClick={onCreateEvent}
