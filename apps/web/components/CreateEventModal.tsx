@@ -67,15 +67,15 @@ export default function CreateEventModal({
     setLoading(true)
 
     try {
-      // Build local Date objects so toISOString() stores the correct UTC value.
-      // Without this, naive strings like "2025-04-16T23:59:59" are treated as UTC
-      // by Postgres, causing a timezone rollover for UTC+ users on read-back.
-      const startDateTime = new Date(
-        allDay ? `${startDate}T00:00:00` : `${startDate}T${startTime}:00`
-      ).toISOString()
-      const endDateTime = new Date(
-        allDay ? `${endDate}T23:59:59` : `${endDate}T${endTime}:00`
-      ).toISOString()
+      // All-day events: append 'Z' to treat as UTC directly, so toISOString()
+      // doesn't shift the date (e.g. SAST midnight would roll back to the previous
+      // day in UTC without the explicit Z). Timed events use local time as before.
+      const startDateTime = allDay
+        ? new Date(`${startDate}T00:00:00Z`).toISOString()
+        : new Date(`${startDate}T${startTime}:00`).toISOString()
+      const endDateTime = allDay
+        ? new Date(`${endDate}T23:59:59Z`).toISOString()
+        : new Date(`${endDate}T${endTime}:00`).toISOString()
 
       if (isEditing) {
         await updateCalendarEvent(event.id, {

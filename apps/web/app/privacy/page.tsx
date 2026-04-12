@@ -7,7 +7,7 @@ export const metadata = {
 }
 
 const LAST_UPDATED = '12 April 2025'
-const CONTACT_EMAIL = 'privacy@kinnect.co.za'
+const CONTACT_EMAIL = 'privacy@kinnect.africa'
 
 export default function PrivacyPage() {
   return (
@@ -197,7 +197,7 @@ export default function PrivacyPage() {
               </p>
               <div className="mt-3 bg-gray-50 rounded-xl p-4 text-sm">
                 <p className="font-semibold text-gray-900">Kinnect</p>
-                <p className="text-gray-600">South Africa</p>
+                <p className="text-gray-600">kinnect.africa · South Africa</p>
                 <p className="mt-1">
                   <a href={`mailto:${CONTACT_EMAIL}`} className="text-accent-600 hover:underline">
                     {CONTACT_EMAIL}
