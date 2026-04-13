@@ -28,12 +28,15 @@ kinnect/
 │       │   │   └── auth/
 │       │   │       └── google-callback/route.ts  # POST — merge invited user who signs in via Google
 │       │   │
+│       │   ├── privacy/page.tsx          # Public privacy policy (POPIA, no auth required)
+│       │   │
 │       │   └── dashboard/
-│       │       ├── layout.tsx            # Nav, auth guard, AnimatedLogo loading overlay
+│       │       ├── layout.tsx            # Collapsible sidebar (desktop) + mobile bottom nav, auth guard
 │       │       ├── page.tsx              # Dashboard home (widgets + stats)
-│       │       ├── tasks/page.tsx        # Task list with filters
-│       │       ├── calendar/page.tsx     # Month, Week, Day, and Agenda views
+│       │       ├── tasks/page.tsx        # Task list with filters, grouped by date
+│       │       ├── calendar/page.tsx     # Month, Week, Day, Agenda views + SA public holidays
 │       │       ├── shopping-list/page.tsx # Shopping list + shopping mode + presence banner
+│       │       ├── routines/page.tsx     # Routines management: view, edit, deactivate, delete
 │       │       ├── family/page.tsx       # Redirects to /dashboard/profile
 │       │       └── profile/page.tsx      # User profile + family member management
 │       │
@@ -45,12 +48,15 @@ kinnect/
 │       │   │   ├── DashboardStats.tsx    # Stat cards: Done Today, Daily Tasks, This Week
 │       │   │   ├── TodaysTasksWidget.tsx # Today's tasks preview + quick-add form
 │       │   │   ├── ShoppingListWidget.tsx # Shopping list preview + "Shop" button
-│       │   │   ├── UpcomingEventsWidget.tsx # This week's events + detail modal
+│       │   │   ├── UpcomingEventsWidget.tsx # Upcoming events + SA public holidays
+│       │   │   ├── TodaysResponsibilitiesWidget.tsx # Today's active routines with assignee + times
 │       │   │   └── FamilyActivityWidget.tsx # Members ranked by weekly completions
 │       │   ├── AnimatedLogo.tsx          # Animated SVG logo (framer-motion, repeat mode)
 │       │   ├── Logo.tsx                  # Static logo (full, icon, stacked variants)
+│       │   ├── ConfirmDialog.tsx         # Reusable confirm/danger dialog modal
 │       │   ├── CreateTaskModal.tsx       # Modal: create task with assignees + due date
-│       │   ├── CreateEventModal.tsx      # Modal: create/edit calendar event
+│       │   ├── CreateEventModal.tsx      # Modal: create/edit calendar event (timezone-safe all-day)
+│       │   ├── CreateRoutineModal.tsx    # Modal: create/edit recurring responsibility flow
 │       │   └── AddMemberModal.tsx        # Modal: add/edit family member + invite
 │       │
 │       ├── hooks/
@@ -72,6 +78,7 @@ kinnect/
 │
 ├── packages/
 │   ├── core/                             # Shared Business Logic (zero React, works on web + RN)
+│   │   │                                 # main → ./src/index.ts (transpilePackages compiles via Next.js SWC)
 │   │   └── src/
 │   │       ├── supabase/
 │   │       │   ├── client.ts             # Supabase singleton + Realtime JWT sync via onAuthStateChange
@@ -84,16 +91,21 @@ kinnect/
 │   │       │   │                         # uncompleteTask, assignTask, deleteTask
 │   │       │   ├── calendar.ts           # getCalendarEvents, createCalendarEvent,
 │   │       │   │                         # updateCalendarEvent, deleteCalendarEvent
-│   │       │   └── shopping-list.ts      # getShoppingList, getShoppingListPreview,
-│   │       │                             # getFullShoppingList, addShoppingListItem,
-│   │       │                             # toggleShoppingListItem, updateShoppingListItem,
-│   │       │                             # deleteShoppingListItem, clearCompletedItems
+│   │       │   ├── shopping-list.ts      # getShoppingList, getShoppingListPreview,
+│   │       │   │                         # getFullShoppingList, addShoppingListItem,
+│   │       │   │                         # toggleShoppingListItem, updateShoppingListItem,
+│   │       │   │                         # deleteShoppingListItem, clearCompletedItems
+│   │       │   └── responsibilities.ts   # getResponsibilityFlows, createResponsibilityFlow,
+│   │       │                             # updateResponsibilityFlow, deactivateFlow, deleteFlow,
+│   │       │                             # getTodaysResponsibilities, getWeekResponsibilities,
+│   │       │                             # completeOccurrence, uncompleteOccurrence, reassignOccurrence
 │   │       ├── types/
 │   │       │   └── database.ts           # Auto-generated DB types + helper aliases
 │   │       ├── utils/
 │   │       │   ├── formatters.ts         # toLocaleDateStr, getTodayStr, formatEventDate,
 │   │       │   │                         # formatEventTime, timeAgo (pure, no imports)
-│   │       │   └── constants.ts          # ROLE_LABELS, ROLE_HEX_COLORS (hex values for RN)
+│   │       │   ├── constants.ts          # ROLE_LABELS, ROLE_HEX_COLORS (hex values for RN)
+│   │       │   └── saHolidays.ts         # SA public holidays by year (2024–2026); getSAHolidays()
 │   │       └── index.ts                  # Public API (re-exports everything)
 │   │
 │   └── hooks/                            # Shared React Hooks (React as peer dep, works on web + RN)
@@ -121,13 +133,12 @@ kinnect/
 │       │                                 # active_family_id on users, updates RLS,
 │       │                                 # adds get_my_families() + switch_active_family() RPCs,
 │       │                                 # updates create_family_with_user() RPC
-│       ├── 011_add_responsibility_templates.sql  # Phase 2: responsibility_templates + 4 system seeds
-│       ├── 012_add_responsibility_flows.sql      # Phase 2: responsibility_flows table + RLS
-│       ├── 013_add_responsibility_occurrences.sql # Phase 2: occurrences table + generate function + trigger
-│       ├── 014_enable_realtime_responsibilities.sql # Phase 2: add responsibility tables to realtime
-│       ├── 015_add_activity_log.sql      # Phase 3: activity_log table + index + RLS
-│       ├── 016_add_subscriptions.sql     # Phase 4: subscriptions table + RLS
-│       └── 017_seed_free_subscriptions.sql  # Phase 4: backfill existing families with free tier
+│       ├── 011_add_responsibility_templates.sql  # responsibility_templates + 4 system seeds
+│       ├── 012_add_responsibility_flows.sql      # responsibility_flows table + RLS (incl. DELETE policy)
+│       ├── 013_add_responsibility_occurrences.sql # occurrences table + 90-day generate trigger
+│       ├── 014_enable_realtime_responsibilities.sql # add responsibility tables to realtime
+│       ├── 015_add_update_flow_rpc.sql   # update_responsibility_flow() SECURITY DEFINER RPC
+│       └── 016_add_end_time_to_flows.sql # adds end_time TIME to flows; updates RPC to accept p_end_time
 │
 ├── ARCHITECTURE.md                       # This file
 ├── IMPLEMENTATION.md                     # Phased feature roadmap + specs
