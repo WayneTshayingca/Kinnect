@@ -28,12 +28,15 @@ kinnect/
 │       │   │   └── auth/
 │       │   │       └── google-callback/route.ts  # POST — merge invited user who signs in via Google
 │       │   │
+│       │   ├── privacy/page.tsx          # Public privacy policy (POPIA, no auth required)
+│       │   │
 │       │   └── dashboard/
-│       │       ├── layout.tsx            # Nav, auth guard, AnimatedLogo loading overlay
+│       │       ├── layout.tsx            # Collapsible sidebar (desktop) + mobile bottom nav, auth guard
 │       │       ├── page.tsx              # Dashboard home (widgets + stats)
-│       │       ├── tasks/page.tsx        # Task list with filters
-│       │       ├── calendar/page.tsx     # Month grid + agenda views
+│       │       ├── tasks/page.tsx        # Task list with filters, grouped by date
+│       │       ├── calendar/page.tsx     # Month, Week, Day, Agenda views + SA public holidays
 │       │       ├── shopping-list/page.tsx # Shopping list + shopping mode + presence banner
+│       │       ├── routines/page.tsx     # Routines management: view, edit, deactivate, delete
 │       │       ├── family/page.tsx       # Redirects to /dashboard/profile
 │       │       └── profile/page.tsx      # User profile + family member management
 │       │
@@ -45,22 +48,25 @@ kinnect/
 │       │   │   ├── DashboardStats.tsx    # Stat cards: Done Today, Daily Tasks, This Week
 │       │   │   ├── TodaysTasksWidget.tsx # Today's tasks preview + quick-add form
 │       │   │   ├── ShoppingListWidget.tsx # Shopping list preview + "Shop" button
-│       │   │   ├── UpcomingEventsWidget.tsx # This week's events + detail modal
+│       │   │   ├── UpcomingEventsWidget.tsx # Upcoming events + SA public holidays
+│       │   │   ├── TodaysResponsibilitiesWidget.tsx # Today's active routines with assignee + times
 │       │   │   └── FamilyActivityWidget.tsx # Members ranked by weekly completions
 │       │   ├── AnimatedLogo.tsx          # Animated SVG logo (framer-motion, repeat mode)
 │       │   ├── Logo.tsx                  # Static logo (full, icon, stacked variants)
+│       │   ├── ConfirmDialog.tsx         # Reusable confirm/danger dialog modal
 │       │   ├── CreateTaskModal.tsx       # Modal: create task with assignees + due date
-│       │   ├── CreateEventModal.tsx      # Modal: create/edit calendar event
+│       │   ├── CreateEventModal.tsx      # Modal: create/edit calendar event (timezone-safe all-day)
+│       │   ├── CreateRoutineModal.tsx    # Modal: create/edit recurring responsibility flow
 │       │   └── AddMemberModal.tsx        # Modal: add/edit family member + invite
 │       │
 │       ├── hooks/
-│       │   ├── useRealtimeSync.ts        # Supabase Realtime + BroadcastChannel for data sync
-│       │   └── useShoppingPresence.ts    # Supabase Realtime presence for shopping mode
+│       │   ├── useRealtimeSync.ts        # Web wrapper: BroadcastChannel + visibilitychange + useRealtimeSubscription
+│       │   └── useShoppingPresence.ts    # Shim → re-exports from @kinnect/hooks
 │       │
 │       ├── lib/
 │       │   ├── logger.ts                 # Pino (server) / console (client) + Sentry capture
-│       │   ├── formatters.ts             # timeAgo, getTodayStr, date helpers
-│       │   └── constants.ts              # ROLE_COLORS, ROLE_LABELS
+│       │   ├── formatters.ts             # Shim → re-exports from @kinnect/core
+│       │   └── constants.ts             # ROLE_COLORS (Tailwind classes, web only) + shim re-exports from @kinnect/core
 │       │
 │       ├── public/
 │       │   └── favicon.svg               # Kinnect favicon
@@ -71,26 +77,42 @@ kinnect/
 │       └── package.json
 │
 ├── packages/
-│   └── core/                             # Shared Business Logic
+│   ├── core/                             # Shared Business Logic (zero React, works on web + RN)
+│   │   │                                 # main → ./src/index.ts (transpilePackages compiles via Next.js SWC)
+│   │   └── src/
+│   │       ├── supabase/
+│   │       │   ├── client.ts             # Supabase singleton + Realtime JWT sync via onAuthStateChange
+│   │       │   ├── auth.ts               # signUp, signIn, signOut, signInWithGoogle, getCurrentUser, getSession
+│   │       │   ├── families.ts           # createFamily, getFamily, getFamilyMembers,
+│   │       │   │                         # addFamilyMember, updateFamily,
+│   │       │   │                         # updateFamilyMember, removeFamilyMember,
+│   │       │   │                         # getMyFamilies, switchActiveFamily
+│   │       │   ├── tasks.ts              # getTasks, createTask, completeTask,
+│   │       │   │                         # uncompleteTask, assignTask, deleteTask
+│   │       │   ├── calendar.ts           # getCalendarEvents, createCalendarEvent,
+│   │       │   │                         # updateCalendarEvent, deleteCalendarEvent
+│   │       │   ├── shopping-list.ts      # getShoppingList, getShoppingListPreview,
+│   │       │   │                         # getFullShoppingList, addShoppingListItem,
+│   │       │   │                         # toggleShoppingListItem, updateShoppingListItem,
+│   │       │   │                         # deleteShoppingListItem, clearCompletedItems
+│   │       │   └── responsibilities.ts   # getResponsibilityFlows, createResponsibilityFlow,
+│   │       │                             # updateResponsibilityFlow, deactivateFlow, deleteFlow,
+│   │       │                             # getTodaysResponsibilities, getWeekResponsibilities,
+│   │       │                             # completeOccurrence, uncompleteOccurrence, reassignOccurrence
+│   │       ├── types/
+│   │       │   └── database.ts           # Auto-generated DB types + helper aliases
+│   │       ├── utils/
+│   │       │   ├── formatters.ts         # toLocaleDateStr, getTodayStr, formatEventDate,
+│   │       │   │                         # formatEventTime, timeAgo (pure, no imports)
+│   │       │   ├── constants.ts          # ROLE_LABELS, ROLE_HEX_COLORS (hex values for RN)
+│   │       │   └── saHolidays.ts         # SA public holidays by year (2024–2026); getSAHolidays()
+│   │       └── index.ts                  # Public API (re-exports everything)
+│   │
+│   └── hooks/                            # Shared React Hooks (React as peer dep, works on web + RN)
 │       └── src/
-│           ├── supabase/
-│           │   ├── client.ts             # Supabase singleton + Realtime JWT sync via onAuthStateChange
-│           │   ├── auth.ts               # signUp, signIn, signOut, signInWithGoogle, getCurrentUser, getSession
-│           │   ├── families.ts           # createFamily, getFamily, getFamilyMembers,
-│           │   │                         # addFamilyMember, updateFamily,
-│           │   │                         # updateFamilyMember, removeFamilyMember,
-│           │   │                         # getMyFamilies, switchActiveFamily
-│           │   ├── tasks.ts              # getTasks, createTask, completeTask,
-│           │   │                         # uncompleteTask, assignTask, deleteTask
-│           │   ├── calendar.ts           # getCalendarEvents, createCalendarEvent,
-│           │   │                         # updateCalendarEvent, deleteCalendarEvent
-│           │   └── shopping-list.ts      # getShoppingList, getShoppingListPreview,
-│           │                             # getFullShoppingList, addShoppingListItem,
-│           │                             # toggleShoppingListItem, updateShoppingListItem,
-│           │                             # deleteShoppingListItem, clearCompletedItems
-│           ├── types/
-│           │   └── database.ts           # Auto-generated DB types + helper aliases
-│           └── index.ts                  # Public API (re-exports everything)
+│           ├── useRealtimeSubscription.ts # Supabase Postgres Changes subscription (no DOM APIs)
+│           ├── useShoppingPresence.ts     # Supabase Realtime presence (no DOM APIs)
+│           └── index.ts                  # Public API
 │
 ├── supabase/
 │   └── migrations/
@@ -111,13 +133,12 @@ kinnect/
 │       │                                 # active_family_id on users, updates RLS,
 │       │                                 # adds get_my_families() + switch_active_family() RPCs,
 │       │                                 # updates create_family_with_user() RPC
-│       ├── 011_add_responsibility_templates.sql  # Phase 2: responsibility_templates + 4 system seeds
-│       ├── 012_add_responsibility_flows.sql      # Phase 2: responsibility_flows table + RLS
-│       ├── 013_add_responsibility_occurrences.sql # Phase 2: occurrences table + generate function + trigger
-│       ├── 014_enable_realtime_responsibilities.sql # Phase 2: add responsibility tables to realtime
-│       ├── 015_add_activity_log.sql      # Phase 3: activity_log table + index + RLS
-│       ├── 016_add_subscriptions.sql     # Phase 4: subscriptions table + RLS
-│       └── 017_seed_free_subscriptions.sql  # Phase 4: backfill existing families with free tier
+│       ├── 011_add_responsibility_templates.sql  # responsibility_templates + 4 system seeds
+│       ├── 012_add_responsibility_flows.sql      # responsibility_flows table + RLS (incl. DELETE policy)
+│       ├── 013_add_responsibility_occurrences.sql # occurrences table + 90-day generate trigger
+│       ├── 014_enable_realtime_responsibilities.sql # add responsibility tables to realtime
+│       ├── 015_add_update_flow_rpc.sql   # update_responsibility_flow() SECURITY DEFINER RPC
+│       └── 016_add_end_time_to_flows.sql # adds end_time TIME to flows; updates RPC to accept p_end_time
 │
 ├── ARCHITECTURE.md                       # This file
 ├── IMPLEMENTATION.md                     # Phased feature roadmap + specs
@@ -426,25 +447,45 @@ Renders task list with filter tabs: All | Pending | Completed
 
 ```
 Calendar page loads (/dashboard/calendar)
-  └─ Fetches getCalendarEvents(familyId, monthStart, monthEnd)
-      │
+  └─ Fetches getCalendarEvents() with ±7-day buffer around the visible month
+      │  Query uses interval overlap: start_time < rangeEnd AND end_time >= rangeStart
+      │  (ensures multi-day events starting before the visible range are included)
       ▼
-View toggle tabs: Month | Agenda
+View toggle tabs: Month | Week | Day | Agenda
 
 MONTH VIEW:
   ├─ 7-column CSS grid with day cells
-  ├─ Today: blue circle highlight
-  ├─ Events: blue pills in cells (max 2 shown, "+N more" overflow)
-  ├─ Click a day → detail panel below grid
-  │   ├─ Edit (pencil) → opens CreateEventModal with event data
-  │   └─ Delete (trash) → confirm + deleteCalendarEvent()
+  ├─ Today: indigo circle highlight
+  ├─ Multi-day events: colour bars that span across cells using a greedy slot algorithm
+  │   (each event assigned a vertical slot so bars don't overlap)
+  ├─ Single-day events: pills below multi-day bars (max 2 shown, "+N more" overflow)
+  ├─ Click a day → drill down to Day view
   ├─ Navigation: ◀ Month Year ▶ + "Today" button
   └─ "+" on day cell → opens CreateEventModal with that date pre-filled
+
+WEEK VIEW:
+  ├─ All-day row at the top (multi-day events span columns)
+  ├─ Scrollable time grid (64px per hour, starts scrolled to 7am)
+  ├─ Concurrent timed events laid out side-by-side via sweep-line algorithm
+  ├─ Today column has a subtle indigo tint + current-time indicator (coral dot + line)
+  ├─ Click a day header → drills down to Day view
+  └─ Navigation: ◀ Week ▶ + "Today" button
+
+DAY VIEW:
+  ├─ All-day events shown as coral pills at the top
+  ├─ Scrollable time grid (same 64px/hr scale as Week view)
+  ├─ Click an empty hour slot → opens CreateEventModal pre-filled with that time
+  ├─ Current-time indicator (coral dot + line)
+  └─ Navigation: ◀ Day ▶ + "Today" button
 
 AGENDA VIEW:
   ├─ Events grouped by date (sticky date headers)
   ├─ Edit + Delete buttons on each card
   └─ Empty state: "No events this month"
+
+View switching:
+  ├─ Month/Agenda → Week/Day: preserves selected day (or today) as the anchor date
+  └─ Week/Day → Month/Agenda: syncs year/month from currentDate to reload the right month
 ```
 
 ### 11. Shopping List
@@ -528,7 +569,7 @@ ADD MEMBER flow:
 | Onboarding | `/onboarding` | Family name creation (post-signup) |
 | Dashboard | `/dashboard` | Widget-based overview with stats |
 | Tasks | `/dashboard/tasks` | Full task list with All/Pending/Completed filters |
-| Calendar | `/dashboard/calendar` | Month grid + agenda views, event CRUD |
+| Calendar | `/dashboard/calendar` | Month, Week, Day, and Agenda views, event CRUD, multi-day event spanning |
 | Shopping List | `/dashboard/shopping-list` | Shopping list + shopping mode + presence |
 | Profile | `/dashboard/profile` | User info, password change, family member management |
 
@@ -537,7 +578,7 @@ ADD MEMBER flow:
 | Widget | File | Description |
 |--------|------|-------------|
 | `DashboardStats` | `components/dashboard/DashboardStats.tsx` | Three stat cards: Done Today, Daily Tasks, This Week |
-| `TodaysTasksWidget` | `components/dashboard/TodaysTasksWidget.tsx` | Up to 3 incomplete tasks. Task title is a clickable button that opens edit modal. Overdue badge. Quick-add form |
+| `TodaysTasksWidget` | `components/dashboard/TodaysTasksWidget.tsx` | Up to 3 incomplete tasks. Task title is a clickable button that opens edit modal. Overdue badge. Single quick-add bar — expands on focus with a "More options →" link that opens `CreateTaskModal` for the full form |
 | `ShoppingListWidget` | `components/dashboard/ShoppingListWidget.tsx` | Up to 4 shopping items + quick-add. "Shop" button links to `?mode=shopping` |
 | `UpcomingEventsWidget` | `components/dashboard/UpcomingEventsWidget.tsx` | This week's events. Click to open inline detail modal |
 | `FamilyActivityWidget` | `components/dashboard/FamilyActivityWidget.tsx` | Members ranked by weekly task completions |
@@ -561,8 +602,10 @@ ADD MEMBER flow:
 
 | Hook | File | Description |
 |------|------|-------------|
-| `useRealtimeSync` | `hooks/useRealtimeSync.ts` | Subscribes to Supabase Realtime Postgres changes for a table. Also syncs across tabs via `BroadcastChannel`. Accepts optional `tier` — free tier falls back to polling (3 min) except for `active_custody` which stays realtime |
-| `useShoppingPresence` | `hooks/useShoppingPresence.ts` | Tracks which family members are in shopping mode using Supabase Realtime presence. Requires `getSession()` + `setAuth()` before channel creation |
+| `useRealtimeSync` | `apps/web/hooks/useRealtimeSync.ts` | **Web-only wrapper.** Calls `useRealtimeSubscription` from `@kinnect/hooks` for cross-device sync, then adds two web-specific layers: `BroadcastChannel` for instant cross-tab sync within the same browser session, and a `visibilitychange` listener that refetches all data when a backgrounded tab regains focus. Returns a `broadcast(table)` function callers invoke after a local mutation to notify other open tabs immediately |
+| `useShoppingPresence` | `apps/web/hooks/useShoppingPresence.ts` | **Shim** — re-exports `useShoppingPresence` from `@kinnect/hooks`. Import from `@kinnect/hooks` directly in new code |
+| `useRealtimeSubscription` | `packages/hooks/src/useRealtimeSubscription.ts` | **Shared (web + RN).** Portable Supabase Postgres Changes subscription. No DOM APIs. Accepts `familyId` and an `onSync` map of `{ table: reloadFn }` |
+| `useShoppingPresence` | `packages/hooks/src/useShoppingPresence.ts` | **Shared (web + RN).** Tracks which family members are in shopping mode using Supabase Realtime presence. Requires `getSession()` + `setAuth()` before channel creation. No DOM APIs |
 
 ### Shared Components
 
@@ -639,17 +682,29 @@ ADD MEMBER flow:
 ## Code Sharing Strategy
 
 ```
-@kinnect/core (shared)          apps/web (web only)        apps/mobile (future)
-┌────────────────────────┐     ┌───────────────────┐      ┌───────────────────┐
-│ Supabase queries       │     │ Next.js pages      │      │ React Native      │
-│ Auth functions         │◄────│ React components   │      │ screens           │
-│ TypeScript types       │     │ Tailwind styles     │      │ Native navigation │
-│ Business logic         │◄────────────────────────────────│ Mobile UI         │
-└────────────────────────┘     └───────────────────┘      └───────────────────┘
-       60-70% reuse
+@kinnect/core (shared)          @kinnect/hooks (shared)      apps/web (web only)        apps/mobile (RN)
+┌────────────────────────┐     ┌──────────────────────┐     ┌───────────────────┐      ┌───────────────────┐
+│ Supabase queries       │     │ useRealtimeSubscri-  │     │ Next.js pages      │      │ React Native      │
+│ Auth functions         │◄────│   ption              │◄────│ React components   │◄─────│ screens           │
+│ TypeScript types       │     │ useShoppingPresence  │     │ Tailwind styles    │      │ Native navigation │
+│ Date formatters        │◄────└──────────────────────┘     │ BroadcastChannel   │      │ AppState sync     │
+│ Role constants         │◄──────────────────────────────────────────────────────────────│ Mobile UI         │
+└────────────────────────┘                                  └───────────────────┘      └───────────────────┘
 ```
 
-All database queries, auth logic, and types live in `@kinnect/core`. Web-specific UI lives in `apps/web`. When a mobile app is added, it imports `@kinnect/core` and only needs its own UI layer.
+**What lives where:**
+
+| Layer | Package | Web-only? | RN-ready? |
+|-------|---------|-----------|-----------|
+| DB queries, auth, types | `@kinnect/core` | No | Yes |
+| Date formatters (`getTodayStr` etc.) | `@kinnect/core/utils` | No | Yes |
+| Role labels + hex colors | `@kinnect/core/utils` | No | Yes |
+| Portable React hooks | `@kinnect/hooks` | No | Yes |
+| BroadcastChannel + visibilitychange | `apps/web/hooks/useRealtimeSync.ts` | Yes | — |
+| Tailwind role classes (`ROLE_COLORS`) | `apps/web/lib/constants.ts` | Yes | — |
+| Next.js UI, pages, layouts | `apps/web` | Yes | — |
+
+All re-export shims in `apps/web/lib/` and `apps/web/hooks/` keep existing import paths working while the source of truth lives in the shared packages.
 
 > **Notifications:** Push notifications are deferred to when the mobile app is built.
 > The `push_token` column on `users` is already in place. Presence (via Supabase Realtime)
@@ -881,12 +936,12 @@ Used in: task complete/uncomplete, shopping item toggle/delete, dashboard item c
 ### Supabase Realtime
 Two patterns are used:
 
-**Data sync** (`useRealtimeSync`):
-- Subscribes to Postgres changes on a table
-- On change: calls a `refetch` callback
-- Also syncs across tabs via `BroadcastChannel` so other open tabs update without a separate WebSocket subscription
+**Data sync** (`useRealtimeSync` on web / `useRealtimeSubscription` on RN):
+- `useRealtimeSubscription` (`@kinnect/hooks`) — portable: subscribes to Supabase Postgres Changes, calls a `refetch` callback per table. No DOM APIs; works on React Native
+- `useRealtimeSync` (`apps/web`) — web wrapper on top of the above: adds `BroadcastChannel` for instant cross-tab sync within the same browser, and a `visibilitychange` listener that refetches when a backgrounded tab regains focus (mobile browsers kill WebSocket connections in the background). Returns a `broadcast(table)` function to notify other tabs after a local write
+- React Native equivalent: use `useRealtimeSubscription` directly and add `AppState`-based refetch logic instead of `visibilitychange`
 
-**Presence** (`useShoppingPresence`):
+**Presence** (`useShoppingPresence` — shared via `@kinnect/hooks`):
 - Uses Supabase Realtime presence channels (not Postgres changes)
 - Requires a user JWT — `getSession()` + `setAuth(token)` must be called before creating the channel, otherwise subscriptions time out
 - Channel is stable per identity (created once, not recreated on mode toggle)

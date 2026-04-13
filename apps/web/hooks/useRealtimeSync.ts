@@ -1,14 +1,20 @@
-import {useCallback, useEffect, useRef} from 'react'
-import {getSupabase} from '@kinnect/core'
-import logger from '@/lib/logger'
+import { useCallback, useEffect, useRef } from 'react'
+import { useRealtimeSubscription } from '@kinnect/hooks'
+
 
 /**
- * Subscribes to Supabase Postgres Changes for live cross-device sync
- * and uses BroadcastChannel for instant cross-tab sync (same browser).
+ * Web wrapper around the shared useRealtimeSubscription hook.
  *
- * - Postgres Changes: real-time DB events via Supabase Realtime
- * - BroadcastChannel: instant sync across tabs on the same browser
- * - Returns a `broadcast` function to notify other tabs immediately
+ * Adds two web-specific layers on top of the portable Supabase Postgres Changes subscription:
+ *   1. BroadcastChannel — instant cross-tab sync within the same browser session
+ *   2. visibilitychange  — refetch all data when a background tab regains focus
+ *      (mobile browsers kill WebSocket connections in the background)
+ *
+ * Returns a `broadcast(table)` function that callers invoke after a local mutation
+ * to notify other open tabs immediately, without waiting for the Supabase event.
+ *
+ * React Native equivalent: use useRealtimeSubscription directly from @kinnect/hooks
+ * and add AppState-based refetch logic instead of visibilitychange.
  */
 export function useRealtimeSync(
   familyId: string | null | undefined,
@@ -17,7 +23,10 @@ export function useRealtimeSync(
   const onSyncRef = useRef(onSync)
   onSyncRef.current = onSync
 
-  // Cross-tab sync via BroadcastChannel (instant, same browser)
+  // ── Portable: Supabase Postgres Changes (cross-device) ──────────────
+  useRealtimeSubscription(familyId, onSync)
+
+  // ── Web-only: BroadcastChannel (instant cross-tab, same browser) ────
   useEffect(() => {
     if (!familyId) return
 
@@ -32,51 +41,7 @@ export function useRealtimeSync(
     return () => bc.close()
   }, [familyId])
 
-  // Supabase Postgres Changes for cross-device sync
-  useEffect(() => {
-    if (!familyId) return
-
-    const supabase = getSupabase()
-    const tables = Object.keys(onSyncRef.current)
-
-    // Unique channel name prevents collisions when effects re-run (e.g. React strict mode)
-    let channel = supabase.channel(`family:${familyId}:${Date.now()}`)
-
-    for (const table of tables) {
-      // list_items doesn't have family_id — subscribe without filter (RLS handles visibility)
-      const config: {
-        event: '*'
-        schema: 'public'
-        table: string
-        filter?: string
-      } = {
-        event: '*',
-        schema: 'public',
-        table,
-      }
-
-      if (table !== 'list_items') {
-        config.filter = `family_id=eq.${familyId}`
-      }
-
-      channel = channel.on('postgres_changes', config, () => {
-        if (onSyncRef.current[table]) {
-          onSyncRef.current[table]()
-        }
-      })
-    }
-
-    channel.subscribe((status) => {
-      logger.info('Realtime status', { status })
-    })
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [familyId])
-
-  // Refetch all data when the tab becomes visible again (mobile browsers
-  // kill WebSocket connections in the background, so data may be stale)
+  // ── Web-only: refetch when tab regains visibility ────────────────────
   useEffect(() => {
     if (!familyId) return
 
@@ -90,15 +55,18 @@ export function useRealtimeSync(
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [familyId])
 
-  // Broadcast to other tabs instantly
-    return useCallback((table: string) => {
+  // ── Web-only: notify other tabs after a local write ──────────────────
+  return useCallback(
+    (table: string) => {
       if (!familyId) return
       try {
-          const bc = new BroadcastChannel(`kinnect:${familyId}`)
-          bc.postMessage({table})
-          bc.close()
+        const bc = new BroadcastChannel(`kinnect:${familyId}`)
+        bc.postMessage({ table })
+        bc.close()
       } catch {
-          // BroadcastChannel not supported
+        // BroadcastChannel not available (older browsers / server-side)
       }
-  }, [familyId])
+    },
+    [familyId]
+  )
 }

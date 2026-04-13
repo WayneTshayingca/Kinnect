@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { createCalendarEvent, updateCalendarEvent, type CalendarEvent } from '@kinnect/core'
+import { createCalendarEvent, updateCalendarEvent, type CalendarEvent, getTodayStr } from '@kinnect/core'
 import logger from '@/lib/logger'
 
 interface CreateEventModalProps {
@@ -54,9 +54,9 @@ export default function CreateEventModal({
       setTitle('')
       setDescription('')
       setLocation('')
-      setStartDate(defaultDate || '')
+      setStartDate(defaultDate || getTodayStr())
       setStartTime('09:00')
-      setEndDate(defaultDate || '')
+      setEndDate(defaultDate || getTodayStr())
       setEndTime('10:00')
       setAllDay(false)
     }
@@ -67,12 +67,15 @@ export default function CreateEventModal({
     setLoading(true)
 
     try {
+      // All-day events: append 'Z' to treat as UTC directly, so toISOString()
+      // doesn't shift the date (e.g. SAST midnight would roll back to the previous
+      // day in UTC without the explicit Z). Timed events use local time as before.
       const startDateTime = allDay
-        ? `${startDate}T00:00:00`
-        : `${startDate}T${startTime}:00`
+        ? new Date(`${startDate}T00:00:00Z`).toISOString()
+        : new Date(`${startDate}T${startTime}:00`).toISOString()
       const endDateTime = allDay
-        ? `${endDate}T23:59:59`
-        : `${endDate}T${endTime}:00`
+        ? new Date(`${endDate}T23:59:59Z`).toISOString()
+        : new Date(`${endDate}T${endTime}:00`).toISOString()
 
       if (isEditing) {
         await updateCalendarEvent(event.id, {
@@ -181,6 +184,7 @@ export default function CreateEventModal({
               </label>
               <input
                 type="date"
+                lang="en-ZA"
                 required
                 value={startDate}
                 onChange={(e) => {
@@ -215,6 +219,7 @@ export default function CreateEventModal({
               </label>
               <input
                 type="date"
+                lang="en-ZA"
                 required
                 value={endDate}
                 min={startDate}

@@ -196,6 +196,13 @@ export default function Home() {
                 Sign up
               </Link>
             </div>
+
+            <p className="text-center text-xs text-gray-400">
+              By signing in you agree to our{' '}
+              <Link href="/privacy" className="hover:text-gray-600 underline underline-offset-2">
+                Privacy Policy
+              </Link>
+            </p>
           </form>
         </div>
       </div>

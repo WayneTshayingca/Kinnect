@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { completeTask, createTask, type Task, type User } from '@kinnect/core'
-import { AlertCircle, CheckCircle, Circle, Pencil, Plus } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Circle, Pencil, Plus } from 'lucide-react'
 import logger from '@/lib/logger'
 import { ROLE_COLORS } from '@/lib/constants'
 import { getTodayStr } from '@/lib/formatters'
@@ -32,8 +32,9 @@ export default function TodaysTasksWidget({
 }: TodaysTasksWidgetProps) {
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [isAdding, setIsAdding] = useState(false)
+  const [poppingId, setPoppingId] = useState<string | null>(null)
+  const [inputFocused, setInputFocused] = useState(false)
 
-  // Pre-compute member lookup map for O(1) access
   const membersMap = useMemo(() => {
     const map: Record<string, User> = {}
     for (const m of members) map[m.id] = m
@@ -55,16 +56,16 @@ export default function TodaysTasksWidget({
   }
 
   async function handleComplete(taskId: string) {
-    // Optimistic — notify parent immediately for instant UI update
+    setPoppingId(taskId)
     onTaskCompleted(taskId)
     try {
       await completeTask(taskId, userId)
-      // Sync after API confirms
       await onTaskCreated()
     } catch (error) {
       logger.error('Failed to complete task', error)
-      // Revert by refetching
       await onTaskCreated()
+    } finally {
+      setTimeout(() => setPoppingId(null), 450)
     }
   }
 
@@ -74,13 +75,12 @@ export default function TodaysTasksWidget({
 
     setIsAdding(true)
     try {
-      const today = new Date().toISOString().split('T')[0]
       await createTask({
         family_id: familyId,
         title: newTaskTitle.trim(),
         created_by: userId,
         assigned_to: [userId],
-        due_date: today,
+        due_date: getTodayStr(),
       })
       setNewTaskTitle('')
       await onTaskCreated()
@@ -96,12 +96,14 @@ export default function TodaysTasksWidget({
   const recentComplete = tasks.find((t) => t.completed)
 
   return (
-    <div className="bg-white rounded-[1.5rem] shadow-sm overflow-hidden">
+    <div className="bg-white rounded-[1.5rem] shadow-card overflow-hidden transition-shadow duration-200 hover:shadow-card-hover animate-slide-up flex flex-col">
       {/* Header */}
-      <div className="px-6 pt-6 pb-3 border-b border-gray-50">
+      <div className="px-6 pt-6 pb-3 border-b border-gray-100/70">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold flex items-center gap-2 text-brand-primary">
-            <CheckCircle className="h-5 w-5 text-brand-success" />
+          <h2 className="text-lg font-bold flex items-center gap-2.5 text-brand-primary">
+            <div className="w-7 h-7 rounded-xl bg-success-50 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="h-4 w-4 text-brand-success" />
+            </div>
             Today&apos;s Tasks
           </h2>
           <Link
@@ -113,21 +115,14 @@ export default function TodaysTasksWidget({
         </div>
       </div>
 
-      <div className="px-6 py-4">
+      <div className="px-6 py-4 flex-1 flex flex-col">
         {/* Tasks List */}
-        <div className="space-y-2">
+        <div className="flex-1 space-y-1">
           {incompleteTasks.length === 0 && !recentComplete ? (
             <div className="text-center py-4">
-              <p className="text-gray-400 text-sm font-medium mb-4">
-                No tasks for today!
+              <p className="text-gray-400 text-sm font-medium">
+                All clear for today!
               </p>
-              <button
-                onClick={onCreateTask}
-                className="px-4 py-2 bg-brand-accent text-white text-sm font-bold rounded-xl hover:bg-accent-600 transition-colors inline-flex items-center gap-1"
-              >
-                <Plus className="w-4 h-4" />
-                New Task
-              </button>
             </div>
           ) : (
             <>
@@ -135,16 +130,18 @@ export default function TodaysTasksWidget({
               {incompleteTasks.map((task) => (
                 <div
                   key={task.id}
-                  className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors group"
+                  className="flex items-start gap-3 p-3 hover:bg-gray-50/80 rounded-xl transition-colors group"
                 >
                   <button
                     onClick={() => handleComplete(task.id)}
-                    className="mt-0.5 text-gray-300 hover:text-brand-success transition-colors"
+                    className={`mt-0.5 text-gray-300 hover:text-brand-success transition-colors shrink-0 ${
+                      poppingId === task.id ? 'animate-completion-pop text-brand-success' : ''
+                    }`}
                   >
                     <Circle className="w-5 h-5" />
                   </button>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <button
                         onClick={() => onEditTask(task)}
                         className="text-sm font-bold text-brand-primary group-hover:text-brand-accent transition-colors text-left"
@@ -165,15 +162,14 @@ export default function TodaysTasksWidget({
                             <div
                               key={id}
                               className={`h-5 w-5 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-[8px] text-white font-bold ${
-                                ROLE_COLORS[getMemberRole(id) || ''] ||
-                                'bg-gray-500'
+                                ROLE_COLORS[getMemberRole(id) || ''] || 'bg-gray-500'
                               }`}
                             >
                               {getMemberName(id).charAt(0)}
                             </div>
                           ))}
                         </div>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-400">
                           {task.assigned_to.map((id) => getMemberName(id)).join(', ')}
                         </span>
                       </div>
@@ -191,15 +187,13 @@ export default function TodaysTasksWidget({
 
               {/* Recent completion */}
               {recentComplete && (
-                <div className="flex items-start gap-3 p-3 bg-success-50/50 rounded-xl border border-success-100">
-                  <CheckCircle className="w-5 h-5 text-brand-success mt-0.5" />
+                <div className="flex items-start gap-3 p-3 bg-success-50/50 rounded-xl border border-success-100/60 animate-fade-in">
+                  <CheckCircle2 className="w-5 h-5 text-brand-success mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-600 line-through">
+                    <div className="text-sm font-medium text-gray-500 line-through">
                       {recentComplete.title}
                     </div>
-                    <div className="text-xs text-brand-success font-bold mt-0.5">
-                      Done!
-                    </div>
+                    <div className="text-xs text-brand-success font-bold mt-0.5">Done!</div>
                   </div>
                 </div>
               )}
@@ -207,24 +201,41 @@ export default function TodaysTasksWidget({
           )}
         </div>
 
-        {/* Quick Add Form */}
-        <form onSubmit={handleQuickAdd} className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
-          <input
-            type="text"
-            value={newTaskTitle}
-            onChange={(e) => setNewTaskTitle(e.target.value)}
-            placeholder="Quick add task..."
-            className="flex-1 px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent placeholder:text-gray-400"
-            disabled={isAdding}
-          />
-          <button
-            type="submit"
-            disabled={!newTaskTitle.trim() || isAdding}
-            className="px-4 py-2 bg-brand-accent text-white text-sm font-bold rounded-xl hover:bg-accent-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-          >
-            <Plus className="w-4 h-4" />
-            Add
-          </button>
+        {/* Quick Add */}
+        <form onSubmit={handleQuickAdd} className="mt-auto pt-3 border-t border-gray-100/70">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setTimeout(() => setInputFocused(false), 150)}
+              placeholder="Add a task…"
+              className="flex-1 px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-300 focus:border-transparent placeholder:text-gray-400 transition-all"
+              disabled={isAdding}
+            />
+            <button
+              type="submit"
+              disabled={!newTaskTitle.trim() || isAdding}
+              className="px-3 py-2 bg-brand-accent text-white rounded-xl hover:bg-accent-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+              aria-label="Add task"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* More options — expands on focus */}
+          {inputFocused && (
+            <div className="flex items-center justify-end mt-1.5 animate-fade-in">
+              <button
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); onCreateTask() }}
+                className="flex items-center gap-1 text-sm font-bold text-brand-accent hover:bg-brand-bg px-3 py-1.5 rounded-lg transition-colors"
+              >
+                More options →
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>

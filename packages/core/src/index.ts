@@ -1,3 +1,8 @@
+// Utilities (platform-agnostic — safe for web and React Native)
+export * from './utils/formatters'
+export * from './utils/constants'
+export * from './utils/saHolidays'
+
 // Supabase client
 export { initSupabase, getSupabase } from './supabase/client'
 
@@ -15,6 +20,9 @@ export * from './supabase/calendar'
 
 // Shopping List
 export * from './supabase/shopping-list'
+
+// Responsibilities
+export * from './supabase/responsibilities'
 
 // Types
 export * from './types/database'

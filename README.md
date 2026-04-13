@@ -83,14 +83,13 @@ kinnect/
    - `supabase/migrations/009_enable_realtime.sql`
    - `supabase/migrations/010_multi_family_support.sql`
 
-   **Upcoming migrations (run when implementing each phase):**
-   - `supabase/migrations/011_add_responsibility_templates.sql` — Phase 2
-   - `supabase/migrations/012_add_responsibility_flows.sql` — Phase 2
-   - `supabase/migrations/013_add_responsibility_occurrences.sql` — Phase 2
-   - `supabase/migrations/014_enable_realtime_responsibilities.sql` — Phase 2
-   - `supabase/migrations/015_add_activity_log.sql` — Phase 3
-   - `supabase/migrations/016_add_subscriptions.sql` — Phase 4
-   - `supabase/migrations/017_seed_free_subscriptions.sql` — Phase 4
+   **Run these migrations too (routines feature):**
+   - `supabase/migrations/011_add_responsibility_templates.sql`
+   - `supabase/migrations/012_add_responsibility_flows.sql`
+   - `supabase/migrations/013_add_responsibility_occurrences.sql`
+   - `supabase/migrations/014_enable_realtime_responsibilities.sql`
+   - `supabase/migrations/015_add_update_flow_rpc.sql`
+   - `supabase/migrations/016_add_end_time_to_flows.sql`
 
 4. **Start the development server:**
    ```bash
@@ -134,9 +133,9 @@ npm run type-check   # Type check all packages
 | **calendar_events** | Shared family calendar events with location |
 | **lists** | Shopping/grocery lists per family |
 | **list_items** | Individual items within a list |
-| **responsibility_templates** | System templates for recurring routines (school run, shopping duty, etc.) — Phase 2 |
-| **responsibility_flows** | Recurring household responsibilities with assignee + recurrence rule — Phase 2 |
-| **responsibility_occurrences** | Pre-generated daily occurrences from flows (90 days ahead) — Phase 2 |
+| **responsibility_templates** | System templates for recurring routines (school run, shopping duty, etc.) |
+| **responsibility_flows** | Recurring household responsibilities with assignee, recurrence rule, start/end time |
+| **responsibility_occurrences** | Pre-generated daily occurrences from flows (90 days ahead) |
 | **activity_log** | Family activity feed (task completions, responsibilities, member events, etc.) — Phase 3 |
 | **subscriptions** | Billing tier per family (free / plus / family) via PayFast — Phase 4 |
 
@@ -169,6 +168,11 @@ npm run type-check   # Type check all packages
 - [x] Sentry error monitoring (with correct PostgrestError capture)
 - [x] Domain-filtered debug logging (`NEXT_PUBLIC_DEBUG_DOMAINS`)
 - [x] Favicon
+- [x] Collapsible sidebar (desktop/tablet) with icon rail and localStorage persistence
+- [x] South African public holidays displayed in calendar + upcoming events widget
+- [x] Today's responsibilities dashboard widget (routines overview)
+- [x] Routines management page (create, edit, deactivate, delete)
+- [x] Privacy policy page at `/privacy` (POPIA-compliant, Google OAuth publishing requirement)
 
 ### Upcoming Features (see `IMPLEMENTATION.md` for full spec)
 
@@ -177,12 +181,14 @@ npm run type-check   # Type check all packages
 - [x] OAuth callback creates profile on first login, routes returning users to dashboard
 - [x] Invited users who sign in with Google instead of their invite link are auto-merged
 
-**Phase 2 — Today's Responsibilities**
-- [ ] Dashboard card: today's active responsibilities (title, assignee, time, category)
-- [ ] Recurring flows with daily/weekday/weekend/custom recurrence rules
-- [ ] Quick reassign: change today's occurrence in under 10 seconds
-- [ ] "New Routine" modal: create a recurring responsibility in under 60 seconds
-- [ ] System templates: school run, shopping duty, household errand, staff visit
+**Phase 2 — Routines & Responsibilities** ✓ Complete
+- [x] Dashboard card: today's active responsibilities (title, assignee, time, category)
+- [x] Recurring flows with daily/weekday/weekend/custom recurrence rules
+- [x] Start time and end time per flow (e.g. drop-off + pick-up for school runs)
+- [x] Quick reassign: change today's occurrence in under 10 seconds
+- [x] "New Routine" modal: create a recurring responsibility in under 60 seconds
+- [x] System templates: school run, shopping duty, household errand, staff visit
+- [x] Routines management page: view, edit, deactivate, and permanently delete routines
 
 **Phase 3 — Activity Tracker**
 - [ ] Family activity feed widget (replaces member completion count)
@@ -210,12 +216,13 @@ npm run type-check   # Type check all packages
 1. Push code to GitHub
 2. Connect repository to Vercel
 3. Set the root directory to `apps/web`
-4. Add environment variables in Vercel dashboard:
+4. Set the build command to `cd ../.. && npx turbo run build --filter=@kinnect/web`
+5. Add environment variables in Vercel dashboard:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
    - `NEXT_PUBLIC_APP_URL` (your Vercel deployment URL — required for Google OAuth)
-5. Vercel will auto-detect Next.js and deploy
+6. Vercel will auto-detect Next.js and deploy
 
 ### Supabase (Production)
 

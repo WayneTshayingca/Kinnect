@@ -4,6 +4,7 @@ import {useEffect, useState} from 'react'
 import toast from 'react-hot-toast'
 import {createTask, updateTask, getFamilyMembers, type Task, type User} from '@kinnect/core'
 import logger from '@/lib/logger'
+import { getTodayStr } from '@/lib/formatters'
 
 interface CreateTaskModalProps {
   isOpen: boolean
@@ -49,7 +50,7 @@ export default function CreateTaskModal({
     } else if (isOpen) {
       setTitle('')
       setDescription('')
-      setDueDate('')
+      setDueDate(getTodayStr())
       setAssignedTo([])
     }
   }, [isOpen, task])
@@ -181,6 +182,7 @@ export default function CreateTaskModal({
             </label>
             <input
               type="date"
+              lang="en-ZA"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900"

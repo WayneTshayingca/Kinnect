@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@kinnect/core": "*",
+    "@kinnect/hooks": "*",
     "@sentry/nextjs": "^10.38.0",
     "@supabase/supabase-js": "^2.39.3",
     "@vercel/analytics": "^1.6.1",
