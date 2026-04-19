@@ -3,12 +3,17 @@ import type { Database } from '../types/database'
 
 let supabaseClient: SupabaseClient<Database> | null = null
 
-export function initSupabase(url: string, anonKey: string): SupabaseClient<Database> {
+export function initSupabase(
+  url: string,
+  anonKey: string,
+  options?: { storage?: Parameters<typeof createClient>[2] extends { auth?: { storage?: infer S } } ? S : never }
+): SupabaseClient<Database> {
   if (!supabaseClient) {
     supabaseClient = createClient<Database>(url, anonKey, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
+        ...(options?.storage ? { storage: options.storage } : {}),
       },
     })
 
