@@ -5,40 +5,16 @@
     "version": "1.0.0",
     "scheme": "kinnect",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#1E1B4B"
+    "updates": {
+      "enabled": false
     },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "africa.kinnect.app"
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1E1B4B"
-      },
-      "package": "africa.kinnect.app",
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "autoVerify": true,
-          "data": [
-            {
-              "scheme": "kinnect"
-            }
-          ],
-          "category": ["BROWSABLE", "DEFAULT"]
-        }
-      ]
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/favicon.png"
+      "package": "africa.kinnect.app"
     },
     "plugins": [
       "expo-router",
