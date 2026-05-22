@@ -15,7 +15,7 @@ import {
 } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
 import toast from 'react-hot-toast'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, User as UserIcon } from 'lucide-react'
 import AddMemberModal from '@/components/AddMemberModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import logger from '@/lib/logger'
@@ -298,10 +298,20 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-0">
-      {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-        <p className="text-gray-500 mt-1">Manage your details and family circle</p>
+      {/* Gradient banner */}
+      <div
+        className="rounded-2xl mb-8 px-6 py-6 flex items-center gap-4"
+        style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #3730a3 100%)' }}
+      >
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,0.15)' }}>
+          <UserIcon className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-white leading-tight">Family Profile</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'rgba(199,195,255,0.85)' }}>
+            {members.length} member{members.length !== 1 ? 's' : ''}
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

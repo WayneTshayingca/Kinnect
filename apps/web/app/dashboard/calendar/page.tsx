@@ -481,28 +481,30 @@ export default function CalendarPage() {
   // ── banner nav ─────────────────────────────────────────
 
   function BannerNav() {
+    const navBtn = "p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-colors flex items-center justify-center"
+    const todayBtn = "text-xs px-3 py-1 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded-lg border border-primary-200 font-semibold transition-colors"
     if (view === 'month' || view === 'agenda') {
       return (
-        <div className="flex items-center justify-between">
-          <button onClick={prevMonth} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-colors"><ChevronLeft className="w-5 h-5" /></button>
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold">{MONTH_NAMES[month]} {year}</h2>
-            {!isCurMon && <button onClick={goToToday} className="text-xs px-3 py-1 bg-white/15 hover:bg-white/25 rounded-lg border border-white/15 font-semibold">Today</button>}
+        <div className="flex items-center gap-2">
+          <button onClick={prevMonth} className={navBtn}><ChevronLeft className="w-4 h-4 text-gray-600" /></button>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-bold text-brand-primary">{MONTH_NAMES[month]} {year}</h2>
+            {!isCurMon && <button onClick={goToToday} className={todayBtn}>Today</button>}
           </div>
-          <button onClick={nextMonth} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-colors"><ChevronRight className="w-5 h-5" /></button>
+          <button onClick={nextMonth} className={navBtn}><ChevronRight className="w-4 h-4 text-gray-600" /></button>
         </div>
       )
     }
     if (view === 'day') {
       const label = currentDate.toLocaleDateString('en-ZA', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
       return (
-        <div className="flex items-center justify-between">
-          <button onClick={prevDay} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-colors"><ChevronLeft className="w-5 h-5" /></button>
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-bold">{label}</h2>
-            {!isToday(currentDate) && <button onClick={goToToday} className="text-xs px-3 py-1 bg-white/15 hover:bg-white/25 rounded-lg border border-white/15 font-semibold">Today</button>}
+        <div className="flex items-center gap-2">
+          <button onClick={prevDay} className={navBtn}><ChevronLeft className="w-4 h-4 text-gray-600" /></button>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-bold text-brand-primary">{label}</h2>
+            {!isToday(currentDate) && <button onClick={goToToday} className={todayBtn}>Today</button>}
           </div>
-          <button onClick={nextDay} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-colors"><ChevronRight className="w-5 h-5" /></button>
+          <button onClick={nextDay} className={navBtn}><ChevronRight className="w-4 h-4 text-gray-600" /></button>
         </div>
       )
     }
@@ -514,13 +516,13 @@ export default function CalendarPage() {
       : `${s.toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })} – ${e.toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}, ${s.getFullYear()}`
     const hasToday = weekDates.some(d => isToday(d))
     return (
-      <div className="flex items-center justify-between">
-        <button onClick={prevWeek} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-colors"><ChevronLeft className="w-5 h-5" /></button>
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-bold">{label}</h2>
-          {!hasToday && <button onClick={goToToday} className="text-xs px-3 py-1 bg-white/15 hover:bg-white/25 rounded-lg border border-white/15 font-semibold">Today</button>}
+      <div className="flex items-center gap-2">
+        <button onClick={prevWeek} className={navBtn}><ChevronLeft className="w-4 h-4 text-gray-600" /></button>
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-bold text-brand-primary">{label}</h2>
+          {!hasToday && <button onClick={goToToday} className={todayBtn}>Today</button>}
         </div>
-        <button onClick={nextWeek} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-colors"><ChevronRight className="w-5 h-5" /></button>
+        <button onClick={nextWeek} className={navBtn}><ChevronRight className="w-4 h-4 text-gray-600" /></button>
       </div>
     )
   }
@@ -530,37 +532,42 @@ export default function CalendarPage() {
   // ─────────────────────────────────────────────────────────
 
   return (
-    <div>
+    <div className="px-4 sm:px-0 pb-8 space-y-4">
       {/* ── Banner ──────────────────────────────── */}
       <div
-        className="text-white p-6 md:p-8 rounded-b-[2.5rem] -mx-4 sm:-mx-6 lg:-mx-8 -mt-6 mb-6"
+        className="rounded-[1.5rem] px-5 py-5 text-white"
         style={{
-          background: 'linear-gradient(135deg,#1e1b4b 0%,#312e81 45%,#3730a3 100%)',
-          boxShadow: '0 8px 32px -4px rgb(49 46 129/.35),0 2px 8px -2px rgb(49 46 129/.2)',
+          background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #3730a3 100%)',
+          boxShadow: '0 8px 32px -4px rgb(49 46 129 / 0.35), 0 2px 8px -2px rgb(49 46 129 / 0.2)',
         }}
       >
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Calendar</h1>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-2xl bg-white/10 flex items-center justify-center border border-white/10 shrink-0">
+              <Calendar className="w-6 h-6 text-white" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold tracking-tight">Calendar</h1>
               <p className="text-indigo-300 text-sm font-medium mt-0.5">
                 {eventsThisMonth} event{eventsThisMonth !== 1 ? 's' : ''} this month
               </p>
             </div>
-            <button
-              onClick={() => openCreate()}
-              className="flex items-center gap-2 px-4 py-2 bg-accent-500 hover:bg-accent-600 text-white text-sm font-bold rounded-xl transition-colors"
-            >
-              <Plus className="w-4 h-4" />Add Event
-            </button>
           </div>
-          <BannerNav />
+          <button
+            onClick={() => openCreate()}
+            className="shrink-0 flex items-center gap-1.5 px-3 sm:px-4 py-2.5 bg-accent-500 hover:bg-accent-400 active:bg-accent-600 text-white text-sm font-bold rounded-xl transition-colors shadow-sm whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden min-[360px]:inline">Add Event</span>
+          </button>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto">
-        {/* ── View Toggle ──────────────────────── */}
-        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit mb-5">
+      <div>
+        {/* ── View Toggle + Nav row ──────────────── */}
+        <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+          <BannerNav />
+          <div className="flex gap-1 bg-gray-100 border border-gray-200 rounded-xl p-1">
           {(['month','week','day','agenda'] as CalView[]).map(v => (
             <button
               key={v}
@@ -573,6 +580,7 @@ export default function CalendarPage() {
               {v.charAt(0).toUpperCase() + v.slice(1)}
             </button>
           ))}
+          </div>
         </div>
 
         {/* ═══════════════ MONTH VIEW ═══════════════ */}

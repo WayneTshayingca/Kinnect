@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   ShoppingBasket,
   Calendar,
+  Clock,
   User,
   LogOut,
   ChevronLeft,
@@ -22,7 +23,16 @@ import {
 
 // ── Constants ──────────────────────────────────────────────────────────
 
-const navItems = [
+const sidebarItems = [
+  { href: '/dashboard',               label: 'Dashboard', Icon: LayoutDashboard },
+  { href: '/dashboard/tasks',         label: 'Tasks',     Icon: CheckCircle2    },
+  { href: '/dashboard/shopping-list', label: 'Shopping',  Icon: ShoppingBasket  },
+  { href: '/dashboard/calendar',      label: 'Calendar',  Icon: Calendar        },
+  { href: '/dashboard/routines',      label: 'Routines',  Icon: Clock           },
+  { href: '/dashboard/profile',       label: 'Profile',   Icon: User            },
+]
+
+const mobileNavItems = [
   { href: '/dashboard',               label: 'Dashboard', Icon: LayoutDashboard },
   { href: '/dashboard/tasks',         label: 'Tasks',     Icon: CheckCircle2    },
   { href: '/dashboard/shopping-list', label: 'Shopping',  Icon: ShoppingBasket  },
@@ -113,7 +123,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         }
       `}</style>
 
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#f0eff8]">
 
         {/* ── Sidebar — md+ ────────────────────────────── */}
         <aside
@@ -177,7 +187,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
           {/* Nav */}
           <nav className="flex-1 overflow-y-auto overflow-x-hidden" style={{ padding: '10px 8px' }}>
             <div className="space-y-0.5">
-              {navItems.map(({ href, label, Icon }) => {
+              {sidebarItems.map(({ href, label, Icon }) => {
                 const active = isActive(href)
                 return (
                   <Link
@@ -331,7 +341,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* ── Mobile Bottom Nav ───────────────────────── */}
         <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-gray-200">
           <div className="flex justify-around items-center h-16">
-            {navItems.map(({ href, label, Icon }) => {
+            {mobileNavItems.map(({ href, label, Icon }) => {
               const active = isActive(href)
               return (
                 <Link

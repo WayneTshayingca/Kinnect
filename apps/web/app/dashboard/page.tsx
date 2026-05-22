@@ -18,10 +18,9 @@ import {
     signOut,
     type Task,
     type User,
+    ROLE_HEX_COLORS,
 } from '@kinnect/core'
 import {useUser} from '@/components/providers/user-provider'
-import {Logo} from '@/components/Logo'
-import DashboardStats from '@/components/dashboard/DashboardStats'
 import TodaysTasksWidget from '@/components/dashboard/TodaysTasksWidget'
 import ShoppingListWidget from '@/components/dashboard/ShoppingListWidget'
 import UpcomingEventsWidget from '@/components/dashboard/UpcomingEventsWidget'
@@ -29,7 +28,7 @@ import FamilyActivityWidget from '@/components/dashboard/FamilyActivityWidget'
 import TodaysResponsibilitiesWidget from '@/components/dashboard/TodaysResponsibilitiesWidget'
 import {ErrorBoundary} from '@/components/ErrorBoundary'
 import {useRealtimeSync} from '@/hooks/useRealtimeSync'
-import {LogOut} from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import logger from '@/lib/logger'
 import toast from 'react-hot-toast'
 import { getTodayStr } from '@/lib/formatters'
@@ -43,16 +42,43 @@ const CreateRoutineModal = dynamic(() => import('@/components/CreateRoutineModal
 // ── helpers ──────────────────────────────────────────────
 
 function isRelevantTask(dueDateStr: string | null | undefined) {
-  if (!dueDateStr) return true // No due date = always relevantnicenic
+  if (!dueDateStr) return true
   const dateOnly = dueDateStr.split('T')[0]
-  return dateOnly <= getTodayStr() // Today or overdue
+  return dateOnly <= getTodayStr()
 }
-
 
 function getUpcomingRange() {
   const start = new Date(); start.setHours(0, 0, 0, 0)
   const end   = new Date(); end.setDate(end.getDate() + 14); end.setHours(23, 59, 59, 999)
   return { weekStart: start, weekEnd: end }
+}
+
+function getGreeting() {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good morning'
+  if (h < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
+function getHeaderDate() {
+  return new Date().toLocaleDateString('en-ZA', { weekday: 'long', month: 'long', day: 'numeric' })
+}
+
+function MemberAvatar({ member, size = 36 }: { member: User; size?: number }) {
+  const initials = member.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+  return (
+    <div
+      style={{
+        width: size, height: size, borderRadius: '50%',
+        background: ROLE_HEX_COLORS[member.role || ''] ?? '#6B7280',
+        border: '2px solid white',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: size * 0.36, fontWeight: 800, color: 'white', flexShrink: 0,
+      }}
+    >
+      {initials}
+    </div>
+  )
 }
 
 // ── component ────────────────────────────────────────────
@@ -74,10 +100,7 @@ export default function DashboardPage() {
   const [showAddMember, setShowAddMember] = useState(false)
   const [showCreateRoutine, setShowCreateRoutine] = useState(false)
 
-  // Track in-flight task mutations so realtime refetches don't overwrite optimistic state
   const inflightTasksRef = useRef<Map<string, Partial<Task>>>(new Map())
-
-  // Explicit counter so optimistic increments survive reloads that race the DB write
   const [completedTodayCount, setCompletedTodayCount] = useState(0)
 
   useEffect(() => {
@@ -89,7 +112,6 @@ export default function DashboardPage() {
     loadData(user.family_id)
   }, [user?.family_id])
 
-  // Count tasks completed on the local calendar date — timezone-safe
   function countCompletedToday(taskList: Task[]): number {
     const now = new Date()
     return taskList.filter((t) => {
@@ -112,11 +134,7 @@ export default function DashboardPage() {
           getFamily(familyId),
           getFamilyMembers(familyId),
           getTodaysTasks(familyId),
-          getCalendarEvents(
-            familyId,
-            weekStart.toISOString(),
-            weekEnd.toISOString()
-          ),
+          getCalendarEvents(familyId, weekStart.toISOString(), weekEnd.toISOString()),
           getShoppingListPreview(familyId, 4),
           getTodaysResponsibilities(familyId),
         ])
@@ -137,28 +155,21 @@ export default function DashboardPage() {
     }
   }
 
-  // Optimistic: mark task completed locally (no immediate refetch — the
-  // widget awaits the API call and then triggers onTaskCreated to sync)
   function handleTaskCompletedOptimistic(taskId?: string) {
     if (taskId) {
       const optimistic: Partial<Task> = { completed: true, completed_by: user!.id, completed_at: new Date().toISOString() }
       inflightTasksRef.current.set(taskId, optimistic)
-      setTasks((prev) =>
-        prev.map((t) => t.id === taskId ? { ...t, ...optimistic } : t)
-      )
+      setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, ...optimistic } : t))
       setCompletedTodayCount((prev) => prev + 1)
       broadcast('tasks')
-      // Clear in-flight after a short delay to allow realtime events to settle
       setTimeout(() => inflightTasksRef.current.delete(taskId), 3000)
     }
   }
 
-  // Optimistic: remove completed shopping item from preview, then sync
   function handleShoppingToggleOptimistic(itemId: string) {
     setShoppingItems((prev) => prev.filter((i) => i.id !== itemId))
     setShoppingTotalCount((prev) => Math.max(0, prev - 1))
     broadcast('list_items')
-    // Background sync
     if (user?.family_id) {
       getShoppingListPreview(user.family_id, 4).then((data) => {
         setShoppingItems(data.items)
@@ -170,49 +181,38 @@ export default function DashboardPage() {
   const reloadTasks = useCallback(async () => {
     if (user?.family_id) {
       const tasksData = await getTodaysTasks(user.family_id)
-      // Preserve optimistic state for any tasks still in-flight
       const inflight = inflightTasksRef.current
       const merged = inflight.size > 0
         ? tasksData.map((t) => inflight.has(t.id) ? { ...t, ...inflight.get(t.id) } : t)
         : tasksData
       setTasks(merged)
-      // Sync counter — take max so an optimistic increment never regresses if the
-      // DB reload races ahead of the completeTask write finishing
       setCompletedTodayCount((prev) => Math.max(prev, countCompletedToday(merged)))
     }
   }, [user?.family_id])
 
   const reloadMembers = useCallback(async () => {
-    if (user?.family_id) {
-      const membersData = await getFamilyMembers(user.family_id)
-      setMembers(membersData)
-    }
+    if (user?.family_id) setMembers(await getFamilyMembers(user.family_id))
   }, [user?.family_id])
 
   const reloadShopping = useCallback(async () => {
     if (user?.family_id) {
-      const shoppingData = await getShoppingListPreview(user.family_id, 4)
-      setShoppingItems(shoppingData.items)
-      setShoppingTotalCount(shoppingData.totalCount)
+      const data = await getShoppingListPreview(user.family_id, 4)
+      setShoppingItems(data.items)
+      setShoppingTotalCount(data.totalCount)
     }
   }, [user?.family_id])
 
   const reloadEvents = useCallback(async () => {
     if (user?.family_id) {
       const { weekStart, weekEnd } = getUpcomingRange()
-      const eventsData = await getCalendarEvents(user.family_id, weekStart.toISOString(), weekEnd.toISOString())
-      setEvents(eventsData)
+      setEvents(await getCalendarEvents(user.family_id, weekStart.toISOString(), weekEnd.toISOString()))
     }
   }, [user?.family_id])
 
   const reloadResponsibilities = useCallback(async () => {
-    if (user?.family_id) {
-      const data = await getTodaysResponsibilities(user.family_id)
-      setResponsibilities(data)
-    }
+    if (user?.family_id) setResponsibilities(await getTodaysResponsibilities(user.family_id))
   }, [user?.family_id])
 
-  // ── Realtime sync (Broadcast) ─────────────────────────
   const broadcast = useRealtimeSync(user?.family_id, {
     tasks: reloadTasks,
     list_items: reloadShopping,
@@ -226,66 +226,75 @@ export default function DashboardPage() {
     router.push('/')
   }
 
-  if (loading) {
-    return <DashboardLoading />
-  }
-
-  if (!user?.family_id) {
-    return null
-  }
+  if (loading) return <DashboardLoading />
+  if (!user?.family_id) return null
 
   // ── derived data ─────────────────────────────────────
-
   const relevantTasks = tasks.filter((t) => isRelevantTask(t.due_date))
-  const todaysTasks = relevantTasks.filter((t) => !t.completed)
+  const todaysTasks   = relevantTasks.filter((t) => !t.completed)
+  const completedRelevant = relevantTasks.filter((t) => t.completed).length
+
+  const firstName = user.name?.split(' ')[0] ?? 'there'
 
   // ── render ─────────────────────────────────────────────
-
   return (
     <div className="flex-1">
-      {/* ── Top Banner ────────────────────────────────── */}
-      <div
-        className="text-white p-6 md:p-8 rounded-b-[2.5rem] -mx-4 sm:-mx-6 lg:-mx-8 -mt-6"
-        style={{
-          background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #3730a3 100%)',
-          boxShadow: '0 8px 32px -4px rgb(49 46 129 / 0.35), 0 2px 8px -2px rgb(49 46 129 / 0.2)',
-        }}
-      >
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/10">
-                <Logo variant="icon" color="white" size="sm" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight">
-                  {family?.name}
-                </h1>
-                <p className="text-indigo-300 text-sm font-medium">
-                  Welcome back, {user.name}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={handleSignOut}
-              title="Sign out"
-              className="md:hidden p-2 rounded-xl bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-colors border border-white/10"
-            >
-              <LogOut className="h-5 w-5" />
-            </button>
-          </div>
 
-          <DashboardStats
-            doneToday={completedTodayCount}
-            dailyTasks={todaysTasks.length}
-          />
+      {/* ── Mobile top bar (only on dashboard — layout hides it here) ── */}
+      <div className="md:hidden flex items-center justify-between mb-5">
+        <span className="font-black text-primary-800 text-xl tracking-tight">kinnect</span>
+        <button
+          onClick={handleSignOut}
+          className="p-2 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-white/60 transition-colors"
+          title="Sign out"
+        >
+          <LogOut className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* ── Bento Header ───────────────────────────────── */}
+      <div className="flex items-start justify-between mb-5">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ color: '#a0a0c0' }}>
+            {getHeaderDate()}
+          </p>
+          <h1 className="text-[22px] font-black tracking-tight" style={{ color: '#312E81' }}>
+            {getGreeting()}, {firstName} 👋
+          </h1>
+        </div>
+
+        {/* Avatar stack */}
+        <div className="flex items-center shrink-0">
+          {members.slice(0, 3).map((m, i) => (
+            <div key={m.id} style={{ marginLeft: i > 0 ? -10 : 0, zIndex: 3 - i, position: 'relative' }}>
+              <MemberAvatar member={m} size={36} />
+            </div>
+          ))}
+          {members.length > 3 && (
+            <div
+              style={{
+                marginLeft: -10, width: 36, height: 36, borderRadius: '50%',
+                background: '#312E81', border: '2px solid white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontWeight: 800, color: 'white', flexShrink: 0,
+              }}
+            >
+              +{members.length - 3}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── Main Content ──────────────────────────────── */}
-      <div className="max-w-4xl mx-auto -mt-4 space-y-5 pb-6">
-        {/* Widget Grid: Tasks + Shopping List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      {/* ── Bento Grid ─────────────────────────────────── */}
+      <div
+        className="grid grid-cols-1 gap-3.5 pb-6"
+        style={{
+          gridTemplateColumns: 'minmax(0,1fr)',
+        }}
+      >
+        {/* ── Mobile: stacked layout ── */}
+        <div className="md:hidden flex flex-col gap-3">
+          {/* Tasks — full width */}
           <ErrorBoundary>
             <TodaysTasksWidget
               tasks={todaysTasks}
@@ -296,42 +305,116 @@ export default function DashboardPage() {
               onTaskCreated={async () => { await reloadTasks(); broadcast('tasks') }}
               onCreateTask={() => setShowCreateTask(true)}
               onEditTask={(task) => { setEditingTask(task); setShowCreateTask(true) }}
+              variant="bento"
+              completedCount={completedRelevant}
+              totalCount={relevantTasks.length}
             />
           </ErrorBoundary>
+
+          {/* Events + Shopping — side by side */}
+          <div className="grid grid-cols-2 gap-3">
+            <ErrorBoundary>
+              <UpcomingEventsWidget events={events} onCreateEvent={() => setShowCreateEvent(true)} variant="bento" />
+            </ErrorBoundary>
+            <ErrorBoundary>
+              <ShoppingListWidget
+                items={shoppingItems}
+                totalCount={shoppingTotalCount}
+                familyId={user.family_id}
+                userId={user.id}
+                members={members}
+                onItemAdded={() => { reloadShopping(); broadcast('list_items') }}
+                onItemToggled={handleShoppingToggleOptimistic}
+                variant="bento"
+              />
+            </ErrorBoundary>
+          </div>
+
+          {/* Routines */}
           <ErrorBoundary>
-            <ShoppingListWidget
-              items={shoppingItems}
-              totalCount={shoppingTotalCount}
-              familyId={user.family_id}
-              userId={user.id}
+            <TodaysResponsibilitiesWidget
+              responsibilities={responsibilities}
               members={members}
-              onItemAdded={() => { reloadShopping(); broadcast('list_items') }}
-              onItemToggled={handleShoppingToggleOptimistic}
+              userId={user.id}
+              onChanged={() => { reloadResponsibilities(); broadcast('responsibility_occurrences') }}
+              onCreateRoutine={() => setShowCreateRoutine(true)}
             />
           </ErrorBoundary>
         </div>
 
-        {/* Full Width Widgets */}
-        <ErrorBoundary>
-          <TodaysResponsibilitiesWidget
-            responsibilities={responsibilities}
-            members={members}
-            userId={user.id}
-            onChanged={() => { reloadResponsibilities(); broadcast('responsibility_occurrences') }}
-            onCreateRoutine={() => setShowCreateRoutine(true)}
-          />
-        </ErrorBoundary>
-        <ErrorBoundary>
-          <UpcomingEventsWidget events={events} onCreateEvent={() => setShowCreateEvent(true)} />
-        </ErrorBoundary>
-        <ErrorBoundary>
-          <FamilyActivityWidget
-            members={members}
-            tasks={tasks}
-            currentUserId={user.id}
-            onAddMember={() => setShowAddMember(true)}
-          />
-        </ErrorBoundary>
+        {/* ── Desktop: bento grid ── */}
+        <div
+          className="hidden md:grid gap-3.5"
+          style={{ gridTemplateColumns: '2fr 1fr 1fr' }}
+        >
+          {/* Tasks — col 1, rows 1–2 */}
+          <div style={{ gridColumn: '1', gridRow: '1 / 3' }}>
+            <ErrorBoundary>
+              <TodaysTasksWidget
+                tasks={todaysTasks}
+                members={members}
+                userId={user.id}
+                familyId={user.family_id}
+                onTaskCompleted={handleTaskCompletedOptimistic}
+                onTaskCreated={async () => { await reloadTasks(); broadcast('tasks') }}
+                onCreateTask={() => setShowCreateTask(true)}
+                onEditTask={(task) => { setEditingTask(task); setShowCreateTask(true) }}
+                variant="bento"
+                completedCount={completedRelevant}
+                totalCount={relevantTasks.length}
+              />
+            </ErrorBoundary>
+          </div>
+
+          {/* Events — cols 2–3, row 1 */}
+          <div style={{ gridColumn: '2 / 4', gridRow: '1' }}>
+            <ErrorBoundary>
+              <UpcomingEventsWidget events={events} onCreateEvent={() => setShowCreateEvent(true)} variant="bento" />
+            </ErrorBoundary>
+          </div>
+
+          {/* Shopping — col 2, row 2 */}
+          <div style={{ gridColumn: '2', gridRow: '2' }}>
+            <ErrorBoundary>
+              <ShoppingListWidget
+                items={shoppingItems}
+                totalCount={shoppingTotalCount}
+                familyId={user.family_id}
+                userId={user.id}
+                members={members}
+                onItemAdded={() => { reloadShopping(); broadcast('list_items') }}
+                onItemToggled={handleShoppingToggleOptimistic}
+                variant="bento"
+              />
+            </ErrorBoundary>
+          </div>
+
+          {/* Family — col 3, row 2 */}
+          <div style={{ gridColumn: '3', gridRow: '2' }}>
+            <ErrorBoundary>
+              <FamilyActivityWidget
+                members={members}
+                tasks={tasks}
+                currentUserId={user.id}
+                onAddMember={() => setShowAddMember(true)}
+                variant="bento"
+              />
+            </ErrorBoundary>
+          </div>
+
+          {/* Routines — full width, row 3 */}
+          <div style={{ gridColumn: '1 / 4', gridRow: '3' }}>
+            <ErrorBoundary>
+              <TodaysResponsibilitiesWidget
+                responsibilities={responsibilities}
+                members={members}
+                userId={user.id}
+                onChanged={() => { reloadResponsibilities(); broadcast('responsibility_occurrences') }}
+                onCreateRoutine={() => setShowCreateRoutine(true)}
+              />
+            </ErrorBoundary>
+          </div>
+        </div>
       </div>
 
       {/* ── Modals ────────────────────────────────────── */}

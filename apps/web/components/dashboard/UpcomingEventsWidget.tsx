@@ -9,13 +9,14 @@ import { formatEventDate, formatEventTime } from '@/lib/formatters'
 interface UpcomingEventsWidgetProps {
   events: CalendarEvent[]
   onCreateEvent?: () => void
+  variant?: 'bento'
 }
 
 type Item =
   | { kind: 'event';   event: CalendarEvent; dateMs: number }
   | { kind: 'holiday'; holiday: SAHoliday;   dateMs: number }
 
-export default function UpcomingEventsWidget({ events, onCreateEvent }: UpcomingEventsWidgetProps) {
+export default function UpcomingEventsWidget({ events, onCreateEvent, variant }: UpcomingEventsWidgetProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
 
   // Merge family events with SA public holidays for the next 14 days
@@ -42,6 +43,73 @@ export default function UpcomingEventsWidget({ events, onCreateEvent }: Upcoming
 
     return [...eventItems, ...holidayItems].sort((a, b) => a.dateMs - b.dateMs)
   }, [events])
+
+  if (variant === 'bento') {
+    const visibleItems = items.slice(0, 2)
+    return (
+      <div className="rounded-[1.5rem] overflow-hidden h-full" style={{ background: '#312E81', padding: '12px 13px' }}>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-2">
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Events
+          </span>
+          {onCreateEvent && (
+            <button
+              onClick={onCreateEvent}
+              style={{ fontSize: 9, fontWeight: 700, color: 'white', background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 6, padding: '2px 7px', cursor: 'pointer' }}
+            >
+              + Add
+            </button>
+          )}
+        </div>
+
+        {visibleItems.length === 0 ? (
+          <div className="py-2 text-center">
+            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>Nothing coming up</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {visibleItems.map((item, i) => {
+              const color = item.kind === 'holiday' ? '#f59e0b' : '#818CF8'
+              const title = item.kind === 'holiday' ? item.holiday.name : item.event.title
+              const time = item.kind === 'holiday' ? 'All day' : (item.event.all_day ? 'All day' : formatEventTime(item.event.start_time))
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <div style={{ width: 2.5, height: 26, borderRadius: 9999, background: color, flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'white', lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>{title}</div>
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>{time}</div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Event Detail Sheet (shared with default variant) */}
+        {selectedEvent && (
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 z-50"
+            onClick={() => setSelectedEvent(null)}
+          >
+            <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-start justify-between mb-5">
+                <h3 className="text-base font-bold text-primary-800">{selectedEvent.title}</h3>
+                <button onClick={() => setSelectedEvent(null)} className="text-gray-300 hover:text-gray-500 p-1">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="space-y-2.5 text-sm text-gray-600">
+                <div className="flex items-center gap-2.5"><Calendar className="w-4 h-4 text-blue-400" /><span>{formatEventDate(selectedEvent.start_time)}</span></div>
+                <div className="flex items-center gap-2.5"><Clock className="w-4 h-4 text-blue-400" /><span>{selectedEvent.all_day ? 'All day' : `${formatEventTime(selectedEvent.start_time)} – ${formatEventTime(selectedEvent.end_time)}`}</span></div>
+                {selectedEvent.location && <div className="flex items-center gap-2.5"><MapPin className="w-4 h-4 text-blue-400" /><span>{selectedEvent.location}</span></div>}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="bg-white rounded-[1.5rem] shadow-card overflow-hidden transition-shadow duration-200 hover:shadow-card-hover animate-slide-up">

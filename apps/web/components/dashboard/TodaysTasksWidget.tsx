@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { completeTask, createTask, type Task, type User } from '@kinnect/core'
 import { AlertCircle, CheckCircle2, Circle, Pencil, Plus } from 'lucide-react'
 import logger from '@/lib/logger'
-import { ROLE_COLORS } from '@/lib/constants'
+import { ROLE_COLORS, ROLE_HEX_COLORS } from '@/lib/constants'
 import { getTodayStr } from '@/lib/formatters'
 
 interface TodaysTasksWidgetProps {
@@ -18,6 +18,9 @@ interface TodaysTasksWidgetProps {
   onTaskCreated: () => Promise<void>
   onCreateTask: () => void
   onEditTask: (task: Task) => void
+  variant?: 'bento'
+  completedCount?: number
+  totalCount?: number
 }
 
 export default function TodaysTasksWidget({
@@ -29,11 +32,23 @@ export default function TodaysTasksWidget({
   onTaskCreated,
   onCreateTask,
   onEditTask,
+  variant,
+  completedCount = 0,
+  totalCount = 0,
 }: TodaysTasksWidgetProps) {
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [isAdding, setIsAdding] = useState(false)
   const [poppingId, setPoppingId] = useState<string | null>(null)
   const [inputFocused, setInputFocused] = useState(false)
+
+  // Animated progress bar for bento variant
+  const [bar, setBar] = useState(0)
+  const pct = totalCount > 0 ? Math.round(completedCount / totalCount * 100) : 0
+  useEffect(() => {
+    if (variant !== 'bento') return
+    const t = setTimeout(() => setBar(pct), 200)
+    return () => clearTimeout(t)
+  }, [pct, variant])
 
   const membersMap = useMemo(() => {
     const map: Record<string, User> = {}
@@ -94,6 +109,75 @@ export default function TodaysTasksWidget({
 
   const incompleteTasks = tasks.filter((t) => !t.completed).slice(0, 3)
   const recentComplete = tasks.find((t) => t.completed)
+
+  if (variant === 'bento') {
+    const bentoTasks = tasks.filter(t => !t.completed).slice(0, 3)
+    return (
+      <div className="rounded-[1.5rem] overflow-hidden flex flex-col" style={{ background: 'white', boxShadow: '0 2px 12px rgb(49 46 129/0.09)' }}>
+        {/* Gradient header */}
+        <div style={{ background: 'linear-gradient(135deg,#312e81,#4f46e5)', padding: '13px 15px 10px' }}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div style={{ width: 24, height: 24, borderRadius: 8, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckCircle2 className="w-3 h-3 text-white" />
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 800, color: 'white' }}>Today&apos;s Tasks</span>
+            </div>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.1)', borderRadius: 7, padding: '2px 8px' }}>
+              {bentoTasks.length} left
+            </span>
+          </div>
+          <div style={{ height: 4, borderRadius: 9999, background: 'rgba(255,255,255,0.15)', overflow: 'hidden', marginBottom: 4 }}>
+            <div style={{ height: '100%', borderRadius: 9999, background: 'rgba(255,255,255,0.85)', width: `${bar}%`, transition: 'width 700ms cubic-bezier(0.16,1,0.3,1)' }} />
+          </div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(165,180,252,0.8)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            {completedCount} of {totalCount} complete
+          </div>
+        </div>
+
+        <div style={{ padding: '6px 14px 11px' }}>
+          {bentoTasks.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-gray-400 text-sm font-medium">All clear!</p>
+            </div>
+          ) : (
+            bentoTasks.map((task, i) => (
+              <div
+                key={task.id}
+                className="flex items-center gap-2.5"
+                style={{ padding: '8px 0', borderBottom: i < bentoTasks.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}
+              >
+                <button
+                  onClick={() => handleComplete(task.id)}
+                  className={`text-gray-300 hover:text-brand-success transition-colors shrink-0 ${poppingId === task.id ? 'animate-completion-pop text-brand-success' : ''}`}
+                >
+                  <Circle className="w-5 h-5" />
+                </button>
+                <div className="flex-1 min-w-0">
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#312E81' }} className="truncate">{task.title}</div>
+                  <div style={{ fontSize: 10, color: isOverdue(task.due_date) ? '#dc2626' : '#a5a5b8', marginTop: 1 }}>
+                    {isOverdue(task.due_date) && 'Overdue · '}
+                    {task.assigned_to?.map(id => getMemberName(id).split(' ')[0]).join(', ')}
+                  </div>
+                </div>
+                <div
+                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ background: ROLE_HEX_COLORS[getMemberRole(task.assigned_to?.[0] || '') || ''] ?? '#6B7280' }}
+                />
+              </div>
+            ))
+          )}
+          <button
+            onClick={onCreateTask}
+            className="mt-2 w-full py-2 rounded-xl text-xs font-bold text-primary-800 transition-colors"
+            style={{ border: '2px dashed rgba(49,46,129,0.15)', background: 'transparent' }}
+          >
+            + Add task
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-white rounded-[1.5rem] shadow-card overflow-hidden transition-shadow duration-200 hover:shadow-card-hover animate-slide-up flex flex-col">

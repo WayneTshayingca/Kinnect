@@ -14,7 +14,7 @@ import {
 import { useUser } from '@/components/providers/user-provider'
 import { useRealtimeSync } from '@/hooks/useRealtimeSync'
 import ConfirmDialog from '@/components/ConfirmDialog'
-import { RefreshCw, Plus, Power, Pencil, Trash2 } from 'lucide-react'
+import { RefreshCw, Plus, Power, Pencil, Trash2, Clock } from 'lucide-react'
 import logger from '@/lib/logger'
 import toast from 'react-hot-toast'
 import { ROLE_COLORS } from '@/lib/constants'
@@ -171,20 +171,28 @@ export default function RoutinesPage() {
 
   return (
     <div className="px-4 sm:px-0">
-      {/* Page header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <RefreshCw className="h-7 w-7 text-brand-accent" />
-            Routines
-          </h1>
-          <p className="text-gray-500 mt-1 text-sm">
-            {activeCount} active routine{activeCount !== 1 ? 's' : ''}
-          </p>
+      {/* Gradient banner */}
+      <div
+        className="rounded-2xl mb-8 px-6 py-6 flex items-center justify-between gap-4"
+        style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #3730a3 100%)' }}
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,0.15)' }}>
+            <Clock className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white leading-tight">Routines</h1>
+            <p className="text-sm mt-0.5" style={{ color: 'rgba(199,195,255,0.85)' }}>
+              {activeCount} active &middot; {flows.length} total
+            </p>
+          </div>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="px-4 py-2.5 bg-brand-accent text-white text-sm font-bold rounded-xl hover:bg-accent-600 transition-colors flex items-center gap-2"
+          className="shrink-0 flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-xl transition-colors"
+          style={{ background: 'rgba(255,255,255,0.15)', color: '#fff' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.25)' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.15)' }}
         >
           <Plus className="w-4 h-4" />
           New Routine

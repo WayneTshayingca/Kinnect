@@ -21,6 +21,7 @@ interface ShoppingListWidgetProps {
   members: User[]
   onItemAdded: () => void
   onItemToggled: (itemId: string) => void
+  variant?: 'bento'
 }
 
 export default function ShoppingListWidget({
@@ -31,6 +32,7 @@ export default function ShoppingListWidget({
   members,
   onItemAdded,
   onItemToggled,
+  variant,
 }: ShoppingListWidgetProps) {
   const [newItem, setNewItem] = useState('')
   const [isAdding, setIsAdding] = useState(false)
@@ -73,6 +75,44 @@ export default function ShoppingListWidget({
   }
 
   const previewItems = items.slice(0, 4)
+
+  if (variant === 'bento') {
+    return (
+      <div className="rounded-[1.5rem] overflow-hidden h-full" style={{ background: 'white', boxShadow: '0 2px 12px rgb(49 46 129/0.07)' }}>
+        {/* Header */}
+        <div style={{ background: 'rgba(251,113,133,0.07)', padding: '12px 16px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="flex items-center gap-1.5">
+            <ShoppingBasket className="w-3.5 h-3.5" style={{ color: '#FB7185' }} />
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#FB7185' }}>Shopping</span>
+          </div>
+          <Link
+            href="/dashboard/shopping-list?mode=shopping"
+            className="text-white font-bold rounded-lg transition-colors"
+            style={{ fontSize: 10, background: '#FB7185', padding: '4px 10px', borderRadius: 7 }}
+          >
+            Shop
+          </Link>
+        </div>
+        <div style={{ padding: '8px 16px 12px' }}>
+          {items.length === 0 ? (
+            <p style={{ fontSize: 12, color: '#a5a5b8', textAlign: 'center', padding: '10px 0' }}>Nothing on the list</p>
+          ) : (
+            <>
+              {items.slice(0, 3).map((item, i) => (
+                <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: i < Math.min(items.length, 3) - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+                  <div style={{ width: 13, height: 13, border: '1.5px solid #d1d5db', borderRadius: 4, flexShrink: 0 }} />
+                  <span className="truncate" style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{item.title}</span>
+                </div>
+              ))}
+              {totalCount > 3 && (
+                <div style={{ fontSize: 11, color: '#a5a5b8', marginTop: 7, fontWeight: 600 }}>+{totalCount - 3} more</div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-white rounded-[1.5rem] shadow-card overflow-hidden transition-shadow duration-200 hover:shadow-card-hover animate-slide-up flex flex-col">
