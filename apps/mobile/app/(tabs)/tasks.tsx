@@ -153,7 +153,7 @@ function CreateTaskModal({
     } else {
       Animated.timing(slideAnim, { toValue: 400, duration: 200, useNativeDriver: true }).start()
     }
-  }, [visible])
+  }, [visible, slideAnim])
 
   function toggleAssignee(id: string) {
     setAssignees((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
@@ -218,7 +218,7 @@ function CreateTaskModal({
           {members.length > 0 && (
             <>
               <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Assign to</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.assigneeRow}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.modalAssigneeRow}>
                 {members.map((m) => {
                   const selected = assignees.includes(m.id)
                   const bg = ROLE_HEX_COLORS[m.role ?? ''] ?? '#6B7280'
@@ -227,10 +227,10 @@ function CreateTaskModal({
                       key={m.id}
                       onPress={() => toggleAssignee(m.id)}
                       activeOpacity={0.7}
-                      style={[styles.assigneeChip, selected && { borderColor: bg, backgroundColor: bg + '15' }]}
+                      style={[styles.modalAssigneeChip, selected && { borderColor: bg, backgroundColor: bg + '15' }]}
                     >
-                      <View style={[styles.assigneeAvatar, { backgroundColor: bg }]}>
-                        <Text style={styles.assigneeAvatarText}>
+                      <View style={[styles.modalAssigneeAvatar, { backgroundColor: bg }]}>
+                        <Text style={styles.modalAssigneeAvatarText}>
                           {m.name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)}
                         </Text>
                       </View>
@@ -494,6 +494,7 @@ export default function TasksScreen() {
               filter === 'all' &&
               index === filteredPending.length - 1 &&
               filteredDone.length > 0
+            const isLast = index === displayed.length - 1
 
             return (
               <>
@@ -502,7 +503,7 @@ export default function TasksScreen() {
                     task={item}
                     members={members}
                     onToggle={handleToggle}
-                    isLast={true}
+                    isLast={isLast}
                   />
                 </View>
                 {showDoneDivider && (
@@ -897,11 +898,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#111827',
   },
-  assigneeRow: {
+  modalAssigneeRow: {
     flexDirection: 'row',
     marginBottom: 4,
   },
-  assigneeChip: {
+  modalAssigneeChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -913,14 +914,14 @@ const styles = StyleSheet.create({
     marginRight: 8,
     backgroundColor: 'white',
   },
-  assigneeAvatar: {
+  modalAssigneeAvatar: {
     width: 22,
     height: 22,
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  assigneeAvatarText: {
+  modalAssigneeAvatarText: {
     fontSize: 8,
     fontWeight: '800',
     color: 'white',
