@@ -8,9 +8,14 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  StyleSheet,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Link, useRouter } from 'expo-router'
-import { signIn } from '@kinnect/core'
+import { AntDesign } from '@expo/vector-icons'
+import * as WebBrowser from 'expo-web-browser'
+import * as Linking from 'expo-linking'
+import { signIn, getSupabase } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
 
 export default function LoginScreen() {
@@ -18,8 +23,10 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const { refreshUser } = useUser()
   const router = useRouter()
+  const insets = useSafeAreaInsets()
 
   async function handleLogin() {
     if (!email || !password) {
@@ -39,79 +46,159 @@ export default function LoginScreen() {
     }
   }
 
+  async function handleGoogle() {
+    setError('')
+    setGoogleLoading(true)
+    try {
+      const supabase = getSupabase()
+      const redirectTo = Linking.createURL('auth/callback')
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo, skipBrowserRedirect: true },
+      })
+      if (error) throw error
+      if (!data.url) throw new Error('No OAuth URL returned')
+
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
+      if (result.type !== 'success') return  // user cancelled
+
+      // Tokens arrive in the URL fragment: kinnect://#access_token=...&refresh_token=...
+      const hashIndex = result.url.indexOf('#')
+      const queryIndex = result.url.indexOf('?')
+      const raw = hashIndex !== -1
+        ? result.url.substring(hashIndex + 1)
+        : queryIndex !== -1 ? result.url.substring(queryIndex + 1) : ''
+      const params = new URLSearchParams(raw)
+      const accessToken = params.get('access_token')
+      const refreshToken = params.get('refresh_token')
+
+      if (!accessToken || !refreshToken) throw new Error('Google sign-in failed — no tokens returned')
+
+      const { error: sessionError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+      if (sessionError) throw sessionError
+
+      await refreshUser()
+      router.replace('/')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google sign-in failed')
+    } finally {
+      setGoogleLoading(false)
+    }
+  }
+
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-primary-800"
+      style={styles.root}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      {/* Atmospheric background glow */}
+      <View style={styles.glowTop} pointerEvents="none" />
+      <View style={styles.glowBottom} pointerEvents="none" />
+
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingTop: insets.top + 36, paddingBottom: insets.bottom + 32 },
+        ]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        {/* Brand header */}
-        <View className="px-8 pt-20 pb-12">
-          <Text className="text-white text-3xl font-bold tracking-tight">kinnect</Text>
-          <Text className="text-white/60 text-base mt-2">Africa's family coordination platform</Text>
+        {/* ── Wordmark ───────────────────────────────── */}
+        <View style={styles.wordmarkRow}>
+          <Text style={styles.wordmark}>Kinnect</Text>
+          <View style={styles.dot} />
         </View>
 
-        {/* Card */}
-        <View className="flex-1 bg-white rounded-t-3xl px-8 pt-10 pb-8">
-          <Text className="text-gray-900 text-2xl font-bold mb-1">Welcome back</Text>
-          <Text className="text-gray-500 text-sm mb-8">Sign in to your account</Text>
+        {/* ── Headline ───────────────────────────────── */}
+        <View style={styles.headlineBlock}>
+          <Text style={styles.headlineWhite}>Your family,</Text>
+          <Text style={styles.headlineCoral}>coordinated.</Text>
+        </View>
 
+        {/* ── Subtitle ───────────────────────────────── */}
+        <Text style={styles.subtitle}>
+          Built for South African families. Manage tasks, events, routines and shopping — together.
+        </Text>
+
+        {/* ── Form ───────────────────────────────────── */}
+        <View style={styles.formBlock}>
+          {/* Google button */}
+          <TouchableOpacity
+            style={styles.googleBtn}
+            onPress={handleGoogle}
+            activeOpacity={0.88}
+            disabled={googleLoading}
+          >
+            {googleLoading ? (
+              <ActivityIndicator color="#1A1830" size="small" />
+            ) : (
+              <>
+                <AntDesign name="google" size={18} color="#4285F4" style={styles.googleIcon} />
+                <Text style={styles.googleText}>Continue with Google</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {/* Divider */}
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Error */}
           {error ? (
-            <View className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-6">
-              <Text className="text-red-600 text-sm">{error}</Text>
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
 
-          <View className="space-y-4 mb-6">
-            <View>
-              <Text className="text-gray-700 text-sm font-medium mb-1.5">Email address</Text>
-              <TextInput
-                className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 text-base"
-                placeholder="you@example.com"
-                placeholderTextColor="#9CA3AF"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                autoComplete="email"
-              />
-            </View>
+          {/* Email */}
+          <TextInput
+            style={styles.input}
+            placeholder="Email address"
+            placeholderTextColor="rgba(255,255,255,0.35)"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+            selectionColor="#FB7185"
+          />
 
-            <View>
-              <Text className="text-gray-700 text-sm font-medium mb-1.5">Password</Text>
-              <TextInput
-                className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 text-base"
-                placeholder="Your password"
-                placeholderTextColor="#9CA3AF"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoComplete="password"
-              />
-            </View>
-          </View>
+          {/* Password */}
+          <TextInput
+            style={[styles.input, styles.inputLast]}
+            placeholder="Password"
+            placeholderTextColor="rgba(255,255,255,0.35)"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoComplete="password"
+            selectionColor="#FB7185"
+          />
 
+          {/* Sign in */}
           <TouchableOpacity
-            className="bg-accent-500 rounded-xl py-4 items-center mb-4"
+            style={[styles.signInBtn, loading && styles.signInBtnLoading]}
             onPress={handleLogin}
             disabled={loading}
-            activeOpacity={0.85}
+            activeOpacity={0.88}
           >
             {loading ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Text className="text-white font-semibold text-base">Sign in</Text>
+              <Text style={styles.signInText}>Sign in</Text>
             )}
           </TouchableOpacity>
 
-          <View className="flex-row justify-center mt-4">
-            <Text className="text-gray-500 text-sm">Don't have an account? </Text>
+          {/* Sign up link */}
+          <View style={styles.signUpRow}>
+            <Text style={styles.signUpPrompt}>No account? </Text>
             <Link href="/(auth)/signup" asChild>
-              <TouchableOpacity>
-                <Text className="text-accent-600 font-semibold text-sm">Sign up</Text>
+              <TouchableOpacity activeOpacity={0.7}>
+                <Text style={styles.signUpLink}>Sign up</Text>
               </TouchableOpacity>
             </Link>
           </View>
@@ -120,3 +207,217 @@ export default function LoginScreen() {
     </KeyboardAvoidingView>
   )
 }
+
+const C = {
+  bg:        '#1A1830',
+  bgDeep:    '#0F0D24',
+  coral:     '#FB7185',
+  coralDim:  'rgba(251,113,133,0.15)',
+  white:     '#FFFFFF',
+  glass:     'rgba(255,255,255,0.07)',
+  glassBorder: 'rgba(255,255,255,0.11)',
+  muted:     'rgba(255,255,255,0.45)',
+  mutedDim:  'rgba(255,255,255,0.25)',
+  indigo:    'rgba(99,102,241,0.14)',
+}
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: C.bg,
+  },
+
+  // Atmospheric depth
+  glowTop: {
+    position: 'absolute',
+    top: -60,
+    left: -80,
+    width: 340,
+    height: 340,
+    borderRadius: 170,
+    backgroundColor: C.indigo,
+  },
+  glowBottom: {
+    position: 'absolute',
+    bottom: 40,
+    right: -100,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: C.coralDim,
+    opacity: 0.5,
+  },
+
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: 28,
+  },
+
+  // Wordmark
+  wordmarkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 28,
+  },
+  wordmark: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: C.white,
+    letterSpacing: -0.5,
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: C.coral,
+    marginLeft: 6,
+    marginBottom: 8,
+  },
+
+  // Headline
+  headlineBlock: {
+    marginBottom: 14,
+  },
+  headlineWhite: {
+    fontSize: 38,
+    fontWeight: '900',
+    color: C.white,
+    letterSpacing: -1.2,
+    lineHeight: 44,
+  },
+  headlineCoral: {
+    fontSize: 38,
+    fontWeight: '900',
+    color: C.coral,
+    letterSpacing: -1.2,
+    lineHeight: 44,
+  },
+
+  // Subtitle
+  subtitle: {
+    fontSize: 13.5,
+    color: C.muted,
+    lineHeight: 20,
+    marginBottom: 40,
+    maxWidth: 300,
+  },
+
+  // Form block
+  formBlock: {
+    gap: 12,
+  },
+
+  // Google button
+  googleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.white,
+    borderRadius: 14,
+    paddingVertical: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  googleIcon: {
+    marginRight: 10,
+  },
+  googleText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1F1F1F',
+    letterSpacing: -0.2,
+  },
+
+  // Or divider
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  dividerText: {
+    fontSize: 12,
+    color: C.mutedDim,
+    fontWeight: '600',
+    marginHorizontal: 12,
+    letterSpacing: 0.5,
+  },
+
+  // Error
+  errorBox: {
+    backgroundColor: 'rgba(239,68,68,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.3)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#FCA5A5',
+    fontWeight: '500',
+  },
+
+  // Inputs
+  input: {
+    backgroundColor: C.glass,
+    borderWidth: 1,
+    borderColor: C.glassBorder,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    fontSize: 15,
+    color: C.white,
+    letterSpacing: -0.1,
+  },
+  inputLast: {
+    marginBottom: 4,
+  },
+
+  // Sign in button
+  signInBtn: {
+    backgroundColor: C.coral,
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: C.coral,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  signInBtnLoading: {
+    opacity: 0.75,
+  },
+  signInText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: C.white,
+    letterSpacing: -0.2,
+  },
+
+  // Sign up
+  signUpRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  signUpPrompt: {
+    fontSize: 13.5,
+    color: C.mutedDim,
+  },
+  signUpLink: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: C.coral,
+  },
+})

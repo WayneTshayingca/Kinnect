@@ -175,7 +175,7 @@ export default function TodaysResponsibilitiesWidget({
                     >
                       {r.assignee_name.charAt(0)}
                     </div>
-                    <span className="text-xs text-gray-400">{r.assignee_name}</span>
+                    <span className="text-xs text-gray-400">{r.assignee_name.split(' ')[0]}</span>
                     {r.scheduled_time && !r.end_time && (
                       <span className="text-xs text-gray-300">· {formatTime(r.scheduled_time)}</span>
                     )}
@@ -212,7 +212,7 @@ export default function TodaysResponsibilitiesWidget({
                       {members
                         .filter((m) => m.id !== r.assigned_to)
                         .map((m) => (
-                          <option key={m.id} value={m.id}>{m.name}</option>
+                          <option key={m.id} value={m.id}>{m.name.split(' ')[0]}</option>
                         ))}
                     </select>
                   ) : (

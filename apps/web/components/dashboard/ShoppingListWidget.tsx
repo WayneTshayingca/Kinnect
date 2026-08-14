@@ -78,12 +78,12 @@ export default function ShoppingListWidget({
 
   if (variant === 'bento') {
     return (
-      <div className="rounded-[1.5rem] overflow-hidden h-full" style={{ background: 'white', boxShadow: '0 2px 12px rgb(49 46 129/0.07)' }}>
+      <div className="rounded-[1.5rem] overflow-hidden md:h-full flex flex-col" style={{ background: 'white', boxShadow: '0 4px 20px rgba(49,46,129,0.10), 0 1px 6px rgba(0,0,0,0.04)' }}>
         {/* Header */}
-        <div style={{ background: 'rgba(251,113,133,0.07)', padding: '12px 16px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '12px 16px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
           <div className="flex items-center gap-1.5">
             <ShoppingBasket className="w-3.5 h-3.5" style={{ color: '#FB7185' }} />
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#FB7185' }}>Shopping</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#312E81' }}>Shopping</span>
           </div>
           <Link
             href="/dashboard/shopping-list?mode=shopping"
@@ -93,23 +93,71 @@ export default function ShoppingListWidget({
             Shop
           </Link>
         </div>
-        <div style={{ padding: '8px 16px 12px' }}>
+        {/* Pill chips */}
+        <div style={{ padding: '10px 14px 8px' }}>
           {items.length === 0 ? (
-            <p style={{ fontSize: 12, color: '#a5a5b8', textAlign: 'center', padding: '10px 0' }}>Nothing on the list</p>
+            <p style={{ fontSize: 12, color: '#a5a5b8', textAlign: 'center', padding: '6px 0' }}>Nothing on the list</p>
           ) : (
-            <>
-              {items.slice(0, 3).map((item, i) => (
-                <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: i < Math.min(items.length, 3) - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
-                  <div style={{ width: 13, height: 13, border: '1.5px solid #d1d5db', borderRadius: 4, flexShrink: 0 }} />
-                  <span className="truncate" style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{item.title}</span>
-                </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {items.slice(0, 4).map(item => (
+                <span
+                  key={item.id}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    background: 'rgba(49,46,129,0.06)', borderRadius: 999,
+                    padding: '4px 10px',
+                    fontSize: 11, fontWeight: 600, color: '#312E81',
+                    maxWidth: '100%',
+                  }}
+                >
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', border: '1.5px solid rgba(49,46,129,0.3)', flexShrink: 0, display: 'inline-block' }} />
+                  <span className="truncate" style={{ maxWidth: 80 }}>{item.title}</span>
+                </span>
               ))}
-              {totalCount > 3 && (
-                <div style={{ fontSize: 11, color: '#a5a5b8', marginTop: 7, fontWeight: 600 }}>+{totalCount - 3} more</div>
+              {totalCount > 4 && (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center',
+                  background: 'rgba(251,113,133,0.1)', borderRadius: 999,
+                  padding: '4px 10px',
+                  fontSize: 11, fontWeight: 700, color: '#FB7185',
+                }}>
+                  +{totalCount - 4}
+                </span>
               )}
-            </>
+            </div>
           )}
         </div>
+
+        {/* Quick add */}
+        <form
+          onSubmit={handleAddItem}
+          style={{ padding: '0 12px 12px', display: 'flex', gap: 6, borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: 10, marginTop: 2 }}
+        >
+          <input
+            type="text"
+            value={newItem}
+            onChange={e => setNewItem(e.target.value)}
+            placeholder="Add item…"
+            disabled={isAdding}
+            style={{
+              flex: 1, fontSize: 12, padding: '6px 10px',
+              border: '1px solid rgba(0,0,0,0.1)', borderRadius: 10,
+              outline: 'none', color: '#312E81', background: '#fafafa',
+            }}
+          />
+          <button
+            type="submit"
+            disabled={!newItem.trim() || isAdding}
+            style={{
+              width: 30, height: 30, borderRadius: 9, border: 'none', cursor: 'pointer',
+              background: '#FB7185', color: 'white', fontSize: 18, fontWeight: 300,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              opacity: !newItem.trim() || isAdding ? 0.4 : 1, flexShrink: 0,
+            }}
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        </form>
       </div>
     )
   }

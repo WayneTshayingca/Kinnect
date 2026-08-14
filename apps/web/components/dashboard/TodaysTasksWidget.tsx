@@ -111,34 +111,62 @@ export default function TodaysTasksWidget({
   const recentComplete = tasks.find((t) => t.completed)
 
   if (variant === 'bento') {
-    const bentoTasks = tasks.filter(t => !t.completed).slice(0, 3)
+    const allPending = tasks.filter(t => !t.completed)
+    const bentoTasks = allPending.slice(0, 3)
+    const hasMore = allPending.length > 3
     return (
-      <div className="rounded-[1.5rem] overflow-hidden flex flex-col" style={{ background: 'white', boxShadow: '0 2px 12px rgb(49 46 129/0.09)' }}>
-        {/* Gradient header */}
-        <div style={{ background: 'linear-gradient(135deg,#312e81,#4f46e5)', padding: '13px 15px 10px' }}>
+      <div className="rounded-[1.5rem] overflow-hidden flex flex-col" style={{ background: 'white', boxShadow: '0 4px 20px rgba(49,46,129,0.10), 0 1px 6px rgba(0,0,0,0.04)' }}>
+        {/* Clean header with left accent */}
+        <div style={{ borderLeft: '3px solid #312E81', padding: '13px 15px 10px 13px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <div style={{ width: 24, height: 24, borderRadius: 8, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CheckCircle2 className="w-3 h-3 text-white" />
+              <div style={{ width: 24, height: 24, borderRadius: 8, background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckCircle2 className="w-3 h-3" style={{ color: '#4F46E5' }} />
               </div>
-              <span style={{ fontSize: 13, fontWeight: 800, color: 'white' }}>Today&apos;s Tasks</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: '#312E81' }}>Today&apos;s Tasks</span>
             </div>
-            <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.1)', borderRadius: 7, padding: '2px 8px' }}>
-              {bentoTasks.length} left
-            </span>
+            {hasMore ? (
+              <Link
+                href="/dashboard/tasks"
+                style={{ fontSize: 11, fontWeight: 700, color: '#FB7185', textDecoration: 'none' }}
+              >
+                {allPending.length} pending · View all →
+              </Link>
+            ) : (
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#312E81', background: '#EEF2FF', borderRadius: 7, padding: '2px 8px' }}>
+                {bentoTasks.length} left
+              </span>
+            )}
           </div>
-          <div style={{ height: 4, borderRadius: 9999, background: 'rgba(255,255,255,0.15)', overflow: 'hidden', marginBottom: 4 }}>
-            <div style={{ height: '100%', borderRadius: 9999, background: 'rgba(255,255,255,0.85)', width: `${bar}%`, transition: 'width 700ms cubic-bezier(0.16,1,0.3,1)' }} />
+          <div style={{ height: 4, borderRadius: 9999, background: '#EEF2FF', overflow: 'hidden', marginBottom: 4 }}>
+            <div style={{ height: '100%', borderRadius: 9999, background: '#4F46E5', width: `${bar}%`, transition: 'width 700ms cubic-bezier(0.16,1,0.3,1)' }} />
           </div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(165,180,252,0.8)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#a0a0c0', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             {completedCount} of {totalCount} complete
           </div>
         </div>
 
         <div style={{ padding: '6px 14px 11px' }}>
           {bentoTasks.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-gray-400 text-sm font-medium">All clear!</p>
+            <div className="flex items-center justify-center gap-3 py-6" style={{ opacity: 0.65 }}>
+              <svg width="46" height="54" viewBox="0 0 54 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+                <rect x="5" y="9" width="44" height="51" rx="6" fill="rgba(49,46,129,0.09)" stroke="rgba(49,46,129,0.22)" strokeWidth="1.5"/>
+                <rect x="19" y="3" width="16" height="13" rx="4" fill="white" stroke="rgba(49,46,129,0.22)" strokeWidth="1.5"/>
+                <rect x="21" y="5" width="12" height="9" rx="2.5" fill="rgba(49,46,129,0.07)"/>
+                <line x1="15" y1="29" x2="39" y2="29" stroke="rgba(49,46,129,0.2)" strokeWidth="1.5" strokeLinecap="round"/>
+                <line x1="15" y1="37" x2="39" y2="37" stroke="rgba(49,46,129,0.2)" strokeWidth="1.5" strokeLinecap="round"/>
+                <line x1="15" y1="45" x2="31" y2="45" stroke="rgba(49,46,129,0.2)" strokeWidth="1.5" strokeLinecap="round"/>
+                <circle cx="11" cy="29" r="4" fill="rgba(52,211,153,0.18)"/>
+                <path d="M9 29L10.5 30.5L13 27.5" stroke="#34D399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="11" cy="37" r="4" fill="rgba(52,211,153,0.18)"/>
+                <path d="M9 37L10.5 38.5L13 35.5" stroke="#34D399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="11" cy="45" r="4" fill="rgba(52,211,153,0.18)"/>
+                <path d="M9 45L10.5 46.5L13 43.5" stroke="#34D399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: '#374151', lineHeight: 1.3 }}>All clear for today!</p>
+                <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>Enjoy your day.</p>
+              </div>
             </div>
           ) : (
             bentoTasks.map((task, i) => (

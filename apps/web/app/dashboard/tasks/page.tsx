@@ -10,6 +10,7 @@ import {
   getFamilyMembers,
   type Task,
   type User,
+  ROLE_HEX_COLORS,
 } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
 import { useRealtimeSync } from '@/hooks/useRealtimeSync'
@@ -192,6 +193,7 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all')
   const [search, setSearch] = useState('')
+  const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null)
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null)
 
   const inflightRef = useRef<Map<string, Partial<Task>>>(new Map())
@@ -286,8 +288,9 @@ export default function TasksPage() {
     if (filter === 'pending' && task.completed) return false
     if (filter === 'completed' && !task.completed) return false
     if (search && !task.title.toLowerCase().includes(search.toLowerCase())) return false
+    if (assigneeFilter && !task.assigned_to?.includes(assigneeFilter)) return false
     return true
-  }), [tasks, filter, search])
+  }), [tasks, filter, search, assigneeFilter])
 
   const groupedTasks = useMemo(() => {
     const pending = filteredTasks.filter((t) => !t.completed)
@@ -426,6 +429,45 @@ export default function TasksPage() {
         </div>
       </div>
 
+      {/* ── Assignee filter chips ────────────────────────────────── */}
+      {members.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setAssigneeFilter(null)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+              !assigneeFilter
+                ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
+                : 'text-gray-500 border-gray-200 bg-white hover:border-primary-300 hover:text-primary-600'
+            }`}
+          >
+            All members
+          </button>
+          {members.map(m => {
+            const isActive = assigneeFilter === m.id
+            const hex = ROLE_HEX_COLORS[m.role ?? ''] ?? '#6B7280'
+            return (
+              <button
+                key={m.id}
+                onClick={() => setAssigneeFilter(isActive ? null : m.id)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all"
+                style={isActive
+                  ? { backgroundColor: hex, borderColor: hex, color: 'white' }
+                  : { backgroundColor: 'white', borderColor: '#e5e7eb', color: '#374151' }
+                }
+              >
+                <div
+                  className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white shrink-0"
+                  style={{ backgroundColor: hex }}
+                >
+                  {m.name.charAt(0)}
+                </div>
+                {m.name.split(' ')[0]}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       {/* ── Task groups ──────────────────────────────────────────── */}
       {visibleSections.length === 0 ? (
         <div className="bg-white rounded-[1.5rem] shadow-card text-center py-16 px-6">
@@ -433,9 +475,15 @@ export default function TasksPage() {
             <ListChecks className="h-7 w-7 text-primary-300" />
           </div>
           <p className="text-gray-800 font-bold">
-            {search ? 'No tasks match your search' : filter === 'completed' ? 'Nothing completed yet' : 'All clear!'}
+            {search
+              ? 'No tasks match your search'
+              : assigneeFilter
+              ? `No ${filter === 'completed' ? 'completed' : 'pending'} tasks for ${members.find(m => m.id === assigneeFilter)?.name?.split(' ')[0] ?? 'this person'}`
+              : filter === 'completed'
+              ? 'Nothing completed yet'
+              : 'All clear!'}
           </p>
-          {!search && filter !== 'completed' && (
+          {!search && !assigneeFilter && filter !== 'completed' && (
             <button
               onClick={() => setShowCreateTask(true)}
               className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-accent-500 hover:bg-accent-400 text-white text-sm font-bold rounded-xl transition-colors"

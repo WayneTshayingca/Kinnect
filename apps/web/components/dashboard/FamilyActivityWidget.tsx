@@ -46,7 +46,7 @@ export default function FamilyActivityWidget({
     const topMembers = membersWithCounts.slice(0, 3)
     const max = Math.max(...topMembers.map((m) => m.completedThisWeek), 1)
     return (
-      <div className="rounded-[1.5rem] overflow-hidden h-full" style={{ background: 'white', boxShadow: '0 2px 12px rgb(49 46 129/0.07)' }}>
+      <div className="rounded-[1.5rem] overflow-hidden h-full" style={{ background: 'white', boxShadow: '0 4px 20px rgba(49,46,129,0.10), 0 1px 6px rgba(0,0,0,0.04)' }}>
         <div style={{ background: 'rgba(49,46,129,0.04)', padding: '12px 16px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5" style={{ color: '#312E81' }} />

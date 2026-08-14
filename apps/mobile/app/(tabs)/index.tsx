@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Animated,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
@@ -27,6 +26,7 @@ import {
   ROLE_HEX_COLORS,
 } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
+import { useRealtimeSync } from '@/hooks/useRealtimeSync'
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -43,15 +43,8 @@ function getUpcomingRange() {
   return { start: start.toISOString(), end: end.toISOString() }
 }
 
-function formatEventDate(ev: CalendarEvent) {
-  const d = new Date(ev.start_time)
-  const now = new Date(); now.setHours(0, 0, 0, 0)
-  const isToday = d.toDateString() === now.toDateString()
-  if (isToday) {
-    return ev.all_day ? 'Today · All day' : `Today · ${d.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })}`
-  }
-  return d.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' }) +
-    (!ev.all_day ? ` · ${d.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })}` : '')
+function localDateStr(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function formatRoutineTime(time: string | null) {
@@ -59,6 +52,12 @@ function formatRoutineTime(time: string | null) {
   const [h, m] = time.split(':')
   const hour = parseInt(h, 10)
   return `${hour % 12 || 12}:${m} ${hour >= 12 ? 'PM' : 'AM'}`
+}
+
+function formatEventTime(ev: CalendarEvent): string {
+  if (ev.all_day) return 'All day'
+  const d = new Date(ev.start_time)
+  return d.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
 }
 
 // ── Avatar component ──────────────────────────────────────────────────────
@@ -69,6 +68,165 @@ function Avatar({ name, role, size = 32 }: { name: string; role: string | null; 
   return (
     <View style={[styles.avatar, { width: size, height: size, backgroundColor: bg }]}>
       <Text style={[styles.avatarText, { fontSize: size * 0.36 }]}>{initials}</Text>
+    </View>
+  )
+}
+
+// ── Week Calendar Strip ───────────────────────────────────────────────────
+
+const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+
+function WeekCalendarStrip({ events, holidays }: {
+  events: CalendarEvent[]
+  holidays: Array<{ date: string; name: string }>
+}) {
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const dow = today.getDay()
+  const offset = -dow // shift to Sun
+
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today)
+    d.setDate(today.getDate() + offset + i)
+    return d
+  })
+
+  const todayStr = localDateStr(today)
+  const [selectedStr, setSelectedStr] = useState(todayStr)
+
+  // Dot dates
+  const eventDotDates = new Set<string>()
+  for (const ev of events) eventDotDates.add(localDateStr(new Date(ev.start_time)))
+  for (const h of holidays) {
+    const d = new Date(h.date + 'T00:00:00')
+    if (d >= weekDays[0] && d <= weekDays[6]) eventDotDates.add(h.date)
+  }
+
+  // Selected day's items, sorted by earliest time
+  const selectedEvents = events
+    .filter(ev => localDateStr(new Date(ev.start_time)) === selectedStr)
+    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+  const selectedHolidays = holidays.filter(h => h.date === selectedStr)
+  const hasAnythingSelected = selectedEvents.length > 0 || selectedHolidays.length > 0
+
+  const isSelectedToday = selectedStr === todayStr
+  const selectedDay = weekDays.find(d => localDateStr(d) === selectedStr)
+  const dayLabel = isSelectedToday
+    ? 'today'
+    : (selectedDay?.toLocaleDateString('en-ZA', { weekday: 'long' }) ?? '')
+
+  return (
+    <View style={styles.card}>
+      {/* Header */}
+      <View style={styles.calendarHeader}>
+        <Text style={styles.calendarTitle}>This Week</Text>
+        <Text style={styles.calendarLink}>See all</Text>
+      </View>
+
+      {/* Week strip */}
+      <View style={styles.weekRow}>
+        {weekDays.map((day, i) => {
+          const isToday = localDateStr(day) === todayStr
+          const isSelected = localDateStr(day) === selectedStr
+          const hasEvent = eventDotDates.has(localDateStr(day))
+          const isWeekend = day.getDay() === 0 || day.getDay() === 6
+          return (
+            <TouchableOpacity
+              key={i}
+              onPress={() => setSelectedStr(localDateStr(day))}
+              activeOpacity={0.7}
+              style={styles.dayCell}
+            >
+              <Text style={styles.dayLabel}>{DAY_LABELS[i]}</Text>
+              <View style={[
+                styles.dayCircle,
+                isSelected && styles.dayCircleSelected,
+                isToday && !isSelected && styles.dayCircleToday,
+              ]}>
+                <Text style={[
+                  styles.dayNumber,
+                  isSelected && styles.dayNumberSelected,
+                  isToday && !isSelected && styles.dayNumberToday,
+                  !isSelected && !isToday && isWeekend && styles.dayNumberWeekend,
+                ]}>
+                  {day.getDate()}
+                </Text>
+              </View>
+              <View style={[styles.eventDot, hasEvent && styles.eventDotActive]} />
+            </TouchableOpacity>
+          )
+        })}
+      </View>
+
+      {/* Selected day's events */}
+      <View style={styles.calendarEvents}>
+        {!hasAnythingSelected ? (
+          <Text style={styles.calendarEmpty}>No events {dayLabel}</Text>
+        ) : (
+          <>
+            {selectedHolidays.map(h => (
+              <View key={h.date} style={styles.calendarEventRow}>
+                <View style={[styles.calendarEventIcon, { backgroundColor: '#fef9ec' }]}>
+                  <Text style={{ fontSize: 14 }}>🎌</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.calendarEventTitle} numberOfLines={1}>{h.name}</Text>
+                  <Text style={styles.calendarEventTime}>Public holiday · All day</Text>
+                </View>
+              </View>
+            ))}
+            {selectedEvents.slice(0, 3).map(ev => (
+              <View key={ev.id} style={styles.calendarEventRow}>
+                <View style={[styles.calendarEventIcon, { backgroundColor: 'rgba(49,46,129,0.08)' }]}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: T.primary }}>
+                    {ev.all_day ? '—' : new Date(ev.start_time).getHours().toString().padStart(2, '0')}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.calendarEventTitle} numberOfLines={1}>{ev.title}</Text>
+                  <Text style={styles.calendarEventTime}>
+                    {formatEventTime(ev)}{ev.location ? ` · ${ev.location}` : ''}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </>
+        )}
+      </View>
+    </View>
+  )
+}
+
+// ── Daily Snapshot ────────────────────────────────────────────────────────
+
+function DailySnapshot({ tasksLeft, eventsToday, shoppingCount, routinesDone, routinesTotal }: {
+  tasksLeft: number
+  eventsToday: number
+  shoppingCount: number
+  routinesDone: number
+  routinesTotal: number
+}) {
+  const stats = [
+    { value: tasksLeft,    label: 'Tasks left',   sub: tasksLeft === 0 ? 'All clear!' : 'pending',    iconColor: '#4F46E5', iconBg: '#EEF2FF', icon: '✓' },
+    { value: eventsToday,  label: 'Events today',  sub: eventsToday === 0 ? 'Free day' : 'scheduled',  iconColor: '#3B82F6', iconBg: '#EFF6FF', icon: '📅' },
+    { value: shoppingCount, label: 'Items to buy', sub: shoppingCount === 0 ? 'List clear' : 'on list', iconColor: '#FB7185', iconBg: '#FFF1F2', icon: '🛒' },
+    { value: routinesTotal > 0 ? routinesDone : 0, label: 'Routines', sub: routinesTotal > 0 ? `${routinesDone}/${routinesTotal} done` : 'None today', iconColor: '#7C3AED', iconBg: '#F5F3FF', icon: '↻' },
+  ]
+
+  return (
+    <View style={styles.snapshotCard}>
+      <Text style={styles.snapshotHeader}>Daily Snapshot</Text>
+      <View style={{ flexDirection: 'row' }}>
+      {stats.map((s, i) => (
+        <View key={i} style={[styles.snapshotCell, i < 3 && styles.snapshotCellBorder]}>
+          <View style={[styles.snapshotIcon, { backgroundColor: s.iconBg }]}>
+            <Text style={{ fontSize: 13, color: s.iconColor }}>{s.icon}</Text>
+          </View>
+          <Text style={styles.snapshotValue}>{s.value}</Text>
+          <Text style={styles.snapshotLabel}>{s.label}</Text>
+          <Text style={styles.snapshotSub}>{s.sub}</Text>
+        </View>
+      ))}
+      </View>
     </View>
   )
 }
@@ -88,22 +246,6 @@ export default function HomeScreen() {
   const [members, setMembers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Progress bar animation
-  const barAnim = useRef(new Animated.Value(0)).current
-
-  const totalTasks = tasks.length
-  const doneTasks = tasks.filter((t) => t.completed).length
-  const pendingTasks = tasks.filter((t) => !t.completed)
-  const pct = totalTasks > 0 ? doneTasks / totalTasks : 0
-
-  useEffect(() => {
-    Animated.timing(barAnim, {
-      toValue: pct,
-      duration: 700,
-      useNativeDriver: false,
-    }).start()
-  }, [pct])
-
   const loadData = useCallback(async () => {
     if (!user?.family_id) return
     try {
@@ -111,12 +253,12 @@ export default function HomeScreen() {
       const [tasksData, eventsData, shoppingData, routinesData, membersData] = await Promise.all([
         getTodaysTasks(user.family_id),
         getCalendarEvents(user.family_id, start, end),
-        getShoppingListPreview(user.family_id, 3),
+        getShoppingListPreview(user.family_id, 6),
         getTodaysResponsibilities(user.family_id),
         getFamilyMembers(user.family_id),
       ])
       setTasks(tasksData)
-      setEvents(eventsData.slice(0, 2))
+      setEvents(eventsData)
       setShopping(shoppingData.items)
       setShoppingTotal(shoppingData.totalCount)
       setRoutines(routinesData)
@@ -131,6 +273,14 @@ export default function HomeScreen() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  useRealtimeSync(user?.family_id, {
+    tasks: loadData,
+    calendar_events: loadData,
+    list_items: loadData,
+    users: loadData,
+    responsibility_occurrences: loadData,
+  })
 
   async function handleCompleteTask(taskId: string) {
     if (!user?.id) return
@@ -154,95 +304,108 @@ export default function HomeScreen() {
 
   const firstName = user?.name?.split(' ')[0] ?? 'there'
 
-  // Merge SA holidays into events preview
+  // SA holidays for week strip
   const yr = new Date().getFullYear()
   const now = new Date(); now.setHours(0, 0, 0, 0)
   const end14 = new Date(now); end14.setDate(end14.getDate() + 14)
   const holidays = [...getSAHolidays(yr), ...getSAHolidays(yr + 1)]
-    .filter((h) => { const d = new Date(h.date + 'T00:00:00'); return d >= now && d <= end14 })
-    .slice(0, 2)
+    .filter(h => { const d = new Date(h.date + 'T00:00:00'); return d >= now && d <= end14 })
+
+  // Derived counts
+  const pendingTasks = tasks.filter(t => !t.completed)
+  const todayStr = localDateStr(now)
+  const eventsToday = events.filter(ev => localDateStr(new Date(ev.start_time)) === todayStr).length
+  const routinesDone = routines.filter(r => !!r.completed_by).length
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator color="#312E81" size="large" />
+        <ActivityIndicator color={T.primary} size="large" />
       </View>
     )
   }
 
   return (
-    <ScrollView style={styles.root} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
-
-      {/* ── Gradient Banner ────────────────────────────── */}
-      <View style={[styles.banner, { paddingTop: insets.top + 18 }]}>
-        {/* Header row */}
-        <View style={styles.bannerHeader}>
-          <View>
-            <Text style={styles.bannerSubtitle}>{getGreeting()}</Text>
-            <Text style={styles.bannerTitle}>{firstName} 👋</Text>
-          </View>
-          {/* Avatar stack */}
-          <View style={styles.avatarStack}>
-            {members.slice(0, 3).map((m, i) => (
-              <View key={m.id} style={[styles.avatarWrap, { marginLeft: i > 0 ? -8 : 0, zIndex: 3 - i }]}>
-                <Avatar name={m.name} role={m.role} size={32} />
-              </View>
-            ))}
-            {members.length > 3 && (
-              <View style={[styles.avatarOverflow, { marginLeft: -8 }]}>
-                <Text style={styles.avatarOverflowText}>+{members.length - 3}</Text>
-              </View>
-            )}
-          </View>
+    <ScrollView
+      style={styles.root}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 32 }}
+    >
+      {/* ── Light Header ────────────────────────────────── */}
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        <View>
+          <Text style={styles.headerGreeting}>{getGreeting()},</Text>
+          <Text style={styles.headerName}>{firstName} 👋</Text>
         </View>
-
-        {/* Task progress card */}
-        <View style={styles.progressCard}>
-          <View style={styles.progressCardHeader}>
-            <View style={styles.progressCardIcon}>
-              <Text style={{ fontSize: 11 }}>✓</Text>
+        <View style={styles.avatarStack}>
+          {members.slice(0, 3).map((m, i) => (
+            <View key={m.id} style={[styles.avatarWrap, { marginLeft: i > 0 ? -8 : 0, zIndex: 3 - i }]}>
+              <Avatar name={m.name} role={m.role} size={34} />
             </View>
-            <Text style={styles.progressCardLabel}>Today's Tasks</Text>
-            <View style={styles.progressBadge}>
-              <Text style={styles.progressBadgeText}>{pendingTasks.length} left</Text>
+          ))}
+          {members.length > 3 && (
+            <View style={[styles.avatarOverflow, { marginLeft: -8 }]}>
+              <Text style={styles.avatarOverflowText}>+{members.length - 3}</Text>
             </View>
-          </View>
-          <View style={styles.progressTrack}>
-            <Animated.View
-              style={[
-                styles.progressFill,
-                {
-                  width: barAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0%', '100%'],
-                  }),
-                },
-              ]}
-            />
-          </View>
-          <Text style={styles.progressCaption}>{doneTasks} of {totalTasks} complete</Text>
+          )}
         </View>
       </View>
 
       {/* ── Content ────────────────────────────────────── */}
       <View style={styles.content}>
 
+        {/* Daily Snapshot */}
+        <DailySnapshot
+          tasksLeft={pendingTasks.length}
+          eventsToday={eventsToday}
+          shoppingCount={shoppingTotal}
+          routinesDone={routinesDone}
+          routinesTotal={routines.length}
+        />
+
+        {/* Week Calendar Strip */}
+        <WeekCalendarStrip events={events} holidays={holidays} />
+
         {/* Tasks card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Tasks</Text>
+            <View style={styles.cardHeaderLeft}>
+              <View style={[styles.cardIcon, { backgroundColor: '#EEF2FF' }]}>
+                <Text style={{ fontSize: 11, color: '#4F46E5', fontWeight: '800' }}>✓</Text>
+              </View>
+              <Text style={styles.cardTitle}>Today's Tasks</Text>
+            </View>
             <TouchableOpacity onPress={() => router.push('/(tabs)/tasks')} activeOpacity={0.7}>
               <Text style={styles.cardLink}>View all</Text>
             </TouchableOpacity>
           </View>
           {pendingTasks.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>All done! 🎉</Text>
+            <View style={{ opacity: 0.65, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, paddingVertical: 18 }}>
+              <View style={{ alignItems: 'center' }}>
+                <View style={{ width: 14, height: 9, backgroundColor: 'rgba(49,46,129,0.08)', borderRadius: 3, borderWidth: 1.5, borderColor: 'rgba(49,46,129,0.2)' }} />
+                <View style={{ width: 44, marginTop: -2, paddingTop: 9, paddingHorizontal: 7, paddingBottom: 10, backgroundColor: 'rgba(49,46,129,0.07)', borderRadius: 6, borderWidth: 1.5, borderColor: 'rgba(49,46,129,0.2)' }}>
+                  {[18, 18, 10].map((lineW, i) => (
+                    <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: i < 2 ? 6 : 0 }}>
+                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(52,211,153,0.25)', alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 5, color: '#34D399', fontWeight: '800' }}>✓</Text>
+                      </View>
+                      <View style={{ width: lineW, height: 1.5, backgroundColor: 'rgba(49,46,129,0.15)', borderRadius: 1 }} />
+                    </View>
+                  ))}
+                </View>
+              </View>
+              <View>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#374151' }}>All clear for today!</Text>
+                <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>Enjoy your day.</Text>
+              </View>
             </View>
           ) : (
             <View style={styles.cardBody}>
               {pendingTasks.slice(0, 3).map((task, i) => (
-                <View key={task.id} style={[styles.taskRow, i < pendingTasks.slice(0, 3).length - 1 && styles.taskRowBorder]}>
+                <View
+                  key={task.id}
+                  style={[styles.taskRow, i < pendingTasks.slice(0, 3).length - 1 && styles.taskRowBorder]}
+                >
                   <TouchableOpacity
                     onPress={() => handleCompleteTask(task.id)}
                     activeOpacity={0.7}
@@ -254,75 +417,54 @@ export default function HomeScreen() {
                     <Text style={styles.taskTitle} numberOfLines={1}>{task.title}</Text>
                     {task.assigned_to && task.assigned_to.length > 0 && (
                       <Text style={styles.taskMeta} numberOfLines={1}>
-                        {task.assigned_to.slice(0, 2).map((id) => members.find((m) => m.id === id)?.name?.split(' ')[0] ?? '?').join(', ')}
+                        {task.assigned_to.slice(0, 2).map(id => members.find(m => m.id === id)?.name?.split(' ')[0] ?? '?').join(', ')}
                       </Text>
                     )}
                   </View>
-                  <View style={[styles.roleDot, { backgroundColor: ROLE_HEX_COLORS[members.find((m) => m.id === task.assigned_to?.[0])?.role || ''] ?? '#9CA3AF' }]} />
+                  <View style={[styles.roleDot, {
+                    backgroundColor: ROLE_HEX_COLORS[members.find(m => m.id === task.assigned_to?.[0])?.role || ''] ?? '#9CA3AF'
+                  }]} />
                 </View>
               ))}
             </View>
           )}
         </View>
 
-        {/* Events + Shopping 2-col row */}
-        <View style={styles.twoCol}>
-          {/* Events */}
-          <View style={[styles.eventsCard, { flex: 1 }]}>
-            <Text style={styles.eventsLabel}>Events</Text>
-            {events.length === 0 && holidays.length === 0 ? (
-              <Text style={styles.eventsEmpty}>Nothing coming up</Text>
-            ) : (
-              <>
-                {events.slice(0, 2).map((ev, i) => (
-                  <View key={ev.id} style={styles.eventRow}>
-                    <View style={[styles.eventBar, { backgroundColor: '#818CF8' }]} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.eventTitle} numberOfLines={1}>{ev.title}</Text>
-                      <Text style={styles.eventDate}>{formatEventDate(ev)}</Text>
-                    </View>
-                  </View>
-                ))}
-                {events.length === 0 && holidays.slice(0, 2).map((h, i) => (
-                  <View key={h.date} style={styles.eventRow}>
-                    <View style={[styles.eventBar, { backgroundColor: '#f59e0b' }]} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.eventTitle} numberOfLines={1}>{h.name}</Text>
-                      <Text style={styles.eventDate}>Public holiday</Text>
-                    </View>
-                  </View>
-                ))}
-              </>
-            )}
+        {/* Shopping card — pill chips */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderLeft}>
+              <View style={[styles.cardIcon, { backgroundColor: '#FFF1F2' }]}>
+                <Text style={{ fontSize: 11, color: '#FB7185' }}>🛒</Text>
+              </View>
+              <Text style={styles.cardTitle}>Shopping</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => router.push('/(tabs)/shopping')}
+              activeOpacity={0.7}
+              style={styles.shopBtn}
+            >
+              <Text style={styles.shopBtnText}>Shop</Text>
+            </TouchableOpacity>
           </View>
-
-          {/* Shopping */}
-          <View style={[styles.shoppingCard, { flex: 1 }]}>
-            <View style={styles.shoppingHeader}>
-              <Text style={styles.shoppingTitle}>Shopping</Text>
-              <TouchableOpacity
-                onPress={() => {}}
-                activeOpacity={0.7}
-                style={styles.shopBtn}
-              >
-                <Text style={styles.shopBtnText}>Shop</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.shoppingBody}>
-              {shopping.length === 0 ? (
-                <Text style={styles.shoppingEmpty}>Nothing yet</Text>
-              ) : (
-                shopping.slice(0, 3).map((item, i) => (
-                  <View key={item.id} style={[styles.shoppingRow, i < shopping.slice(0, 3).length - 1 && styles.shoppingRowBorder]}>
-                    <View style={styles.shoppingCheck} />
-                    <Text style={styles.shoppingItem} numberOfLines={1}>{item.title}</Text>
+          <View style={styles.pillsContainer}>
+            {shopping.length === 0 ? (
+              <Text style={styles.shoppingEmpty}>Nothing on the list</Text>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillsScroll}>
+                {shopping.slice(0, 6).map(item => (
+                  <View key={item.id} style={styles.pill}>
+                    <View style={styles.pillDot} />
+                    <Text style={styles.pillText} numberOfLines={1}>{item.title}</Text>
                   </View>
-                ))
-              )}
-              {shoppingTotal > 3 && (
-                <Text style={styles.shoppingMore}>+{shoppingTotal - 3} more</Text>
-              )}
-            </View>
+                ))}
+                {shoppingTotal > 6 && (
+                  <View style={styles.pillMore}>
+                    <Text style={styles.pillMoreText}>+{shoppingTotal - 6}</Text>
+                  </View>
+                )}
+              </ScrollView>
+            )}
           </View>
         </View>
 
@@ -330,9 +472,14 @@ export default function HomeScreen() {
         {routines.length > 0 && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Routines</Text>
+              <View style={styles.cardHeaderLeft}>
+                <View style={[styles.cardIcon, { backgroundColor: '#F5F3FF' }]}>
+                  <Text style={{ fontSize: 11, color: '#7C3AED' }}>↻</Text>
+                </View>
+                <Text style={styles.cardTitle}>Today's Routines</Text>
+              </View>
               <Text style={styles.routineCount}>
-                {routines.filter((r) => r.completed_by).length} of {routines.length} done
+                {routines.filter(r => r.completed_by).length} of {routines.length} done
               </Text>
             </View>
             <View style={styles.cardBody}>
@@ -343,14 +490,18 @@ export default function HomeScreen() {
                     key={r.id}
                     onPress={() => handleCompleteRoutine(r)}
                     activeOpacity={0.7}
-                    style={[styles.routineRow, done && styles.routineRowDone, i < routines.slice(0, 4).length - 1 && styles.routineRowBorder]}
+                    style={[
+                      styles.routineRow,
+                      done && styles.routineRowDone,
+                      i < routines.slice(0, 4).length - 1 && styles.routineRowBorder,
+                    ]}
                   >
                     <View style={[styles.routineCheck, done && styles.routineCheckDone]}>
                       {done && <Text style={{ color: 'white', fontSize: 9, fontWeight: '800' }}>✓</Text>}
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.routineTitle, done && styles.routineTitleDone]}>{r.flow_title}</Text>
-                      <Text style={styles.routineMeta}>{r.assignee_name} · {formatRoutineTime(r.scheduled_time)}</Text>
+                      <Text style={styles.routineMeta}>{r.assignee_name.split(' ')[0]} · {formatRoutineTime(r.scheduled_time)}</Text>
                     </View>
                   </TouchableOpacity>
                 )
@@ -385,30 +536,24 @@ const styles = StyleSheet.create({
     backgroundColor: T.bg,
   },
 
-  // Banner
-  banner: {
-    backgroundColor: T.p800,
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-  },
-  bannerHeader: {
+  // Light header
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
   },
-  bannerSubtitle: {
-    fontSize: 12,
-    color: 'rgba(165,180,252,0.7)',
+  headerGreeting: {
+    fontSize: 13,
     fontWeight: '600',
+    color: '#a0a0c0',
     marginBottom: 2,
   },
-  bannerTitle: {
+  headerName: {
     fontSize: 22,
     fontWeight: '800',
-    color: 'white',
+    color: T.primary,
     letterSpacing: -0.4,
   },
   avatarStack: {
@@ -423,21 +568,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'white',
+    borderColor: T.bg,
   },
   avatarText: {
     color: 'white',
     fontWeight: '800',
   },
   avatarOverflow: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: 999,
     backgroundColor: T.primary,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'white',
+    borderColor: T.bg,
   },
   avatarOverflowText: {
     fontSize: 9,
@@ -445,69 +590,10 @@ const styles = StyleSheet.create({
     color: 'white',
   },
 
-  // Progress card
-  progressCard: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  progressCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-    columnGap: 8,
-  },
-  progressCardIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  progressCardLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: 'white',
-    flex: 1,
-  },
-  progressBadge: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 7,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  progressBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.55)',
-  },
-  progressTrack: {
-    height: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    overflow: 'hidden',
-    marginBottom: 6,
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.85)',
-  },
-  progressCaption: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: 'rgba(165,180,252,0.75)',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-
-  // Content area
+  // Content
   content: {
-    padding: 16,
-    rowGap: 12,
+    paddingHorizontal: 16,
+    rowGap: 8,
     flexDirection: 'column',
   },
 
@@ -516,11 +602,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#312E81',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
-    elevation: 3,
+    shadowColor: T.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 5,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -531,6 +617,18 @@ const styles = StyleSheet.create({
     paddingBottom: 9,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  cardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cardIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardTitle: {
     fontSize: 14,
@@ -554,6 +652,186 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: T.success,
+  },
+
+  // Week calendar strip
+  calendarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 13,
+    paddingBottom: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  calendarTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: T.primary,
+  },
+  calendarLink: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: T.accent,
+  },
+  weekRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  dayCell: {
+    alignItems: 'center',
+    gap: 3,
+    flex: 1,
+  },
+  dayLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#a0a0c0',
+    textTransform: 'uppercase',
+  },
+  dayCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  dayCircleSelected: {
+    backgroundColor: T.primary,
+  },
+  dayCircleToday: {
+    borderColor: T.primary,
+  },
+  dayNumber: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  dayNumberSelected: {
+    color: 'white',
+    fontWeight: '800',
+  },
+  dayNumberToday: {
+    color: T.primary,
+    fontWeight: '800',
+  },
+  dayNumberWeekend: {
+    color: '#c4c4d8',
+  },
+  eventDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: 'transparent',
+  },
+  eventDotActive: {
+    backgroundColor: T.accent,
+  },
+  calendarEvents: {
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.04)',
+    gap: 8,
+  },
+  calendarEmpty: {
+    fontSize: 12,
+    color: '#a5a5b8',
+    fontWeight: '500',
+    paddingVertical: 6,
+  },
+  calendarEventRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  calendarEventIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  calendarEventTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: T.primary,
+    lineHeight: 18,
+  },
+  calendarEventTime: {
+    fontSize: 11,
+    color: '#a5a5b8',
+    marginTop: 1,
+  },
+
+  // Daily snapshot
+  snapshotCard: {
+    backgroundColor: '#EEF2FF',
+    borderRadius: 20,
+    flexDirection: 'column',
+    overflow: 'hidden',
+    shadowColor: T.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 5,
+  },
+  snapshotHeader: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'rgba(49,46,129,0.45)',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    paddingHorizontal: 14,
+    paddingTop: 11,
+    paddingBottom: 4,
+  },
+  snapshotCell: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+  },
+  snapshotCellBorder: {
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(49,46,129,0.10)',
+  },
+  snapshotIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  snapshotValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: T.primary,
+    lineHeight: 22,
+  },
+  snapshotLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#374151',
+    marginTop: 2,
+    textAlign: 'center',
+    lineHeight: 12,
+  },
+  snapshotSub: {
+    fontSize: 9,
+    color: 'rgba(49,46,129,0.45)',
+    marginTop: 1,
+    textAlign: 'center',
+    lineHeight: 12,
   },
 
   // Tasks
@@ -597,130 +875,68 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
 
-  // Two-column row
-  twoCol: {
-    flexDirection: 'row',
-    columnGap: 10,
-  },
-
-  // Events
-  eventsCard: {
-    backgroundColor: T.primary,
-    borderRadius: 18,
-    padding: 14,
-    rowGap: 8,
-  },
-  eventsLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.45)',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-  eventsEmpty: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.4)',
-    fontWeight: '500',
-  },
-  eventRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  eventBar: {
-    width: 3,
-    height: 30,
-    borderRadius: 999,
-    flexShrink: 0,
-  },
-  eventTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: 'white',
-    lineHeight: 15,
-  },
-  eventDate: {
-    fontSize: 9,
-    color: 'rgba(255,255,255,0.4)',
-    marginTop: 1,
-  },
-
   // Shopping
-  shoppingCard: {
-    backgroundColor: 'white',
-    borderRadius: 18,
-    overflow: 'hidden',
-    shadowColor: '#312E81',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  shoppingHeader: {
-    backgroundColor: 'rgba(251,113,133,0.07)',
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  shoppingTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: T.accent,
-  },
   shopBtn: {
     backgroundColor: T.accent,
-    borderRadius: 7,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
   shopBtnText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
     color: 'white',
   },
-  shoppingBody: {
-    padding: 10,
-    paddingTop: 6,
+  pillsContainer: {
+    paddingVertical: 12,
+    minHeight: 52,
+    justifyContent: 'center',
   },
-  shoppingEmpty: {
-    fontSize: 11,
-    color: '#a5a5b8',
-    textAlign: 'center',
-    paddingVertical: 8,
+  pillsScroll: {
+    paddingHorizontal: 14,
+    gap: 7,
+    flexDirection: 'row',
   },
-  shoppingRow: {
+  pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    paddingVertical: 5,
+    gap: 5,
+    backgroundColor: 'rgba(49,46,129,0.07)',
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
   },
-  shoppingRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.04)',
-  },
-  shoppingCheck: {
-    width: 12,
-    height: 12,
-    borderRadius: 3,
+  pillDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 999,
     borderWidth: 1.5,
-    borderColor: '#d1d5db',
-    flexShrink: 0,
+    borderColor: 'rgba(49,46,129,0.3)',
   },
-  shoppingItem: {
-    fontSize: 11,
+  pillText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: '#374151',
-    flex: 1,
+    color: T.primary,
+    maxWidth: 80,
   },
-  shoppingMore: {
-    fontSize: 11,
+  pillMore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(251,113,133,0.1)',
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+  },
+  pillMoreText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: T.accent,
+  },
+  shoppingEmpty: {
+    fontSize: 12,
     color: '#a5a5b8',
-    fontWeight: '600',
-    marginTop: 4,
+    textAlign: 'center',
+    paddingHorizontal: 16,
   },
 
   // Routines

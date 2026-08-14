@@ -23,15 +23,17 @@ import {
 import {useUser} from '@/components/providers/user-provider'
 import TodaysTasksWidget from '@/components/dashboard/TodaysTasksWidget'
 import ShoppingListWidget from '@/components/dashboard/ShoppingListWidget'
-import UpcomingEventsWidget from '@/components/dashboard/UpcomingEventsWidget'
 import FamilyActivityWidget from '@/components/dashboard/FamilyActivityWidget'
 import TodaysResponsibilitiesWidget from '@/components/dashboard/TodaysResponsibilitiesWidget'
+import WeekCalendarStrip from '@/components/dashboard/WeekCalendarStrip'
+import DailySnapshotWidget from '@/components/dashboard/DailySnapshotWidget'
 import {ErrorBoundary} from '@/components/ErrorBoundary'
 import {useRealtimeSync} from '@/hooks/useRealtimeSync'
 import { LogOut } from 'lucide-react'
+import { Logo } from '@/components/Logo'
 import logger from '@/lib/logger'
 import toast from 'react-hot-toast'
-import { getTodayStr } from '@/lib/formatters'
+import { getTodayStr, formatEventTime } from '@/lib/formatters'
 
 // Lazy-load modals (only needed on user interaction)
 const CreateTaskModal = dynamic(() => import('@/components/CreateTaskModal'), { ssr: false })
@@ -236,13 +238,23 @@ export default function DashboardPage() {
 
   const firstName = user.name?.split(' ')[0] ?? 'there'
 
+  // Daily snapshot stats
+  const todayDateStr = new Date().toDateString()
+  const eventsToday = events.filter(ev => new Date(ev.start_time).toDateString() === todayDateStr).length
+  const nextTodayEvent = events
+    .filter(ev => new Date(ev.start_time).toDateString() === todayDateStr && !ev.all_day)
+    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0]
+  const nextEventTime = nextTodayEvent ? formatEventTime(nextTodayEvent.start_time) : null
+  const routinesDone = responsibilities.filter(r => r.status === 'completed').length
+  const routinesTotal = responsibilities.length
+
   // ── render ─────────────────────────────────────────────
   return (
     <div className="flex-1">
 
       {/* ── Mobile top bar (only on dashboard — layout hides it here) ── */}
       <div className="md:hidden flex items-center justify-between mb-5">
-        <span className="font-black text-primary-800 text-xl tracking-tight">kinnect</span>
+        <Logo variant="full" color="primary" size="sm" />
         <button
           onClick={handleSignOut}
           className="p-2 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-white/60 transition-colors"
@@ -285,15 +297,38 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* ── Daily Snapshot — desktop only, above grid ── */}
+      <div className="hidden md:block mb-2.5">
+        <DailySnapshotWidget
+          tasksLeft={todaysTasks.length}
+          eventsToday={eventsToday}
+          shoppingCount={shoppingTotalCount}
+          routinesDone={routinesDone}
+          routinesTotal={routinesTotal}
+          nextEventTime={nextEventTime}
+        />
+      </div>
+
       {/* ── Bento Grid ─────────────────────────────────── */}
-      <div
-        className="grid grid-cols-1 gap-3.5 pb-6"
-        style={{
-          gridTemplateColumns: 'minmax(0,1fr)',
-        }}
-      >
+      <div className="grid grid-cols-1 gap-2.5 pb-6">
+
         {/* ── Mobile: stacked layout ── */}
-        <div className="md:hidden flex flex-col gap-3">
+        <div className="md:hidden flex flex-col gap-2">
+          {/* Daily Snapshot stats */}
+          <DailySnapshotWidget
+            tasksLeft={todaysTasks.length}
+            eventsToday={eventsToday}
+            shoppingCount={shoppingTotalCount}
+            routinesDone={routinesDone}
+            routinesTotal={routinesTotal}
+            nextEventTime={nextEventTime}
+          />
+
+          {/* Week calendar strip */}
+          <ErrorBoundary>
+            <WeekCalendarStrip events={events} onCreateEvent={() => setShowCreateEvent(true)} />
+          </ErrorBoundary>
+
           {/* Tasks — full width */}
           <ErrorBoundary>
             <TodaysTasksWidget
@@ -311,24 +346,19 @@ export default function DashboardPage() {
             />
           </ErrorBoundary>
 
-          {/* Events + Shopping — side by side */}
-          <div className="grid grid-cols-2 gap-3">
-            <ErrorBoundary>
-              <UpcomingEventsWidget events={events} onCreateEvent={() => setShowCreateEvent(true)} variant="bento" />
-            </ErrorBoundary>
-            <ErrorBoundary>
-              <ShoppingListWidget
-                items={shoppingItems}
-                totalCount={shoppingTotalCount}
-                familyId={user.family_id}
-                userId={user.id}
-                members={members}
-                onItemAdded={() => { reloadShopping(); broadcast('list_items') }}
-                onItemToggled={handleShoppingToggleOptimistic}
-                variant="bento"
-              />
-            </ErrorBoundary>
-          </div>
+          {/* Shopping — full width, pill chips */}
+          <ErrorBoundary>
+            <ShoppingListWidget
+              items={shoppingItems}
+              totalCount={shoppingTotalCount}
+              familyId={user.family_id}
+              userId={user.id}
+              members={members}
+              onItemAdded={() => { reloadShopping(); broadcast('list_items') }}
+              onItemToggled={handleShoppingToggleOptimistic}
+              variant="bento"
+            />
+          </ErrorBoundary>
 
           {/* Routines */}
           <ErrorBoundary>
@@ -344,7 +374,7 @@ export default function DashboardPage() {
 
         {/* ── Desktop: bento grid ── */}
         <div
-          className="hidden md:grid gap-3.5"
+          className="hidden md:grid gap-2.5"
           style={{ gridTemplateColumns: '2fr 1fr 1fr' }}
         >
           {/* Tasks — col 1, rows 1–2 */}
@@ -366,10 +396,10 @@ export default function DashboardPage() {
             </ErrorBoundary>
           </div>
 
-          {/* Events — cols 2–3, row 1 */}
+          {/* Week Calendar Strip — cols 2–3, row 1 */}
           <div style={{ gridColumn: '2 / 4', gridRow: '1' }}>
             <ErrorBoundary>
-              <UpcomingEventsWidget events={events} onCreateEvent={() => setShowCreateEvent(true)} variant="bento" />
+              <WeekCalendarStrip events={events} onCreateEvent={() => setShowCreateEvent(true)} />
             </ErrorBoundary>
           </div>
 

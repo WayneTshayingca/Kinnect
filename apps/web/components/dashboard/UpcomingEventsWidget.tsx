@@ -45,46 +45,59 @@ export default function UpcomingEventsWidget({ events, onCreateEvent, variant }:
   }, [events])
 
   if (variant === 'bento') {
-    const visibleItems = items.slice(0, 2)
+    const visibleItems = items.slice(0, 3)
     return (
-      <div className="rounded-[1.5rem] overflow-hidden h-full" style={{ background: '#312E81', padding: '12px 13px' }}>
+      <div className="rounded-[1.5rem] overflow-hidden h-full flex flex-col" style={{ background: 'white', boxShadow: '0 2px 12px rgb(49 46 129/0.07)' }}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-2">
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            Events
-          </span>
+        <div className="flex items-center justify-between shrink-0" style={{ padding: '12px 14px 10px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+          <div className="flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5" style={{ color: '#312E81' }} />
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#312E81' }}>Upcoming</span>
+          </div>
           {onCreateEvent && (
             <button
               onClick={onCreateEvent}
-              style={{ fontSize: 9, fontWeight: 700, color: 'white', background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 6, padding: '2px 7px', cursor: 'pointer' }}
+              style={{ fontSize: 10, fontWeight: 700, color: '#FB7185', background: 'rgba(251,113,133,0.1)', border: 'none', borderRadius: 7, padding: '3px 9px', cursor: 'pointer' }}
             >
               + Add
             </button>
           )}
         </div>
 
-        {visibleItems.length === 0 ? (
-          <div className="py-2 text-center">
-            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>Nothing coming up</p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-            {visibleItems.map((item, i) => {
-              const color = item.kind === 'holiday' ? '#f59e0b' : '#818CF8'
-              const title = item.kind === 'holiday' ? item.holiday.name : item.event.title
-              const time = item.kind === 'holiday' ? 'All day' : (item.event.all_day ? 'All day' : formatEventTime(item.event.start_time))
+        <div style={{ padding: '8px 14px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
+          {visibleItems.length === 0 ? (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <p style={{ color: '#a5a5b8', fontSize: 12 }}>Nothing coming up</p>
+            </div>
+          ) : (
+            visibleItems.map((item, i) => {
+              const isHoliday = item.kind === 'holiday'
+              const title = isHoliday ? item.holiday.name : item.event.title
+              const time = isHoliday ? 'All day' : (item.event.all_day ? 'All day' : formatEventTime(item.event.start_time))
+              const iconBg = isHoliday ? '#fef9ec' : 'rgba(49,46,129,0.08)'
+              const iconColor = isHoliday ? '#d97706' : '#312E81'
               return (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <div style={{ width: 2.5, height: 26, borderRadius: 9999, background: color, flexShrink: 0 }} />
-                  <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'white', lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>{title}</div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>{time}</div>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 9,
+                    background: iconBg,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    {isHoliday
+                      ? <span style={{ fontSize: 13 }}>🎌</span>
+                      : <Calendar style={{ width: 13, height: 13, color: iconColor }} />
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate" style={{ fontSize: 12, fontWeight: 700, color: '#312E81', lineHeight: 1.3 }}>{title}</div>
+                    <div style={{ fontSize: 10, color: '#a5a5b8', marginTop: 1 }}>{time}</div>
                   </div>
                 </div>
               )
-            })}
-          </div>
-        )}
+            })
+          )}
+        </div>
 
         {/* Event Detail Sheet (shared with default variant) */}
         {selectedEvent && (
