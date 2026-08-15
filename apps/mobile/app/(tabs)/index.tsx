@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import {
   View,
   Text,
@@ -26,7 +26,9 @@ import {
   ROLE_HEX_COLORS,
 } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
-import { useRealtimeSync } from '@/hooks/useRealtimeSync'
+import { useScreenData } from '@/hooks/useScreenData'
+import { Avatar } from '@/components/Avatar'
+import { T } from '@/lib/theme'
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -58,18 +60,6 @@ function formatEventTime(ev: CalendarEvent): string {
   if (ev.all_day) return 'All day'
   const d = new Date(ev.start_time)
   return d.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
-}
-
-// ── Avatar component ──────────────────────────────────────────────────────
-
-function Avatar({ name, role, size = 32 }: { name: string; role: string | null; size?: number }) {
-  const initials = name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
-  const bg = ROLE_HEX_COLORS[role || ''] ?? '#6B7280'
-  return (
-    <View style={[styles.avatar, { width: size, height: size, backgroundColor: bg }]}>
-      <Text style={[styles.avatarText, { fontSize: size * 0.36 }]}>{initials}</Text>
-    </View>
-  )
 }
 
 // ── Week Calendar Strip ───────────────────────────────────────────────────
@@ -244,43 +234,28 @@ export default function HomeScreen() {
   const [shoppingTotal, setShoppingTotal] = useState(0)
   const [routines, setRoutines] = useState<ResponsibilityOccurrenceWithFlow[]>([])
   const [members, setMembers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
 
-  const loadData = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     if (!user?.family_id) return
-    try {
-      const { start, end } = getUpcomingRange()
-      const [tasksData, eventsData, shoppingData, routinesData, membersData] = await Promise.all([
-        getTodaysTasks(user.family_id),
-        getCalendarEvents(user.family_id, start, end),
-        getShoppingListPreview(user.family_id, 6),
-        getTodaysResponsibilities(user.family_id),
-        getFamilyMembers(user.family_id),
-      ])
-      setTasks(tasksData)
-      setEvents(eventsData)
-      setShopping(shoppingData.items)
-      setShoppingTotal(shoppingData.totalCount)
-      setRoutines(routinesData)
-      setMembers(membersData)
-    } catch {
-      // silently fail — show empty states
-    } finally {
-      setLoading(false)
-    }
+    const { start, end } = getUpcomingRange()
+    const [tasksData, eventsData, shoppingData, routinesData, membersData] = await Promise.all([
+      getTodaysTasks(user.family_id),
+      getCalendarEvents(user.family_id, start, end),
+      getShoppingListPreview(user.family_id, 6),
+      getTodaysResponsibilities(user.family_id),
+      getFamilyMembers(user.family_id),
+    ])
+    setTasks(tasksData)
+    setEvents(eventsData)
+    setShopping(shoppingData.items)
+    setShoppingTotal(shoppingData.totalCount)
+    setRoutines(routinesData)
+    setMembers(membersData)
   }, [user?.family_id])
 
-  useEffect(() => {
-    loadData()
-  }, [loadData])
-
-  useRealtimeSync(user?.family_id, {
-    tasks: loadData,
-    calendar_events: loadData,
-    list_items: loadData,
-    users: loadData,
-    responsibility_occurrences: loadData,
-  })
+  const { loading } = useScreenData(user?.family_id, fetchData, [
+    'tasks', 'calendar_events', 'list_items', 'users', 'responsibility_occurrences',
+  ])
 
   async function handleCompleteTask(taskId: string) {
     if (!user?.id) return
@@ -305,11 +280,15 @@ export default function HomeScreen() {
   const firstName = user?.name?.split(' ')[0] ?? 'there'
 
   // SA holidays for week strip
-  const yr = new Date().getFullYear()
   const now = new Date(); now.setHours(0, 0, 0, 0)
-  const end14 = new Date(now); end14.setDate(end14.getDate() + 14)
-  const holidays = [...getSAHolidays(yr), ...getSAHolidays(yr + 1)]
-    .filter(h => { const d = new Date(h.date + 'T00:00:00'); return d >= now && d <= end14 })
+  const todayKey = now.toDateString()
+  const holidays = useMemo(() => {
+    const d0 = new Date(todayKey)
+    const yr = d0.getFullYear()
+    const end14 = new Date(d0); end14.setDate(end14.getDate() + 14)
+    return [...getSAHolidays(yr), ...getSAHolidays(yr + 1)]
+      .filter(h => { const d = new Date(h.date + 'T00:00:00'); return d >= d0 && d <= end14 })
+  }, [todayKey])
 
   // Derived counts
   const pendingTasks = tasks.filter(t => !t.completed)
@@ -340,7 +319,7 @@ export default function HomeScreen() {
         <View style={styles.avatarStack}>
           {members.slice(0, 3).map((m, i) => (
             <View key={m.id} style={[styles.avatarWrap, { marginLeft: i > 0 ? -8 : 0, zIndex: 3 - i }]}>
-              <Avatar name={m.name} role={m.role} size={34} />
+              <Avatar name={m.name} role={m.role} size={34} borderColor={T.bg} borderWidth={2} />
             </View>
           ))}
           {members.length > 3 && (
@@ -516,14 +495,6 @@ export default function HomeScreen() {
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
-const T = {
-  primary: '#312E81',
-  p800: '#1E1B4B',
-  accent: '#FB7185',
-  success: '#34D399',
-  bg: '#f0eff8',
-}
-
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -562,17 +533,6 @@ const styles = StyleSheet.create({
   },
   avatarWrap: {
     position: 'relative',
-  },
-  avatar: {
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: T.bg,
-  },
-  avatarText: {
-    color: 'white',
-    fontWeight: '800',
   },
   avatarOverflow: {
     width: 34,

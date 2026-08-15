@@ -1,18 +1,14 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
   TextInput,
-  Modal,
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
-  Animated,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
@@ -26,7 +22,10 @@ import {
   ROLE_HEX_COLORS,
 } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
-import { useRealtimeSync } from '@/hooks/useRealtimeSync'
+import { useScreenData } from '@/hooks/useScreenData'
+import { Avatar } from '@/components/Avatar'
+import { BottomSheetModal } from '@/components/BottomSheetModal'
+import { T } from '@/lib/theme'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -54,21 +53,9 @@ function memberNames(assignedTo: string[] | null, members: User[]): string {
     .join(', ') + (assignedTo.length > 2 ? ` +${assignedTo.length - 2}` : '')
 }
 
-// ── Avatar ────────────────────────────────────────────────────────────────
-
-function Avatar({ name, role, size = 26 }: { name: string; role: string | null; size?: number }) {
-  const initials = name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
-  const bg = ROLE_HEX_COLORS[role ?? ''] ?? '#6B7280'
-  return (
-    <View style={[styles.avatar, { width: size, height: size, backgroundColor: bg, borderRadius: size / 2 }]}>
-      <Text style={[styles.avatarText, { fontSize: size * 0.38 }]}>{initials}</Text>
-    </View>
-  )
-}
-
 // ── Task row ──────────────────────────────────────────────────────────────
 
-function TaskRow({
+const TaskRow = React.memo(function TaskRow({
   task,
   members,
   onToggle,
@@ -120,7 +107,7 @@ function TaskRow({
       )}
     </View>
   )
-}
+})
 
 // ── Create task modal ──────────────────────────────────────────────────────
 
@@ -144,16 +131,12 @@ function CreateTaskModal({
   const [dueDate, setDueDate] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const slideAnim = useRef(new Animated.Value(400)).current
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (visible) {
       setTitle(''); setAssignees([]); setDueDate(''); setError('')
-      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, bounciness: 4 }).start()
-    } else {
-      Animated.timing(slideAnim, { toValue: 400, duration: 200, useNativeDriver: true }).start()
     }
-  }, [visible, slideAnim])
+  }, [visible])
 
   function toggleAssignee(id: string) {
     setAssignees((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
@@ -181,84 +164,65 @@ function CreateTaskModal({
   }
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
-        <Animated.View style={[styles.modalSheet, { transform: [{ translateY: slideAnim }] }]}>
-          <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>New task</Text>
+    <BottomSheetModal
+      visible={visible}
+      title="New task"
+      error={error}
+      submitting={saving}
+      submitLabel="Create task"
+      onClose={onClose}
+      onSubmit={handleCreate}
+    >
+      <Text style={styles.fieldLabel}>Title</Text>
+      <TextInput
+        style={styles.textInput}
+        placeholder="What needs to be done?"
+        placeholderTextColor="#9CA3AF"
+        value={title}
+        onChangeText={setTitle}
+        autoFocus
+        returnKeyType="done"
+      />
 
-          {error ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
+      <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Due date (optional)</Text>
+      <TextInput
+        style={styles.textInput}
+        placeholder="YYYY-MM-DD"
+        placeholderTextColor="#9CA3AF"
+        value={dueDate}
+        onChangeText={setDueDate}
+        keyboardType="numbers-and-punctuation"
+      />
 
-          <Text style={styles.fieldLabel}>Title</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="What needs to be done?"
-            placeholderTextColor="#9CA3AF"
-            value={title}
-            onChangeText={setTitle}
-            autoFocus
-            returnKeyType="done"
-          />
-
-          <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Due date (optional)</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor="#9CA3AF"
-            value={dueDate}
-            onChangeText={setDueDate}
-            keyboardType="numbers-and-punctuation"
-          />
-
-          {members.length > 0 && (
-            <>
-              <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Assign to</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.modalAssigneeRow}>
-                {members.map((m) => {
-                  const selected = assignees.includes(m.id)
-                  const bg = ROLE_HEX_COLORS[m.role ?? ''] ?? '#6B7280'
-                  return (
-                    <TouchableOpacity
-                      key={m.id}
-                      onPress={() => toggleAssignee(m.id)}
-                      activeOpacity={0.7}
-                      style={[styles.modalAssigneeChip, selected && { borderColor: bg, backgroundColor: bg + '15' }]}
-                    >
-                      <View style={[styles.modalAssigneeAvatar, { backgroundColor: bg }]}>
-                        <Text style={styles.modalAssigneeAvatarText}>
-                          {m.name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)}
-                        </Text>
-                      </View>
-                      <Text style={[styles.assigneeName, selected && { color: bg, fontWeight: '700' }]}>
-                        {m.name.split(' ')[0]}
-                      </Text>
-                    </TouchableOpacity>
-                  )
-                })}
-              </ScrollView>
-            </>
-          )}
-
-          <View style={styles.modalActions}>
-            <TouchableOpacity onPress={onClose} style={styles.cancelBtn} activeOpacity={0.7}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleCreate} style={styles.createBtn} disabled={saving} activeOpacity={0.85}>
-              {saving ? (
-                <ActivityIndicator color="white" size="small" />
-              ) : (
-                <Text style={styles.createText}>Create task</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-      </KeyboardAvoidingView>
-    </Modal>
+      {members.length > 0 && (
+        <>
+          <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Assign to</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.modalAssigneeRow}>
+            {members.map((m) => {
+              const selected = assignees.includes(m.id)
+              const bg = ROLE_HEX_COLORS[m.role ?? ''] ?? '#6B7280'
+              return (
+                <TouchableOpacity
+                  key={m.id}
+                  onPress={() => toggleAssignee(m.id)}
+                  activeOpacity={0.7}
+                  style={[styles.modalAssigneeChip, selected && { borderColor: bg, backgroundColor: bg + '15' }]}
+                >
+                  <View style={[styles.modalAssigneeAvatar, { backgroundColor: bg }]}>
+                    <Text style={styles.modalAssigneeAvatarText}>
+                      {m.name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)}
+                    </Text>
+                  </View>
+                  <Text style={[styles.assigneeName, selected && { color: bg, fontWeight: '700' }]}>
+                    {m.name.split(' ')[0]}
+                  </Text>
+                </TouchableOpacity>
+              )
+            })}
+          </ScrollView>
+        </>
+      )}
+    </BottomSheetModal>
   )
 }
 
@@ -272,36 +236,21 @@ export default function TasksScreen() {
   const [members, setMembers] = useState<User[]>([])
   const [filter, setFilter] = useState<Filter>('pending')
   const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
 
-  const load = useCallback(async (quiet = false) => {
+  const fetchData = useCallback(async () => {
     if (!user?.family_id) return
-    if (!quiet) setLoading(true)
-    try {
-      const [tasksData, membersData] = await Promise.all([
-        getTasks(user.family_id),
-        getFamilyMembers(user.family_id),
-      ])
-      setTasks(tasksData)
-      setMembers(membersData)
-    } catch {
-      // silently fail
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
+    const [tasksData, membersData] = await Promise.all([
+      getTasks(user.family_id),
+      getFamilyMembers(user.family_id),
+    ])
+    setTasks(tasksData)
+    setMembers(membersData)
   }, [user?.family_id])
 
-  useEffect(() => { load() }, [load])
+  const { loading, refreshing, refresh } = useScreenData(user?.family_id, fetchData, ['tasks', 'users'])
 
-  useRealtimeSync(user?.family_id, {
-    tasks: () => load(true),
-    users: () => load(true),
-  })
-
-  function handleToggle(task: Task) {
+  const handleToggle = useCallback((task: Task) => {
     if (task.completed) {
       setTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, completed: false, completed_at: null, completed_by: null } : t))
       uncompleteTask(task.id).catch(() =>
@@ -313,30 +262,34 @@ export default function TasksScreen() {
         setTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, completed: false, completed_at: null } : t))
       )
     }
-  }
+  }, [user])
 
-  const pending = tasks.filter((t) => !t.completed)
-  const done = tasks.filter((t) => t.completed)
+  const pending = useMemo(() => tasks.filter((t) => !t.completed), [tasks])
+  const done = useMemo(() => tasks.filter((t) => t.completed), [tasks])
 
   // Sort pending: overdue first, then by due_date asc, then no due date
-  const sortedPending = [...pending].sort((a, b) => {
+  const sortedPending = useMemo(() => [...pending].sort((a, b) => {
     const da = a.due_date ? new Date(a.due_date).getTime() : Infinity
     const db = b.due_date ? new Date(b.due_date).getTime() : Infinity
     return da - db
-  })
+  }), [pending])
 
-  const filteredPending = assigneeFilter
-    ? sortedPending.filter(t => t.assigned_to?.includes(assigneeFilter))
-    : sortedPending
+  const filteredPending = useMemo(
+    () => assigneeFilter ? sortedPending.filter(t => t.assigned_to?.includes(assigneeFilter)) : sortedPending,
+    [sortedPending, assigneeFilter]
+  )
 
-  const filteredDone = assigneeFilter
-    ? done.filter(t => t.assigned_to?.includes(assigneeFilter))
-    : done
+  const filteredDone = useMemo(
+    () => assigneeFilter ? done.filter(t => t.assigned_to?.includes(assigneeFilter)) : done,
+    [done, assigneeFilter]
+  )
 
-  const displayed: Task[] =
+  const displayed: Task[] = useMemo(() =>
     filter === 'pending' ? filteredPending :
     filter === 'done' ? filteredDone :
-    [...filteredPending, ...filteredDone]
+    [...filteredPending, ...filteredDone],
+    [filter, filteredPending, filteredDone]
+  )
 
   const assigneeName = assigneeFilter
     ? members.find(m => m.id === assigneeFilter)?.name?.split(' ')[0] ?? null
@@ -347,6 +300,32 @@ export default function TasksScreen() {
     { key: 'done', label: 'Done', count: done.length },
     { key: 'all', label: 'All', count: tasks.length },
   ]
+
+  const renderTaskItem = useCallback(({ item, index }: { item: Task; index: number }) => {
+    const showDoneDivider =
+      filter === 'all' &&
+      index === filteredPending.length - 1 &&
+      filteredDone.length > 0
+    const isLast = index === displayed.length - 1
+
+    return (
+      <>
+        <View style={styles.card}>
+          <TaskRow
+            task={item}
+            members={members}
+            onToggle={handleToggle}
+            isLast={isLast}
+          />
+        </View>
+        {showDoneDivider && (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Done</Text>
+          </View>
+        )}
+      </>
+    )
+  }, [filter, filteredPending.length, filteredDone.length, displayed.length, members, handleToggle])
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -436,7 +415,7 @@ export default function TasksScreen() {
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => { setRefreshing(true); load(true) }}
+              onRefresh={refresh}
               tintColor={T.primary}
             />
           }
@@ -489,31 +468,7 @@ export default function TasksScreen() {
             ) : null
           }
           ItemSeparatorComponent={null}
-          renderItem={({ item, index }) => {
-            const showDoneDivider =
-              filter === 'all' &&
-              index === filteredPending.length - 1 &&
-              filteredDone.length > 0
-            const isLast = index === displayed.length - 1
-
-            return (
-              <>
-                <View style={styles.card}>
-                  <TaskRow
-                    task={item}
-                    members={members}
-                    onToggle={handleToggle}
-                    isLast={isLast}
-                  />
-                </View>
-                {showDoneDivider && (
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Done</Text>
-                  </View>
-                )}
-              </>
-            )
-          }}
+          renderItem={renderTaskItem}
         />
       )}
 
@@ -544,14 +499,6 @@ export default function TasksScreen() {
 }
 
 // ── Styles ─────────────────────────────────────────────────────────────────
-
-const T = {
-  primary: '#312E81',
-  p800: '#1E1B4B',
-  accent: '#FB7185',
-  bg: '#f0eff8',
-  success: '#34D399',
-}
 
 const styles = StyleSheet.create({
   root: {
@@ -792,16 +739,6 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   avatarWrap: {},
-  avatar: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: 'white',
-  },
-  avatarText: {
-    color: 'white',
-    fontWeight: '800',
-  },
 
   // Empty / loading states
   centerState: {
@@ -853,33 +790,7 @@ const styles = StyleSheet.create({
     marginTop: -1,
   },
 
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-  },
-  modalSheet: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 20,
-    paddingBottom: 36,
-    paddingTop: 12,
-  },
-  modalHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#e5e7eb',
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: T.primary,
-    marginBottom: 16,
-  },
+  // Modal field content (chrome lives in BottomSheetModal)
   fieldLabel: {
     fontSize: 12,
     fontWeight: '700',
@@ -930,49 +841,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#374151',
-  },
-  errorBox: {
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 12,
-  },
-  errorText: {
-    fontSize: 13,
-    color: '#DC2626',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 20,
-  },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    alignItems: 'center',
-  },
-  cancelText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#6B7280',
-  },
-  createBtn: {
-    flex: 2,
-    paddingVertical: 14,
-    borderRadius: 14,
-    backgroundColor: T.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  createText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: 'white',
   },
 })

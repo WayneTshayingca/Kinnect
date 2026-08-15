@@ -23,6 +23,9 @@ import {
   type Family,
 } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
+import { useScreenData } from '@/hooks/useScreenData'
+import { Avatar } from '@/components/Avatar'
+import { T } from '@/lib/theme'
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -33,25 +36,13 @@ const ROLE_LABELS: Record<string, string> = {
   observer: 'Observer',
 }
 
-// ── Avatar ────────────────────────────────────────────────────────────────
-
-function Avatar({ name, role, size = 44 }: { name: string; role: string | null; size?: number }) {
-  const initials = name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
-  const bg = ROLE_HEX_COLORS[role ?? ''] ?? '#6B7280'
-  return (
-    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: bg }]}>
-      <Text style={[styles.avatarText, { fontSize: size * 0.36 }]}>{initials}</Text>
-    </View>
-  )
-}
-
 // ── Member card ───────────────────────────────────────────────────────────
 
 function MemberCard({ member, isMe }: { member: User; isMe: boolean }) {
   const roleColor = ROLE_HEX_COLORS[member.role ?? ''] ?? '#6B7280'
   return (
     <View style={[styles.memberCard, isMe && styles.memberCardMe]}>
-      <Avatar name={member.name} role={member.role} size={44} />
+      <Avatar name={member.name} role={member.role} size={44} borderWidth={2} />
       <View style={styles.memberInfo}>
         <View style={styles.memberNameRow}>
           <Text style={styles.memberName}>{member.name}</Text>
@@ -80,8 +71,6 @@ export default function FamilyScreen() {
 
   const [family, setFamily] = useState<Family | null>(null)
   const [members, setMembers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
 
   // Inline family name editing
@@ -94,25 +83,19 @@ export default function FamilyScreen() {
 
   const isAdmin = user?.role === 'admin'
 
-  const load = useCallback(async (quiet = false) => {
+  const fetchData = useCallback(async () => {
     if (!user?.family_id) return
-    if (!quiet) setLoading(true)
-    try {
-      const [familyData, membersData] = await Promise.all([
-        getFamily(user.family_id),
-        getFamilyMembers(user.family_id),
-      ])
-      setFamily(familyData)
-      setMembers(membersData)
-    } catch {
-      // silently fail
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
+    const [familyData, membersData] = await Promise.all([
+      getFamily(user.family_id),
+      getFamilyMembers(user.family_id),
+    ])
+    setFamily(familyData)
+    setMembers(membersData)
   }, [user?.family_id])
 
-  useEffect(() => { load() }, [load])
+  // No realtime table list — this screen intentionally has no live sync,
+  // matching web's /dashboard/profile.
+  const { loading, refreshing, refresh } = useScreenData(user?.family_id, fetchData, [])
 
   // Load email from Supabase session
   useEffect(() => {
@@ -188,7 +171,7 @@ export default function FamilyScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); load(true) }}
+            onRefresh={refresh}
             tintColor={T.primary}
           />
         }
@@ -267,7 +250,7 @@ export default function FamilyScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Your profile</Text>
           <View style={styles.profileCard}>
-            {user && <Avatar name={user.name} role={user.role} size={52} />}
+            {user && <Avatar name={user.name} role={user.role} size={52} borderWidth={2} />}
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>{user?.name ?? '—'}</Text>
               {email && <Text style={styles.profileEmail}>{email}</Text>}
@@ -301,13 +284,6 @@ export default function FamilyScreen() {
 }
 
 // ── Styles ─────────────────────────────────────────────────────────────────
-
-const T = {
-  primary: '#312E81',
-  p800: '#1E1B4B',
-  accent: '#FB7185',
-  bg: '#f0eff8',
-}
 
 const styles = StyleSheet.create({
   root: {
@@ -479,17 +455,6 @@ const styles = StyleSheet.create({
   },
   memberCardMe: {
     backgroundColor: 'rgba(49,46,129,0.03)',
-  },
-  avatar: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'white',
-    flexShrink: 0,
-  },
-  avatarText: {
-    color: 'white',
-    fontWeight: '800',
   },
   memberInfo: {
     flex: 1,

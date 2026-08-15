@@ -23,12 +23,13 @@ import {
   type ListItem,
 } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
-import { useRealtimeSync } from '@/hooks/useRealtimeSync'
+import { useScreenData } from '@/hooks/useScreenData'
 import { useShoppingPresence } from '@kinnect/hooks'
+import { T } from '@/lib/theme'
 
 // ── Item row ───────────────────────────────────────────────────────────────
 
-function ItemRow({
+const ItemRow = React.memo(function ItemRow({
   item,
   shoppingMode,
   editingId,
@@ -128,7 +129,7 @@ function ItemRow({
       )}
     </View>
   )
-}
+})
 
 // ── Screen ─────────────────────────────────────────────────────────────────
 
@@ -138,8 +139,6 @@ export default function ShoppingScreen() {
 
   const [incompleteItems, setIncompleteItems] = useState<ListItem[]>([])
   const [completedItems, setCompletedItems] = useState<ListItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
   const [shoppingMode, setShoppingMode] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
 
@@ -162,26 +161,14 @@ export default function ShoppingScreen() {
     }).start()
   }, [shoppingMode])
 
-  const load = useCallback(async (quiet = false) => {
+  const fetchData = useCallback(async () => {
     if (!user?.family_id) return
-    if (!quiet) setLoading(true)
-    try {
-      const { incompleteItems: inc, completedItems: done } = await getFullShoppingList(user.family_id)
-      setIncompleteItems(inc)
-      setCompletedItems(done)
-    } catch {
-      // silently fail
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
+    const { incompleteItems: inc, completedItems: done } = await getFullShoppingList(user.family_id)
+    setIncompleteItems(inc)
+    setCompletedItems(done)
   }, [user?.family_id])
 
-  useEffect(() => { load() }, [load])
-
-  useRealtimeSync(user?.family_id, {
-    list_items: () => load(true),
-  })
+  const { loading, refreshing, reload, refresh } = useScreenData(user?.family_id, fetchData, ['list_items'])
 
   const otherShoppers = useShoppingPresence(user?.family_id, user?.id, user?.name, shoppingMode)
 
@@ -220,7 +207,7 @@ export default function ShoppingScreen() {
 
   // ── Toggle ────────────────────────────────────────────────────────────────
 
-  function handleToggle(item: ListItem) {
+  const handleToggle = useCallback((item: ListItem) => {
     if (!user?.id) return
     const completing = !item.completed
     if (completing) {
@@ -230,12 +217,12 @@ export default function ShoppingScreen() {
       setCompletedItems((prev) => prev.filter((i) => i.id !== item.id))
       setIncompleteItems((prev) => [{ ...item, completed: false, completed_at: null }, ...prev])
     }
-    toggleShoppingListItem(item.id, completing, user.id).catch(() => load(true))
-  }
+    toggleShoppingListItem(item.id, completing, user.id).catch(() => reload(true))
+  }, [user?.id, reload])
 
   // ── Delete ────────────────────────────────────────────────────────────────
 
-  function handleDelete(item: ListItem) {
+  const handleDelete = useCallback((item: ListItem) => {
     Alert.alert('Remove item', `Remove "${item.title}" from the list?`, [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -243,11 +230,11 @@ export default function ShoppingScreen() {
         style: 'destructive',
         onPress: () => {
           setIncompleteItems((prev) => prev.filter((i) => i.id !== item.id))
-          deleteShoppingListItem(item.id).catch(() => load(true))
+          deleteShoppingListItem(item.id).catch(() => reload(true))
         },
       },
     ])
-  }
+  }, [reload])
 
   // ── Clear completed ───────────────────────────────────────────────────────
 
@@ -260,7 +247,7 @@ export default function ShoppingScreen() {
         style: 'destructive',
         onPress: () => {
           setCompletedItems([])
-          clearCompletedItems(user.family_id!).catch(() => load(true))
+          clearCompletedItems(user.family_id!).catch(() => reload(true))
         },
       },
     ])
@@ -268,22 +255,38 @@ export default function ShoppingScreen() {
 
   // ── Inline edit ───────────────────────────────────────────────────────────
 
-  function handleEditStart(item: ListItem) {
+  const handleEditStart = useCallback((item: ListItem) => {
     setEditingId(item.id)
     setEditText(item.title)
-  }
+  }, [])
 
-  async function handleEditSubmit() {
+  const handleEditSubmit = useCallback(async () => {
     if (!editingId || !editText.trim()) { setEditingId(null); return }
     const id = editingId
     const text = editText.trim()
     setEditingId(null)
     setIncompleteItems((prev) => prev.map((i) => i.id === id ? { ...i, title: text } : i))
-    updateShoppingListItem(id, { title: text }).catch(() => load(true))
-  }
+    updateShoppingListItem(id, { title: text }).catch(() => reload(true))
+  }, [editingId, editText, reload])
 
   const doneCount = completedItems.length
   const pendingCount = incompleteItems.length
+
+  const renderItem = useCallback(({ item, index }: { item: ListItem; index: number }) => (
+    <ItemRow
+      item={item}
+      shoppingMode={shoppingMode}
+      editingId={editingId}
+      editText={editText}
+      onToggle={handleToggle}
+      onDelete={handleDelete}
+      onEditStart={handleEditStart}
+      onEditChange={setEditText}
+      onEditSubmit={handleEditSubmit}
+      onEditBlur={handleEditSubmit}
+      isLast={index === incompleteItems.length - 1 && doneCount === 0}
+    />
+  ), [shoppingMode, editingId, editText, handleToggle, handleDelete, handleEditStart, handleEditSubmit, incompleteItems.length, doneCount])
 
   const headerBg = shoppingModeAnim.interpolate({
     inputRange: [0, 1],
@@ -358,7 +361,7 @@ export default function ShoppingScreen() {
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => { setRefreshing(true); load(true) }}
+              onRefresh={refresh}
               tintColor={T.primary}
             />
           }
@@ -369,21 +372,7 @@ export default function ShoppingScreen() {
               <Text style={styles.emptyHint}>Add items below</Text>
             </View>
           }
-          renderItem={({ item, index }) => (
-            <ItemRow
-              item={item}
-              shoppingMode={shoppingMode}
-              editingId={editingId}
-              editText={editText}
-              onToggle={handleToggle}
-              onDelete={handleDelete}
-              onEditStart={handleEditStart}
-              onEditChange={setEditText}
-              onEditSubmit={handleEditSubmit}
-              onEditBlur={handleEditSubmit}
-              isLast={index === incompleteItems.length - 1 && doneCount === 0}
-            />
-          )}
+          renderItem={renderItem}
           ListFooterComponent={
             doneCount > 0 ? (
               <View style={styles.completedSection}>
@@ -458,14 +447,6 @@ export default function ShoppingScreen() {
 }
 
 // ── Styles ─────────────────────────────────────────────────────────────────
-
-const T = {
-  primary: '#312E81',
-  p800: '#1E1B4B',
-  accent: '#FB7185',
-  bg: '#f0eff8',
-  success: '#34D399',
-}
 
 const styles = StyleSheet.create({
   root: {

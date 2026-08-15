@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import {
   View,
   Text,
@@ -6,13 +6,9 @@ import {
   TouchableOpacity,
   TextInput,
   Switch,
-  Modal,
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  KeyboardAvoidingView,
-  Platform,
-  Animated,
   Alert,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -24,7 +20,9 @@ import {
   type CalendarEvent,
 } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
-import { useRealtimeSync } from '@/hooks/useRealtimeSync'
+import { useScreenData } from '@/hooks/useScreenData'
+import { BottomSheetModal } from '@/components/BottomSheetModal'
+import { T } from '@/lib/theme'
 
 // ── Date helpers ──────────────────────────────────────────────────────────
 
@@ -137,15 +135,11 @@ function CreateEventModal({
   const [location, setLocation] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const slideAnim = useRef(new Animated.Value(500)).current
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (visible) {
       setTitle(''); setAllDay(false); setDate(initialDate)
       setStartTime('09:00'); setEndTime('10:00'); setLocation(''); setError('')
-      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, bounciness: 4 }).start()
-    } else {
-      Animated.timing(slideAnim, { toValue: 500, duration: 200, useNativeDriver: true }).start()
     }
   }, [visible, initialDate])
 
@@ -174,101 +168,87 @@ function CreateEventModal({
   }
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
-        <Animated.View style={[styles.modalSheet, { transform: [{ translateY: slideAnim }] }]}>
-          <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>New event</Text>
+    <BottomSheetModal
+      visible={visible}
+      title="New event"
+      error={error}
+      submitting={saving}
+      submitLabel="Save event"
+      onClose={onClose}
+      onSubmit={handleCreate}
+      slideFrom={500}
+    >
+      <Text style={styles.fieldLabel}>Title</Text>
+      <TextInput
+        style={styles.textInput}
+        placeholder="Event name"
+        placeholderTextColor="#9CA3AF"
+        value={title}
+        onChangeText={setTitle}
+        autoFocus
+      />
 
-          {error ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
+      {/* All day toggle */}
+      <View style={styles.switchRow}>
+        <Text style={styles.switchLabel}>All day</Text>
+        <Switch
+          value={allDay}
+          onValueChange={setAllDay}
+          trackColor={{ true: T.accent, false: '#E5E7EB' }}
+          thumbColor="white"
+        />
+      </View>
 
-          <Text style={styles.fieldLabel}>Title</Text>
+      <View style={styles.fieldRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.fieldLabel}>Date</Text>
           <TextInput
             style={styles.textInput}
-            placeholder="Event name"
+            placeholder="YYYY-MM-DD"
             placeholderTextColor="#9CA3AF"
-            value={title}
-            onChangeText={setTitle}
-            autoFocus
+            value={date}
+            onChangeText={setDate}
+            keyboardType="numbers-and-punctuation"
           />
+        </View>
+      </View>
 
-          {/* All day toggle */}
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>All day</Text>
-            <Switch
-              value={allDay}
-              onValueChange={setAllDay}
-              trackColor={{ true: T.accent, false: '#E5E7EB' }}
-              thumbColor="white"
+      {!allDay && (
+        <View style={[styles.fieldRow, { gap: 10 }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.fieldLabel}>Start</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="09:00"
+              placeholderTextColor="#9CA3AF"
+              value={startTime}
+              onChangeText={setStartTime}
+              keyboardType="numbers-and-punctuation"
             />
           </View>
-
-          <View style={styles.fieldRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fieldLabel}>Date</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="#9CA3AF"
-                value={date}
-                onChangeText={setDate}
-                keyboardType="numbers-and-punctuation"
-              />
-            </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.fieldLabel}>End</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="10:00"
+              placeholderTextColor="#9CA3AF"
+              value={endTime}
+              onChangeText={setEndTime}
+              keyboardType="numbers-and-punctuation"
+            />
           </View>
+        </View>
+      )}
 
-          {!allDay && (
-            <View style={[styles.fieldRow, { gap: 10 }]}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.fieldLabel}>Start</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="09:00"
-                  placeholderTextColor="#9CA3AF"
-                  value={startTime}
-                  onChangeText={setStartTime}
-                  keyboardType="numbers-and-punctuation"
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.fieldLabel}>End</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="10:00"
-                  placeholderTextColor="#9CA3AF"
-                  value={endTime}
-                  onChangeText={setEndTime}
-                  keyboardType="numbers-and-punctuation"
-                />
-              </View>
-            </View>
-          )}
-
-          <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Location (optional)</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="Where is it?"
-            placeholderTextColor="#9CA3AF"
-            value={location}
-            onChangeText={setLocation}
-          />
-
-          <View style={styles.modalActions}>
-            <TouchableOpacity onPress={onClose} style={styles.cancelBtn} activeOpacity={0.7}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleCreate} style={styles.createBtn} disabled={saving} activeOpacity={0.85}>
-              {saving ? <ActivityIndicator color="white" size="small" /> : <Text style={styles.createText}>Save event</Text>}
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-      </KeyboardAvoidingView>
-    </Modal>
+      <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Location (optional)</Text>
+      <TextInput
+        style={styles.textInput}
+        placeholder="Where is it?"
+        placeholderTextColor="#9CA3AF"
+        value={location}
+        onChangeText={setLocation}
+      />
+    </BottomSheetModal>
   )
 }
 
@@ -285,32 +265,18 @@ export default function CalendarScreen() {
   const [month, setMonth] = useState(today.getMonth())
   const [selected, setSelected] = useState(today)
   const [events, setEvents] = useState<CalendarEvent[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
 
-  const load = useCallback(async (quiet = false) => {
+  const fetchData = useCallback(async () => {
     if (!user?.family_id) return
-    if (!quiet) setLoading(true)
-    try {
-      // Load current month ± 7 days buffer
-      const start = new Date(year, month, 1); start.setDate(start.getDate() - 7)
-      const end   = new Date(year, month + 1, 0); end.setDate(end.getDate() + 7)
-      const data = await getCalendarEvents(user.family_id, start.toISOString(), end.toISOString())
-      setEvents(data)
-    } catch {
-      // silently fail
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
+    // Load current month ± 7 days buffer
+    const start = new Date(year, month, 1); start.setDate(start.getDate() - 7)
+    const end   = new Date(year, month + 1, 0); end.setDate(end.getDate() + 7)
+    const data = await getCalendarEvents(user.family_id, start.toISOString(), end.toISOString())
+    setEvents(data)
   }, [user?.family_id, year, month])
 
-  useEffect(() => { load() }, [load])
-
-  useRealtimeSync(user?.family_id, {
-    calendar_events: () => load(true),
-  })
+  const { loading, refreshing, reload, refresh } = useScreenData(user?.family_id, fetchData, ['calendar_events'])
 
   function prevMonth() {
     const d = new Date(year, month - 1, 1)
@@ -327,32 +293,35 @@ export default function CalendarScreen() {
   }
 
   // Pre-compute event date sets for dot indicators
-  const eventDateMap = new Map<string, number>() // date → count
-  for (const ev of events) {
-    for (const ds of eventSpansDates(ev)) {
-      eventDateMap.set(ds, (eventDateMap.get(ds) ?? 0) + 1)
+  const eventDateMap = useMemo(() => {
+    const map = new Map<string, number>() // date → count
+    for (const ev of events) {
+      for (const ds of eventSpansDates(ev)) {
+        map.set(ds, (map.get(ds) ?? 0) + 1)
+      }
     }
-  }
+    return map
+  }, [events])
 
   // SA holidays for this year + next (for dots + agenda)
-  const holidays = [...getSAHolidays(year), ...getSAHolidays(year + 1)]
-  const holidayMap = new Map(holidays.map((h) => [h.date, h.name]))
+  const holidays = useMemo(() => [...getSAHolidays(year), ...getSAHolidays(year + 1)], [year])
+  const holidayMap = useMemo(() => new Map(holidays.map((h) => [h.date, h.name])), [holidays])
 
   // Events for the selected date
   const selectedStr = dateStr(selected)
-  const dayEvents = events.filter((ev) => eventSpansDates(ev).has(selectedStr))
+  const dayEvents = useMemo(() => events.filter((ev) => eventSpansDates(ev).has(selectedStr))
     .sort((a, b) => {
       if (a.all_day && !b.all_day) return -1
       if (!a.all_day && b.all_day) return 1
       return new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
-    })
+    }), [events, selectedStr])
   const dayHoliday = holidayMap.get(selectedStr)
 
-  const grid = buildGrid(year, month)
+  const grid = useMemo(() => buildGrid(year, month), [year, month])
 
   function handleDelete(id: string) {
     setEvents((prev) => prev.filter((e) => e.id !== id))
-    deleteCalendarEvent(id).catch(() => load(true))
+    deleteCalendarEvent(id).catch(() => reload(true))
   }
 
   function handleCreated(ev: CalendarEvent) {
@@ -451,7 +420,7 @@ export default function CalendarScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); load(true) }}
+            onRefresh={refresh}
             tintColor={T.primary}
           />
         }
@@ -510,13 +479,6 @@ export default function CalendarScreen() {
 }
 
 // ── Styles ─────────────────────────────────────────────────────────────────
-
-const T = {
-  primary: '#312E81',
-  p800: '#1E1B4B',
-  accent: '#FB7185',
-  bg: '#f0eff8',
-}
 
 const CELL_SIZE = 38
 
@@ -770,33 +732,7 @@ const styles = StyleSheet.create({
     marginTop: -1,
   },
 
-  // ── Modal ─────────────────────────────────────────
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-  },
-  modalSheet: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 20,
-    paddingBottom: 36,
-    paddingTop: 12,
-  },
-  modalHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#e5e7eb',
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: T.primary,
-    marginBottom: 16,
-  },
+  // ── Modal field content (chrome lives in BottomSheetModal) ─────────
   fieldLabel: {
     fontSize: 12,
     fontWeight: '700',
@@ -829,49 +765,5 @@ const styles = StyleSheet.create({
   fieldRow: {
     flexDirection: 'row',
     gap: 0,
-  },
-  errorBox: {
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 12,
-  },
-  errorText: {
-    fontSize: 13,
-    color: '#DC2626',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 20,
-  },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    alignItems: 'center',
-  },
-  cancelText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#6B7280',
-  },
-  createBtn: {
-    flex: 2,
-    paddingVertical: 14,
-    borderRadius: 14,
-    backgroundColor: T.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  createText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: 'white',
   },
 })

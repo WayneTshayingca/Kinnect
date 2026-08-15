@@ -58,6 +58,21 @@ export async function signOut() {
   if (error) throw error
 }
 
+// Looks up the users-table row for a given auth uid. Used both by
+// getCurrentUser() (JWT-validated) and by callers that already have a fast,
+// local session (getSession()) and just want the matching profile row.
+export async function getUserByAuthId(authUserId: string): Promise<User | null> {
+  const supabase = getSupabase()
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('auth_user_id', authUserId)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
+
 export async function getCurrentUser(): Promise<User | null> {
   const supabase = getSupabase()
 
@@ -66,14 +81,7 @@ export async function getCurrentUser(): Promise<User | null> {
   const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
   if (authError || !authUser) return null
 
-  const { data: userData, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('auth_user_id', authUser.id)
-    .maybeSingle()
-
-  if (error) throw error
-  return userData
+  return getUserByAuthId(authUser.id)
 }
 
 export async function changePassword(newPassword: string) {

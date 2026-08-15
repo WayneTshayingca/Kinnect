@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { getCurrentUser, getSupabase, type User } from '@kinnect/core'
+import { getCurrentUser, getUserByAuthId, getSupabase, type User } from '@kinnect/core'
 
 interface UserContextType {
   user: User | null
@@ -39,26 +39,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('auth_user_id', session.user.id)
-        .maybeSingle()
-
-      if (!error) setUser(userData ?? null)
-      setLoading(false)
+      try {
+        setUser(await getUserByAuthId(session.user.id))
+      } finally {
+        setLoading(false)
+      }
     }).catch(() => {
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) {
         setUser(null)
+      } else if (event === 'SIGNED_IN') {
+        refreshUser()
       }
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [refreshUser])
 
   return (
     // @ts-ignore - React 19 Context type compatibility
