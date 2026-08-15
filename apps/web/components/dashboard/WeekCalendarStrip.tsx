@@ -2,8 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { type CalendarEvent, getSAHolidays } from '@kinnect/core'
-import { formatEventTime } from '@/lib/formatters'
+import { type CalendarEvent, getSAHolidays, formatEventTime } from '@kinnect/core'
 import { Calendar, Plus } from 'lucide-react'
 
 interface WeekCalendarStripProps {

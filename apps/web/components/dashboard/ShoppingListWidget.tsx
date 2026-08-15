@@ -6,12 +6,12 @@ import toast from 'react-hot-toast'
 import {
   addShoppingListItem,
   toggleShoppingListItem,
+  timeAgo,
   type ListItem,
   type User,
 } from '@kinnect/core'
 import { ShoppingBasket, Plus, ShoppingBag } from 'lucide-react'
 import logger from '@/lib/logger'
-import { timeAgo } from '@/lib/formatters'
 
 interface ShoppingListWidgetProps {
   items: ListItem[]
@@ -21,6 +21,7 @@ interface ShoppingListWidgetProps {
   members: User[]
   onItemAdded: () => void
   onItemToggled: (itemId: string) => void
+  onItemToggleFailed: () => void
   variant?: 'bento'
 }
 
@@ -32,6 +33,7 @@ export default function ShoppingListWidget({
   members,
   onItemAdded,
   onItemToggled,
+  onItemToggleFailed,
   variant,
 }: ShoppingListWidgetProps) {
   const [newItem, setNewItem] = useState('')
@@ -71,6 +73,7 @@ export default function ShoppingListWidget({
       await toggleShoppingListItem(itemId, !completed, userId)
     } catch (error) {
       logger.error('Failed to toggle item', error)
+      onItemToggleFailed()
     }
   }
 

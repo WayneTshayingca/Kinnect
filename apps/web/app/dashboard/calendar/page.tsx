@@ -2,14 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getCalendarEvents, deleteCalendarEvent, getSAHolidays, type CalendarEvent, type SAHoliday } from '@kinnect/core'
+import { getCalendarEvents, deleteCalendarEvent, getSAHolidays, formatEventTime, toLocaleDateStr, type CalendarEvent, type SAHoliday } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
 import { useRealtimeSync } from '@/hooks/useRealtimeSync'
 import toast from 'react-hot-toast'
 import CreateEventModal from '@/components/CreateEventModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import logger from '@/lib/logger'
-import { formatEventTime, toLocaleDateStr } from '@/lib/formatters'
 import { ChevronLeft, ChevronRight, Plus, Calendar, List, MapPin, Clock } from 'lucide-react'
 
 // ── constants ──────────────────────────────────────────────

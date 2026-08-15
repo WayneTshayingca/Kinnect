@@ -10,6 +10,7 @@ import {
   updateShoppingListItem,
   deleteShoppingListItem,
   clearCompletedItems,
+  timeAgo,
   type User,
   type ListItem,
 } from '@kinnect/core'
@@ -20,7 +21,6 @@ import toast from 'react-hot-toast'
 import { ShoppingBasket, ShoppingBag, Plus, Trash2, Pencil, Check, X, ChevronDown, ChevronUp } from 'lucide-react'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import logger from '@/lib/logger'
-import { timeAgo } from '@/lib/formatters'
 
 // ── Checkbox: normal mode ─────────────────────────────────────────
 

@@ -8,6 +8,8 @@ import {
   uncompleteTask,
   deleteTask,
   getFamilyMembers,
+  timeAgo,
+  getTodayStr,
   type Task,
   type User,
   ROLE_HEX_COLORS,
@@ -18,7 +20,7 @@ import CreateTaskModal from '@/components/CreateTaskModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import logger from '@/lib/logger'
 import toast from 'react-hot-toast'
-import { timeAgo, getTodayStr } from '@/lib/formatters'
+import { mergeInflight } from '@/lib/optimistic'
 import { ROLE_COLORS } from '@/lib/constants'
 import {
   CheckCircle2,
@@ -219,12 +221,7 @@ export default function TasksPage() {
   const reloadTasks = useCallback(async () => {
     if (user?.family_id) {
       const tasksData = await getTasks(user.family_id)
-      const inflight = inflightRef.current
-      if (inflight.size > 0) {
-        setTasks(tasksData.map((t) => inflight.has(t.id) ? { ...t, ...inflight.get(t.id) } : t))
-      } else {
-        setTasks(tasksData)
-      }
+      setTasks(mergeInflight(tasksData, inflightRef.current))
     }
   }, [user?.family_id])
 

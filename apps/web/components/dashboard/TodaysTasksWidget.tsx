@@ -3,11 +3,10 @@
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
-import { completeTask, createTask, type Task, type User } from '@kinnect/core'
+import { completeTask, createTask, getTodayStr, type Task, type User } from '@kinnect/core'
 import { AlertCircle, CheckCircle2, Circle, Pencil, Plus } from 'lucide-react'
 import logger from '@/lib/logger'
 import { ROLE_COLORS, ROLE_HEX_COLORS } from '@/lib/constants'
-import { getTodayStr } from '@/lib/formatters'
 
 interface TodaysTasksWidgetProps {
   tasks: Task[]

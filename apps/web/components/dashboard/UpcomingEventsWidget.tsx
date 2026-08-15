@@ -2,9 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { type CalendarEvent, type SAHoliday, getSAHolidays } from '@kinnect/core'
+import { type CalendarEvent, type SAHoliday, getSAHolidays, formatEventDate, formatEventTime } from '@kinnect/core'
 import { Calendar, Clock, MapPin, Plus, X, Flag } from 'lucide-react'
-import { formatEventDate, formatEventTime } from '@/lib/formatters'
 
 interface UpcomingEventsWidgetProps {
   events: CalendarEvent[]

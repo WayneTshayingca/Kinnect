@@ -16,6 +16,8 @@ import {
     type ListItem,
     type ResponsibilityOccurrenceWithFlow,
     signOut,
+    getTodayStr,
+    formatEventTime,
     type Task,
     type User,
     ROLE_HEX_COLORS,
@@ -33,7 +35,7 @@ import { LogOut } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import logger from '@/lib/logger'
 import toast from 'react-hot-toast'
-import { getTodayStr, formatEventTime } from '@/lib/formatters'
+import { mergeInflight } from '@/lib/optimistic'
 
 // Lazy-load modals (only needed on user interaction)
 const CreateTaskModal = dynamic(() => import('@/components/CreateTaskModal'), { ssr: false })
@@ -172,21 +174,12 @@ export default function DashboardPage() {
     setShoppingItems((prev) => prev.filter((i) => i.id !== itemId))
     setShoppingTotalCount((prev) => Math.max(0, prev - 1))
     broadcast('list_items')
-    if (user?.family_id) {
-      getShoppingListPreview(user.family_id, 4).then((data) => {
-        setShoppingItems(data.items)
-        setShoppingTotalCount(data.totalCount)
-      }).catch((err) => { logger.error('Error syncing shopping list', err); toast.error('Failed to sync shopping list') })
-    }
   }
 
   const reloadTasks = useCallback(async () => {
     if (user?.family_id) {
       const tasksData = await getTodaysTasks(user.family_id)
-      const inflight = inflightTasksRef.current
-      const merged = inflight.size > 0
-        ? tasksData.map((t) => inflight.has(t.id) ? { ...t, ...inflight.get(t.id) } : t)
-        : tasksData
+      const merged = mergeInflight(tasksData, inflightTasksRef.current)
       setTasks(merged)
       setCompletedTodayCount((prev) => Math.max(prev, countCompletedToday(merged)))
     }
@@ -356,6 +349,7 @@ export default function DashboardPage() {
               members={members}
               onItemAdded={() => { reloadShopping(); broadcast('list_items') }}
               onItemToggled={handleShoppingToggleOptimistic}
+              onItemToggleFailed={reloadShopping}
               variant="bento"
             />
           </ErrorBoundary>
@@ -414,6 +408,7 @@ export default function DashboardPage() {
                 members={members}
                 onItemAdded={() => { reloadShopping(); broadcast('list_items') }}
                 onItemToggled={handleShoppingToggleOptimistic}
+                onItemToggleFailed={reloadShopping}
                 variant="bento"
               />
             </ErrorBoundary>
