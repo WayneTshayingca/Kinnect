@@ -134,7 +134,7 @@ export default function SignupPage() {
             disabled={googleLoading}
             onClick={async () => {
               setGoogleLoading(true)
-              try { await signInWithGoogle() } catch { setGoogleLoading(false) }
+              try { await signInWithGoogle(`${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`) } catch { setGoogleLoading(false) }
             }}
             className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >

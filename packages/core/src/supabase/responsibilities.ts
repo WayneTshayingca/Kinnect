@@ -1,4 +1,5 @@
 import { getSupabase } from './client'
+import { getTodayStr, toLocaleDateStr } from '../utils/formatters'
 import type { ResponsibilityTemplate, ResponsibilityFlow, ResponsibilityOccurrence } from '../types/database'
 
 export type { ResponsibilityTemplate, ResponsibilityFlow, ResponsibilityOccurrence }
@@ -64,9 +65,63 @@ export async function createResponsibilityFlow(
   return data
 }
 
-function todayStr() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+// Shared by getTodaysResponsibilities / getWeekResponsibilities — same join
+// shape, only the scheduled_for predicate differs.
+const OCCURRENCE_WITH_FLOW_SELECT = `
+  *,
+  responsibility_flows!inner (
+    title,
+    category,
+    active,
+    end_time,
+    responsibility_templates ( icon )
+  ),
+  users!responsibility_occurrences_assigned_to_fkey ( name, role )
+`
+
+interface RawOccurrenceRow {
+  id: string
+  flow_id: string
+  family_id: string
+  scheduled_for: string
+  scheduled_time: string | null
+  assigned_to: string
+  status: string
+  override_reason: string | null
+  completed_at: string | null
+  completed_by: string | null
+  created_at: string
+  responsibility_flows: {
+    title: string
+    category: string
+    end_time: string | null
+    responsibility_templates: { icon: string } | null
+  }
+  users: { name: string; role: string | null } | null
+}
+
+function mapOccurrenceRow(row: RawOccurrenceRow): ResponsibilityOccurrenceWithFlow {
+  const flow = row.responsibility_flows
+  const user = row.users
+  return {
+    id:              row.id,
+    flow_id:         row.flow_id,
+    family_id:       row.family_id,
+    scheduled_for:   row.scheduled_for,
+    scheduled_time:  row.scheduled_time,
+    assigned_to:     row.assigned_to,
+    status:          row.status,
+    override_reason: row.override_reason,
+    completed_at:    row.completed_at,
+    completed_by:    row.completed_by,
+    created_at:      row.created_at,
+    flow_title:      flow.title,
+    category:        flow.category,
+    icon:            flow.responsibility_templates?.icon ?? null,
+    end_time:        flow.end_time ?? null,
+    assignee_name:   user?.name ?? '?',
+    assignee_role:   user?.role ?? null,
+  }
 }
 
 export async function getTodaysResponsibilities(
@@ -75,52 +130,14 @@ export async function getTodaysResponsibilities(
   const supabase = getSupabase()
   const { data, error } = await supabase
     .from('responsibility_occurrences')
-    .select(`
-      *,
-      responsibility_flows!inner (
-        title,
-        category,
-        active,
-        end_time,
-        responsibility_templates ( icon )
-      ),
-      users!responsibility_occurrences_assigned_to_fkey ( name, role )
-    `)
+    .select(OCCURRENCE_WITH_FLOW_SELECT)
     .eq('family_id', familyId)
-    .eq('scheduled_for', todayStr())
+    .eq('scheduled_for', getTodayStr())
     .eq('responsibility_flows.active', true)
     .order('scheduled_time', { ascending: true, nullsFirst: false })
 
   if (error) throw error
-
-  return (data || []).map((row) => {
-    const flow = row.responsibility_flows as {
-      title: string
-      category: string
-      end_time: string | null
-      responsibility_templates: { icon: string } | null
-    }
-    const user = row.users as { name: string; role: string | null } | null
-    return {
-      id:              row.id,
-      flow_id:         row.flow_id,
-      family_id:       row.family_id,
-      scheduled_for:   row.scheduled_for,
-      scheduled_time:  row.scheduled_time,
-      assigned_to:     row.assigned_to,
-      status:          row.status,
-      override_reason: row.override_reason,
-      completed_at:    row.completed_at,
-      completed_by:    row.completed_by,
-      created_at:      row.created_at,
-      flow_title:      flow.title,
-      category:        flow.category,
-      icon:            flow.responsibility_templates?.icon ?? null,
-      end_time:        flow.end_time ?? null,
-      assignee_name:   user?.name ?? '?',
-      assignee_role:   user?.role ?? null,
-    }
-  })
+  return (data || []).map((row) => mapOccurrenceRow(row as unknown as RawOccurrenceRow))
 }
 
 export async function getWeekResponsibilities(
@@ -133,60 +150,19 @@ export async function getWeekResponsibilities(
   const weekEnd = new Date(weekStart)
   weekEnd.setDate(weekEnd.getDate() + 6)
 
-  const fmt = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-
   const supabase = getSupabase()
   const { data, error } = await supabase
     .from('responsibility_occurrences')
-    .select(`
-      *,
-      responsibility_flows!inner (
-        title,
-        category,
-        active,
-        end_time,
-        responsibility_templates ( icon )
-      ),
-      users!responsibility_occurrences_assigned_to_fkey ( name, role )
-    `)
+    .select(OCCURRENCE_WITH_FLOW_SELECT)
     .eq('family_id', familyId)
-    .gte('scheduled_for', fmt(weekStart))
-    .lte('scheduled_for', fmt(weekEnd))
+    .gte('scheduled_for', toLocaleDateStr(weekStart))
+    .lte('scheduled_for', toLocaleDateStr(weekEnd))
     .eq('responsibility_flows.active', true)
     .order('scheduled_for', { ascending: true })
     .order('scheduled_time', { ascending: true, nullsFirst: false })
 
   if (error) throw error
-
-  return (data || []).map((row) => {
-    const flow = row.responsibility_flows as {
-      title: string
-      category: string
-      end_time: string | null
-      responsibility_templates: { icon: string } | null
-    }
-    const user = row.users as { name: string; role: string | null } | null
-    return {
-      id:              row.id,
-      flow_id:         row.flow_id,
-      family_id:       row.family_id,
-      scheduled_for:   row.scheduled_for,
-      scheduled_time:  row.scheduled_time,
-      assigned_to:     row.assigned_to,
-      status:          row.status,
-      override_reason: row.override_reason,
-      completed_at:    row.completed_at,
-      completed_by:    row.completed_by,
-      created_at:      row.created_at,
-      flow_title:      flow.title,
-      category:        flow.category,
-      icon:            flow.responsibility_templates?.icon ?? null,
-      end_time:        flow.end_time ?? null,
-      assignee_name:   user?.name ?? '?',
-      assignee_role:   user?.role ?? null,
-    }
-  })
+  return (data || []).map((row) => mapOccurrenceRow(row as unknown as RawOccurrenceRow))
 }
 
 export async function reassignOccurrence(

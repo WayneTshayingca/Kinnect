@@ -640,7 +640,7 @@ ADD MEMBER flow:
 | `switchActiveFamily(familyId)` | Updates `active_family_id` (changes RLS context) |
 | `getFamily(familyId)` | Returns family record |
 | `getFamilyMembers(familyId)` | Returns all members via family_members junction table |
-| `addFamilyMember(familyId, name, role)` | **Web: use `POST /api/members` instead** — direct client insert is blocked by RLS when inserting rows without `auth_user_id` |
+| `addFamilyMember(familyId, name, role)` | `role` is `'admin' \| 'member'` only — dependents/observers have no `auth_user_id` and **must** go through `POST /api/members` (service role) instead |
 | `updateFamily(familyId, data)` | Updates family name |
 | `updateFamilyMember(memberId, data)` | Updates name, role, phone; syncs role to family_members |
 | `removeFamilyMember(memberId)` | Removes from family_members; deletes user record for auth-less members |

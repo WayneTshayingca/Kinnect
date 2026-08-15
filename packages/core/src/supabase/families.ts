@@ -1,6 +1,22 @@
 import { getSupabase } from './client'
 import type { Family, FamilyMember, MyFamily, User } from '../types/database'
 
+// Resolves the signed-in user's own member id + active_family_id (the RLS
+// scope), or null if there's no session or the user record doesn't exist yet.
+async function getCurrentUserRecord(): Promise<{ id: string; active_family_id: string | null } | null> {
+  const supabase = getSupabase()
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return null
+
+  const { data } = await supabase
+    .from('users')
+    .select('id, active_family_id')
+    .eq('auth_user_id', authUser.id)
+    .maybeSingle()
+
+  return data ?? null
+}
+
 export async function createFamily(name: string, primaryLanguage = 'en') {
   const supabase = getSupabase()
 
@@ -47,8 +63,11 @@ export async function switchActiveFamily(familyId: string): Promise<void> {
 export async function addFamilyMember(
   familyId: string,
   name: string,
-  role: 'admin' | 'member' | 'dependent' | 'observer'
+  role: 'admin' | 'member'
 ) {
+  // Dependents/observers have no auth_user_id and must go through the
+  // service-role `POST /api/members` route — RLS blocks a direct client
+  // insert for them, and this function must not offer that as an option.
   const supabase = getSupabase()
 
   // Create the user record (family_id set for legacy compat + RLS on insert)
@@ -99,7 +118,9 @@ export async function getFamilyMembers(familyId: string): Promise<User[]> {
     .order('joined_at', { ascending: true })
 
   if (error) throw error
-  return (data || []).map((row: any) => row.users).filter(Boolean)
+  return (data || [])
+    .map((row: { users: User | null }) => row.users)
+    .filter((user): user is User => Boolean(user))
 }
 
 export async function updateFamily(
@@ -136,21 +157,13 @@ export async function updateFamilyMember(
 
   // Keep family_members.role in sync if role is being updated
   if (updates.role) {
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-    if (authUser) {
-      const { data: currentUser } = await supabase
-        .from('users')
-        .select('active_family_id')
-        .eq('auth_user_id', authUser.id)
-        .maybeSingle()
-
-      if (currentUser?.active_family_id) {
-        await supabase
-          .from('family_members')
-          .update({ role: updates.role })
-          .eq('user_id', memberId)
-          .eq('family_id', currentUser.active_family_id)
-      }
+    const currentUser = await getCurrentUserRecord()
+    if (currentUser?.active_family_id) {
+      await supabase
+        .from('family_members')
+        .update({ role: updates.role })
+        .eq('user_id', memberId)
+        .eq('family_id', currentUser.active_family_id)
     }
   }
 
@@ -161,20 +174,14 @@ export async function removeFamilyMember(memberId: string) {
   const supabase = getSupabase()
 
   // Safety: prevent removing yourself
-  const { data: { session } } = await supabase.auth.getSession()
-  if (session?.user) {
-    const { data: selfRecord } = await supabase
-      .from('users')
-      .select('id, active_family_id')
-      .eq('auth_user_id', session.user.id)
-      .maybeSingle()
-
-    if (selfRecord && selfRecord.id === memberId) {
+  const selfRecord = await getCurrentUserRecord()
+  if (selfRecord) {
+    if (selfRecord.id === memberId) {
       throw new Error('You cannot remove yourself from the family')
     }
 
     // Remove from family_members for the active family only
-    if (selfRecord?.active_family_id) {
+    if (selfRecord.active_family_id) {
       const { error: memberError } = await supabase
         .from('family_members')
         .delete()
