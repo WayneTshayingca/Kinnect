@@ -276,6 +276,20 @@ const styles = StyleSheet.create({
     gap: 16,
   },
 
+  errorBox: {
+    backgroundColor: 'rgba(251, 113, 133, 0.1)',
+    borderWidth: 1,
+    borderColor: C.coral,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  errorText: {
+    fontSize: 13,
+    color: C.coral,
+    fontWeight: '600',
+  },
+
   label: {
     fontSize: 12,
     fontWeight: '600',

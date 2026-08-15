@@ -22,7 +22,14 @@
       "WebFetch(domain:api.anthropic.com)",
       "Bash(cp webfetch-1776697073809-daze8r.bin design3.tar.gz)",
       "Bash(gunzip -f design3.tar.gz)",
-      "Bash(tar tf:*)"
+      "Bash(tar tf:*)",
+      "Bash(npx expo *)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "Bash(npm start *)",
+      "Bash(npm view *)",
+      "Bash(sed 's/=$//')",
+      "Bash(skills\" | head -10)",
+      "PowerShell(Get-ChildItem *)"
     ]
   }
 }

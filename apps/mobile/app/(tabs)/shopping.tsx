@@ -203,6 +203,7 @@ export default function ShoppingScreen() {
       completed_by: null,
       completed_at: null,
       added_by: user.id,
+      assigned_shopper: null,
       position: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

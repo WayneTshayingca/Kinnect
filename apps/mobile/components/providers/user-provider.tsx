@@ -61,6 +61,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
+    // @ts-ignore - React 19 Context type compatibility
     <UserContext.Provider value={{ user, loading, refreshUser }}>
       {children}
     </UserContext.Provider>
