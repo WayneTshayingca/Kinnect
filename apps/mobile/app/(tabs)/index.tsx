@@ -9,12 +9,15 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
+import { LinearGradient } from 'expo-linear-gradient'
 import {
   getTodaysTasks,
   getCalendarEvents,
   getShoppingListPreview,
   getTodaysResponsibilities,
   getFamilyMembers,
+  getFamily,
   completeTask,
   completeOccurrence,
   getSAHolidays,
@@ -27,7 +30,9 @@ import {
 } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
 import { useScreenData } from '@/hooks/useScreenData'
-import { Avatar } from '@/components/Avatar'
+import { DashboardHeader } from '@/components/DashboardHeader'
+import { MemberAvatarRow } from '@/components/MemberAvatarRow'
+import { ShoppingIcon } from '@/components/TabIcons'
 import { T } from '@/lib/theme'
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -37,6 +42,12 @@ function getGreeting() {
   if (h < 12) return 'Good morning'
   if (h < 17) return 'Good afternoon'
   return 'Good evening'
+}
+
+function getTodayLabel() {
+  return new Date()
+    .toLocaleDateString('en-ZA', { weekday: 'long', day: '2-digit', month: 'long' })
+    .toUpperCase()
 }
 
 function getUpcomingRange() {
@@ -195,21 +206,36 @@ function DailySnapshot({ tasksLeft, eventsToday, shoppingCount, routinesDone, ro
   routinesDone: number
   routinesTotal: number
 }) {
-  const stats = [
-    { value: tasksLeft,    label: 'Tasks left',   sub: tasksLeft === 0 ? 'All clear!' : 'pending',    iconColor: '#4F46E5', iconBg: '#EEF2FF', icon: '✓' },
-    { value: eventsToday,  label: 'Events today',  sub: eventsToday === 0 ? 'Free day' : 'scheduled',  iconColor: '#3B82F6', iconBg: '#EFF6FF', icon: '📅' },
-    { value: shoppingCount, label: 'Items to buy', sub: shoppingCount === 0 ? 'List clear' : 'on list', iconColor: '#FB7185', iconBg: '#FFF1F2', icon: '🛒' },
-    { value: routinesTotal > 0 ? routinesDone : 0, label: 'Routines', sub: routinesTotal > 0 ? `${routinesDone}/${routinesTotal} done` : 'None today', iconColor: '#7C3AED', iconBg: '#F5F3FF', icon: '↻' },
+  const stats: Array<{
+    value: number
+    label: string
+    sub: string
+    iconColor: string
+    icon: React.ComponentProps<typeof Ionicons>['name']
+  }> = [
+    { value: tasksLeft,    label: 'Tasks left',    sub: tasksLeft === 0 ? 'All clear!' : 'Today',       iconColor: '#C7D2FE', icon: 'checkmark-circle-outline' },
+    { value: eventsToday,  label: 'Events',        sub: eventsToday === 0 ? 'Free day' : 'scheduled',   iconColor: '#FDA4AF', icon: 'calendar-outline' },
+    { value: shoppingCount, label: 'To buy',       sub: shoppingCount === 0 ? 'List clear' : 'On list', iconColor: '#86EFAC', icon: 'basket-outline' },
+    { value: routinesTotal > 0 ? routinesDone : 0, label: 'Routines', sub: routinesTotal > 0 ? `${routinesDone}/${routinesTotal} done` : 'None today', iconColor: '#C4B5FD', icon: 'repeat-outline' },
   ]
+
+  const allClear = tasksLeft === 0 && eventsToday === 0 && shoppingCount === 0
 
   return (
     <View style={styles.snapshotCard}>
-      <Text style={styles.snapshotHeader}>Daily Snapshot</Text>
+      <View style={styles.snapshotHeaderRow}>
+        <Text style={styles.snapshotHeader}>Daily Snapshot</Text>
+        <Text style={styles.snapshotStatus}>
+          {allClear ? "You're all set today! 🎉" : `${tasksLeft} tasks until you're done`}
+        </Text>
+      </View>
       <View style={{ flexDirection: 'row' }}>
       {stats.map((s, i) => (
         <View key={i} style={[styles.snapshotCell, i < 3 && styles.snapshotCellBorder]}>
-          <View style={[styles.snapshotIcon, { backgroundColor: s.iconBg }]}>
-            <Text style={{ fontSize: 13, color: s.iconColor }}>{s.icon}</Text>
+          <View style={styles.snapshotIcon}>
+            {s.icon === 'basket-outline'
+              ? <ShoppingIcon color={s.iconColor} size={15} />
+              : <Ionicons name={s.icon} size={16} color={s.iconColor} />}
           </View>
           <Text style={styles.snapshotValue}>{s.value}</Text>
           <Text style={styles.snapshotLabel}>{s.label}</Text>
@@ -234,16 +260,18 @@ export default function HomeScreen() {
   const [shoppingTotal, setShoppingTotal] = useState(0)
   const [routines, setRoutines] = useState<ResponsibilityOccurrenceWithFlow[]>([])
   const [members, setMembers] = useState<User[]>([])
+  const [familyName, setFamilyName] = useState('')
 
   const fetchData = useCallback(async () => {
     if (!user?.family_id) return
     const { start, end } = getUpcomingRange()
-    const [tasksData, eventsData, shoppingData, routinesData, membersData] = await Promise.all([
+    const [tasksData, eventsData, shoppingData, routinesData, membersData, familyData] = await Promise.all([
       getTodaysTasks(user.family_id),
       getCalendarEvents(user.family_id, start, end),
       getShoppingListPreview(user.family_id, 6),
       getTodaysResponsibilities(user.family_id),
       getFamilyMembers(user.family_id),
+      getFamily(user.family_id),
     ])
     setTasks(tasksData)
     setEvents(eventsData)
@@ -251,6 +279,7 @@ export default function HomeScreen() {
     setShoppingTotal(shoppingData.totalCount)
     setRoutines(routinesData)
     setMembers(membersData)
+    setFamilyName(familyData?.name ?? '')
   }, [user?.family_id])
 
   const { loading } = useScreenData(user?.family_id, fetchData, [
@@ -310,28 +339,44 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 32 }}
     >
-      {/* ── Light Header ────────────────────────────────── */}
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <View>
-          <Text style={styles.headerGreeting}>{getGreeting()},</Text>
-          <Text style={styles.headerName}>{firstName} 👋</Text>
-        </View>
-        <View style={styles.avatarStack}>
-          {members.slice(0, 3).map((m, i) => (
-            <View key={m.id} style={[styles.avatarWrap, { marginLeft: i > 0 ? -8 : 0, zIndex: 3 - i }]}>
-              <Avatar name={m.name} role={m.role} size={34} borderColor={T.bg} borderWidth={2} />
-            </View>
-          ))}
-          {members.length > 3 && (
-            <View style={[styles.avatarOverflow, { marginLeft: -8 }]}>
-              <Text style={styles.avatarOverflowText}>+{members.length - 3}</Text>
-            </View>
-          )}
-        </View>
-      </View>
+      {/* ── Unified header: family switcher + notifications + avatar ── */}
+      <DashboardHeader familyName={familyName || 'Family'} paddingTop={insets.top} />
 
-      {/* ── Content ────────────────────────────────────── */}
-      <View style={styles.content}>
+      {/* ── Dark banner: date, greeting, family avatars, daily snapshot ── */}
+      <LinearGradient
+        colors={['#1e1b4b', '#312e81', '#3730a3']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.banner}
+      >
+        {/* Today's date, own row */}
+        <View style={styles.dateRow}>
+          <Text style={styles.dateLabel}>{getTodayLabel()}</Text>
+          <View style={styles.dateDot} />
+        </View>
+
+        {/* Greeting + family member avatars/add-member, inline */}
+        <View style={styles.greetingRow}>
+          <Text style={styles.greetingInline}>
+            {getGreeting()}, <Text style={styles.greetingName}>{firstName}</Text> 👋
+          </Text>
+          <View style={styles.memberRow}>
+            <MemberAvatarRow
+              members={members}
+              size={32}
+              maxVisible={3}
+              ringColor="#2f2c73"
+              overflowBg="#FB7185"
+            />
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => router.push('/profile')}
+              style={styles.addMemberBtn}
+            >
+              <Ionicons name="add" size={16} color="rgba(255,255,255,0.6)" />
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* Daily Snapshot */}
         <DailySnapshot
@@ -341,6 +386,10 @@ export default function HomeScreen() {
           routinesDone={routinesDone}
           routinesTotal={routines.length}
         />
+      </LinearGradient>
+
+      {/* ── Content ────────────────────────────────────── */}
+      <View style={styles.content}>
 
         {/* Week Calendar Strip */}
         <WeekCalendarStrip events={events} holidays={holidays} />
@@ -350,7 +399,7 @@ export default function HomeScreen() {
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <View style={[styles.cardIcon, { backgroundColor: '#EEF2FF' }]}>
-                <Text style={{ fontSize: 11, color: '#4F46E5', fontWeight: '800' }}>✓</Text>
+                <Ionicons name="checkmark-circle-outline" size={14} color="#4F46E5" />
               </View>
               <Text style={styles.cardTitle}>Today's Tasks</Text>
             </View>
@@ -414,7 +463,7 @@ export default function HomeScreen() {
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <View style={[styles.cardIcon, { backgroundColor: '#FFF1F2' }]}>
-                <Text style={{ fontSize: 11, color: '#FB7185' }}>🛒</Text>
+                <ShoppingIcon color="#FB7185" size={14} />
               </View>
               <Text style={styles.cardTitle}>Shopping</Text>
             </View>
@@ -453,7 +502,7 @@ export default function HomeScreen() {
             <View style={styles.cardHeader}>
               <View style={styles.cardHeaderLeft}>
                 <View style={[styles.cardIcon, { backgroundColor: '#F5F3FF' }]}>
-                  <Text style={{ fontSize: 11, color: '#7C3AED' }}>↻</Text>
+                  <Ionicons name="repeat-outline" size={14} color="#7C3AED" />
                 </View>
                 <Text style={styles.cardTitle}>Today's Routines</Text>
               </View>
@@ -507,47 +556,73 @@ const styles = StyleSheet.create({
     backgroundColor: T.bg,
   },
 
-  // Light header
-  header: {
+  // Dark gradient banner wrapping date/greeting/avatars/daily snapshot
+  banner: {
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 20,
+    rowGap: 8,
+  },
+
+  // Date row (own line, above greeting)
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 4,
+    paddingTop: 4,
+  },
+  dateDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: T.accent,
+  },
+  dateLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.55)',
+    letterSpacing: 0.6,
+  },
+
+  // Greeting + family avatars, inline
+  greetingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingHorizontal: 4,
+    paddingBottom: 4,
+    gap: 8,
   },
-  headerGreeting: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#a0a0c0',
-    marginBottom: 2,
+  greetingInline: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.92)',
+    flexShrink: 1,
   },
-  headerName: {
-    fontSize: 22,
+  greetingName: {
+    fontSize: 20,
     fontWeight: '800',
-    color: T.primary,
-    letterSpacing: -0.4,
+    color: '#ffffff',
   },
-  avatarStack: {
+  memberRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    flexShrink: 0,
   },
-  avatarWrap: {
-    position: 'relative',
-  },
-  avatarOverflow: {
-    width: 34,
-    height: 34,
-    borderRadius: 999,
-    backgroundColor: T.primary,
+  addMemberBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(255,255,255,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: T.bg,
-  },
-  avatarOverflowText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: 'white',
   },
 
   // Content
@@ -732,27 +807,32 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
 
-  // Daily snapshot
+  // Daily snapshot (sits inside the dark banner)
   snapshotCard: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 20,
     flexDirection: 'column',
     overflow: 'hidden',
-    shadowColor: T.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 5,
+  },
+  snapshotHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingTop: 11,
+    paddingBottom: 4,
   },
   snapshotHeader: {
     fontSize: 10,
     fontWeight: '700',
-    color: 'rgba(49,46,129,0.45)',
+    color: 'rgba(255,255,255,0.55)',
     textTransform: 'uppercase',
     letterSpacing: 1,
-    paddingHorizontal: 14,
-    paddingTop: 11,
-    paddingBottom: 4,
+  },
+  snapshotStatus: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: T.accent,
   },
   snapshotCell: {
     flex: 1,
@@ -762,12 +842,13 @@ const styles = StyleSheet.create({
   },
   snapshotCellBorder: {
     borderRightWidth: 1,
-    borderRightColor: 'rgba(49,46,129,0.10)',
+    borderRightColor: 'rgba(255,255,255,0.12)',
   },
   snapshotIcon: {
     width: 30,
     height: 30,
     borderRadius: 9,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
@@ -775,20 +856,20 @@ const styles = StyleSheet.create({
   snapshotValue: {
     fontSize: 18,
     fontWeight: '800',
-    color: T.primary,
+    color: '#ffffff',
     lineHeight: 22,
   },
   snapshotLabel: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#374151',
+    color: 'rgba(255,255,255,0.85)',
     marginTop: 2,
     textAlign: 'center',
     lineHeight: 12,
   },
   snapshotSub: {
     fontSize: 9,
-    color: 'rgba(49,46,129,0.45)',
+    color: 'rgba(255,255,255,0.5)',
     marginTop: 1,
     textAlign: 'center',
     lineHeight: 12,

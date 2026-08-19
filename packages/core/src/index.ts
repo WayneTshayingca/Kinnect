@@ -24,5 +24,8 @@ export * from './supabase/shopping-list'
 // Responsibilities
 export * from './supabase/responsibilities'
 
+// Notifications
+export * from './supabase/notifications'
+
 // Types
 export * from './types/database'

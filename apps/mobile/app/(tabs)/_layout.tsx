@@ -1,24 +1,26 @@
+import { View, Text } from 'react-native'
 import { Tabs } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Ionicons } from '@expo/vector-icons'
+import { DashboardIcon, TasksIcon, ShoppingIcon, CalendarIcon, MenuIcon } from '@/components/TabIcons'
 
-type IoniconName = React.ComponentProps<typeof Ionicons>['name']
-
-const TAB_ICONS: Record<string, { active: IoniconName; inactive: IoniconName }> = {
-  index:    { active: 'home',              inactive: 'home-outline' },
-  tasks:    { active: 'checkmark-circle',  inactive: 'checkmark-circle-outline' },
-  shopping: { active: 'cart',              inactive: 'cart-outline' },
-  calendar: { active: 'calendar',          inactive: 'calendar-outline' },
-  family:   { active: 'people',            inactive: 'people-outline' },
+const TAB_ICON_COMPONENTS: Record<string, typeof DashboardIcon> = {
+  index: DashboardIcon,
+  tasks: TasksIcon,
+  shopping: ShoppingIcon,
+  calendar: CalendarIcon,
+  menu: MenuIcon,
 }
 
 const TAB_LABELS: Record<string, string> = {
-  index:    'Home',
+  index:    'Dashboard',
   tasks:    'Tasks',
   shopping: 'Shopping',
   calendar: 'Calendar',
-  family:   'Family',
+  menu:     'Menu',
 }
+
+const ACTIVE_COLOR = '#4F46E5'
+const INACTIVE_COLOR = '#9a9ab0'
 
 export default function TabsLayout() {
   const { bottom } = useSafeAreaInsets()
@@ -27,26 +29,45 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarShowLabel: false,
+        tabBarItemStyle: {
+          paddingHorizontal: 0,
+        },
         tabBarStyle: {
-          backgroundColor: '#1E1B4B',
-          borderTopWidth: 0,
+          backgroundColor: '#fff',
+          borderTopWidth: 1,
+          borderTopColor: 'rgba(0,0,0,0.06)',
           elevation: 0,
           shadowOpacity: 0,
-          height: 56 + bottom,
+          height: 64 + bottom,
           paddingBottom: bottom > 0 ? bottom : 8,
-          paddingTop: 6,
+          paddingTop: 8,
         },
-        tabBarActiveTintColor: '#FB7185',
-        tabBarInactiveTintColor: 'rgba(255,255,255,0.4)',
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '600',
-          marginTop: 2,
-        },
-        tabBarIcon: ({ focused, color }) => {
-          const icons = TAB_ICONS[route.name]
-          const name = focused ? icons?.active : icons?.inactive
-          return name ? <Ionicons name={name} size={22} color={color} /> : null
+        tabBarIcon: ({ focused }) => {
+          const Icon = TAB_ICON_COMPONENTS[route.name]
+          const color = focused ? ACTIVE_COLOR : INACTIVE_COLOR
+          return (
+            <View style={{ alignItems: 'center', width: '100%', paddingHorizontal: 2, gap: 3 }}>
+              {Icon && <Icon color={color} focused={focused} size={22} />}
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+                style={{ fontSize: 10, fontWeight: focused ? '700' : '500', color, letterSpacing: 0.1 }}
+              >
+                {TAB_LABELS[route.name]}
+              </Text>
+              <View
+                style={{
+                  width: 4,
+                  height: 4,
+                  borderRadius: 9999,
+                  marginTop: 1,
+                  backgroundColor: focused ? '#FB7185' : 'transparent',
+                }}
+              />
+            </View>
+          )
         },
         title: TAB_LABELS[route.name] ?? route.name,
       })}
@@ -55,7 +76,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="tasks" />
       <Tabs.Screen name="shopping" />
       <Tabs.Screen name="calendar" />
-      <Tabs.Screen name="family" />
+      <Tabs.Screen name="menu" />
     </Tabs>
   )
 }

@@ -12,8 +12,8 @@ export const ROLE_LABELS: Record<string, string> = {
  * Web: prefer ROLE_COLORS (Tailwind classes) in apps/web/lib/constants.ts for className usage.
  */
 export const ROLE_HEX_COLORS: Record<string, string> = {
-  admin:     '#6366f1', // indigo  (primary-500)
-  member:    '#a855f7', // purple  (purple-500)
-  dependent: '#fb7185', // coral   (accent-500)
-  observer:  '#f59e0b', // amber   (amber-500)
+  admin:     '#4F46E5', // indigo-500
+  member:    '#7C3AED', // violet-600
+  dependent: '#10B981', // emerald-600
+  observer:  '#D97706', // amber-600
 }

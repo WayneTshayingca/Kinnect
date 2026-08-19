@@ -4,6 +4,6 @@ export const T = {
   primary: '#312E81',
   p800: '#1E1B4B',
   accent: '#FB7185',
-  bg: '#f0eff8',
+  bg: '#f7f7fa',
   success: '#34D399',
 }

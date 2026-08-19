@@ -417,6 +417,70 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          id: string
+          family_id: string
+          user_id: string
+          actor_id: string | null
+          type: string
+          title: string
+          body: string | null
+          entity_type: string | null
+          entity_id: string | null
+          read_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          family_id: string
+          user_id: string
+          actor_id?: string | null
+          type: string
+          title: string
+          body?: string | null
+          entity_type?: string | null
+          entity_id?: string | null
+          read_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          family_id?: string
+          user_id?: string
+          actor_id?: string | null
+          type?: string
+          title?: string
+          body?: string | null
+          entity_type?: string | null
+          entity_id?: string | null
+          read_at?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       responsibility_occurrences: {
         Row: {
           id: string
@@ -732,6 +796,7 @@ export type ListItem     = Tables<'list_items'>
 export type ResponsibilityTemplate  = Tables<'responsibility_templates'>
 export type ResponsibilityFlow      = Tables<'responsibility_flows'>
 export type ResponsibilityOccurrence = Tables<'responsibility_occurrences'>
+export type Notification = Tables<'notifications'>
 
 // ── Insert helpers ────────────────────────────────────────────────
 export type UserInsert         = TablesInsert<'users'>
@@ -759,3 +824,4 @@ export type MyFamily = {
   role: string
   is_active: boolean
 }
+
