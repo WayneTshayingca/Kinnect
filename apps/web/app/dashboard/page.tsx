@@ -260,11 +260,11 @@ export default function DashboardPage() {
       {/* ── Bento Header ───────────────────────────────── */}
       <div className="flex items-start justify-between mb-5">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ color: '#a0a0c0' }}>
+          <p className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--muted-ink)' }}>
             {getHeaderDate()}
           </p>
-          <h1 className="text-[22px] font-black tracking-tight" style={{ color: '#312E81' }}>
-            {getGreeting()}, {firstName} 👋
+          <h1 className="text-[22px] font-black tracking-tight" style={{ color: 'var(--brand-ink)' }}>
+            {getGreeting()}, {firstName}
           </h1>
         </div>
 
@@ -279,7 +279,7 @@ export default function DashboardPage() {
             <div
               style={{
                 marginLeft: -10, width: 36, height: 36, borderRadius: '50%',
-                background: '#312E81', border: '2px solid white',
+                background: 'var(--brand-ink)', border: '2px solid white',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 11, fontWeight: 800, color: 'white', flexShrink: 0,
               }}

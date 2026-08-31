@@ -66,11 +66,16 @@ export default function DailySnapshotWidget({
     >
       {/* Label row */}
       <div style={{ padding: '11px 16px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(49,46,129,0.45)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted-ink-strong)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
           Daily Snapshot
         </span>
         {allClear && (
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#4F46E5' }}>You&apos;re all set today! 🎉</span>
+          <span className="flex items-center gap-1" style={{ fontSize: 11, fontWeight: 700, color: '#4F46E5' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+            You&apos;re all set today!
+          </span>
         )}
       </div>
 
@@ -98,13 +103,13 @@ export default function DailySnapshotWidget({
               >
                 <Icon style={{ width: 15, height: 15, color: s.iconColor }} />
               </div>
-              <span style={{ fontSize: 20, fontWeight: 800, color: '#312E81', lineHeight: 1.1 }}>
+              <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--brand-ink)', lineHeight: 1.1 }}>
                 {s.value}
               </span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#374151', marginTop: 3, lineHeight: 1.2 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--foreground)', marginTop: 3, lineHeight: 1.2 }}>
                 {s.label}
               </span>
-              <span style={{ fontSize: 10, color: 'rgba(49,46,129,0.45)', marginTop: 2, lineHeight: 1.2 }}>
+              <span style={{ fontSize: 10, color: 'var(--muted-ink-strong)', marginTop: 2, lineHeight: 1.2 }}>
                 {s.sub}
               </span>
             </div>

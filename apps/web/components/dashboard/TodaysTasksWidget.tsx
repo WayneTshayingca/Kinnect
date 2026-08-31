@@ -114,15 +114,15 @@ export default function TodaysTasksWidget({
     const bentoTasks = allPending.slice(0, 3)
     const hasMore = allPending.length > 3
     return (
-      <div className="rounded-[1.5rem] overflow-hidden flex flex-col" style={{ background: 'white', boxShadow: '0 4px 20px rgba(49,46,129,0.10), 0 1px 6px rgba(0,0,0,0.04)' }}>
+      <div className="rounded-[1.5rem] overflow-hidden flex flex-col" style={{ background: 'var(--card)', boxShadow: '0 4px 20px rgba(49,46,129,0.10), 0 1px 6px rgba(0,0,0,0.04)' }}>
         {/* Clean header with left accent */}
-        <div style={{ borderLeft: '3px solid #312E81', padding: '13px 15px 10px 13px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+        <div style={{ borderLeft: '3px solid var(--brand-ink)', padding: '13px 15px 10px 13px', borderBottom: '1px solid var(--border)' }}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <div style={{ width: 24, height: 24, borderRadius: 8, background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 24, height: 24, borderRadius: 8, background: 'var(--indigo-50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <CheckCircle2 className="w-3 h-3" style={{ color: '#4F46E5' }} />
               </div>
-              <span style={{ fontSize: 13, fontWeight: 800, color: '#312E81' }}>Today&apos;s Tasks</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--brand-ink)' }}>Today&apos;s Tasks</span>
             </div>
             {hasMore ? (
               <Link
@@ -132,15 +132,15 @@ export default function TodaysTasksWidget({
                 {allPending.length} pending · View all →
               </Link>
             ) : (
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#312E81', background: '#EEF2FF', borderRadius: 7, padding: '2px 8px' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--brand-ink)', background: 'var(--indigo-50)', borderRadius: 7, padding: '2px 8px' }}>
                 {bentoTasks.length} left
               </span>
             )}
           </div>
-          <div style={{ height: 4, borderRadius: 9999, background: '#EEF2FF', overflow: 'hidden', marginBottom: 4 }}>
+          <div style={{ height: 4, borderRadius: 9999, background: 'var(--indigo-50)', overflow: 'hidden', marginBottom: 4 }}>
             <div style={{ height: '100%', borderRadius: 9999, background: '#4F46E5', width: `${bar}%`, transition: 'width 700ms cubic-bezier(0.16,1,0.3,1)' }} />
           </div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#a0a0c0', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted-ink)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             {completedCount} of {totalCount} complete
           </div>
         </div>
@@ -181,8 +181,8 @@ export default function TodaysTasksWidget({
                   <Circle className="w-5 h-5" />
                 </button>
                 <div className="flex-1 min-w-0">
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#312E81' }} className="truncate">{task.title}</div>
-                  <div style={{ fontSize: 10, color: isOverdue(task.due_date) ? '#dc2626' : '#a5a5b8', marginTop: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-ink)' }} className="truncate">{task.title}</div>
+                  <div style={{ fontSize: 10, color: isOverdue(task.due_date) ? '#dc2626' : 'var(--muted-ink)', marginTop: 1 }}>
                     {isOverdue(task.due_date) && 'Overdue · '}
                     {task.assigned_to?.map(id => getMemberName(id).split(' ')[0]).join(', ')}
                   </div>

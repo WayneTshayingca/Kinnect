@@ -87,6 +87,47 @@
   --rose-400: #FB7185;
   --emerald-400: #34D399;
   --indigo-50: #EEF2FF;
+
+  /* Muted text — indigo-tinted, tuned for 4.5:1+ contrast on white/indigo-50 (WCAG AA) */
+  --muted-ink: #6E6E93;
+  --muted-ink-strong: #55527D;
+
+  /* Brand heading ink — the indigo-900 used for widget headings/values; swaps in dark mode */
+  --brand-ink: #312E81;
+}
+
+.dark {
+  --background: #14131f;
+  --foreground: #ECECFB;
+  --card: #1c1a2b;
+  --card-foreground: #ECECFB;
+  --popover: #1c1a2b;
+  --popover-foreground: #ECECFB;
+  --secondary: #262440;
+  --secondary-foreground: #ECECFB;
+  --muted: #262440;
+  --muted-foreground: #A5A3C4;
+  --destructive: #f87171;
+  --destructive-foreground: #1c1a2b;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: #262440;
+  --input-background: #262440;
+  --switch-background: #3a3760;
+  --ring: #818CF8;
+
+  --sidebar: #1c1a2b;
+  --sidebar-foreground: #ECECFB;
+  --sidebar-primary: #A5B4FC;
+  --sidebar-primary-foreground: #14131f;
+  --sidebar-accent: #262440;
+  --sidebar-accent-foreground: #ECECFB;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #818CF8;
+
+  --indigo-50: #262440;
+  --muted-ink: #A5A3C4;
+  --muted-ink-strong: #C4C2DE;
+  --brand-ink: #C7D2FE;
 }
 
 

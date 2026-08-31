@@ -46,22 +46,22 @@ export default function FamilyActivityWidget({
     const topMembers = membersWithCounts.slice(0, 3)
     const max = Math.max(...topMembers.map((m) => m.completedThisWeek), 1)
     return (
-      <div className="rounded-[1.5rem] overflow-hidden h-full" style={{ background: 'white', boxShadow: '0 4px 20px rgba(49,46,129,0.10), 0 1px 6px rgba(0,0,0,0.04)' }}>
-        <div style={{ background: 'rgba(49,46,129,0.04)', padding: '12px 16px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="rounded-[1.5rem] overflow-hidden h-full" style={{ background: 'var(--card)', boxShadow: '0 4px 20px rgba(49,46,129,0.10), 0 1px 6px rgba(0,0,0,0.04)' }}>
+        <div style={{ background: 'var(--indigo-50)', padding: '12px 16px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5" style={{ color: '#312E81' }} />
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#312E81' }}>Family</span>
+            <Users className="w-3.5 h-3.5" style={{ color: 'var(--brand-ink)' }} />
+            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--brand-ink)' }}>Family</span>
           </div>
           <button
             onClick={onAddMember}
-            style={{ fontSize: 10, fontWeight: 700, color: '#312E81', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+            style={{ fontSize: 10, fontWeight: 700, color: 'var(--brand-ink)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             + Invite
           </button>
         </div>
         <div style={{ padding: '8px 16px 12px', display: 'flex', flexDirection: 'column', gap: 7 }}>
           {topMembers.length === 0 ? (
-            <p style={{ fontSize: 12, color: '#a5a5b8', textAlign: 'center', padding: '10px 0' }}>No members yet</p>
+            <p style={{ fontSize: 12, color: 'var(--muted-ink)', textAlign: 'center', padding: '10px 0' }}>No members yet</p>
           ) : (
             topMembers.map((m, i) => (
               <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -74,7 +74,7 @@ export default function FamilyActivityWidget({
                   {m.name.charAt(0).toUpperCase()}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ height: 3, borderRadius: 9999, background: '#f0eff8', overflow: 'hidden' }}>
+                  <div style={{ height: 3, borderRadius: 9999, background: 'var(--indigo-50)', overflow: 'hidden' }}>
                     <div style={{
                       height: '100%', borderRadius: 9999,
                       background: i === 0 ? '#FB7185' : 'rgba(49,46,129,0.35)',
@@ -83,7 +83,7 @@ export default function FamilyActivityWidget({
                     }} />
                   </div>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#312E81', width: 18, textAlign: 'right', flexShrink: 0 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-ink)', width: 18, textAlign: 'right', flexShrink: 0 }}>
                   {m.completedThisWeek}
                 </span>
               </div>

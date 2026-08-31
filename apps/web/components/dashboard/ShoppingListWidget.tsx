@@ -81,60 +81,74 @@ export default function ShoppingListWidget({
 
   if (variant === 'bento') {
     return (
-      <div className="rounded-[1.5rem] overflow-hidden md:h-full flex flex-col" style={{ background: 'white', boxShadow: '0 4px 20px rgba(49,46,129,0.10), 0 1px 6px rgba(0,0,0,0.04)' }}>
+      <div className="rounded-[1.5rem] overflow-hidden md:h-full flex flex-col" style={{ background: 'var(--card)', boxShadow: '0 4px 20px rgba(49,46,129,0.10), 0 1px 6px rgba(0,0,0,0.04)' }}>
         {/* Header */}
-        <div style={{ padding: '12px 16px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-          <div className="flex items-center gap-1.5">
-            <ShoppingBasket className="w-3.5 h-3.5" style={{ color: '#FB7185' }} />
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#312E81' }}>Shopping</span>
+        <div style={{ padding: '14px 16px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          <div className="flex items-center gap-2">
+            <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <ShoppingBasket className="w-3.5 h-3.5" style={{ color: '#6366F1' }} />
+            </div>
+            <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--brand-ink)' }}>Shopping List</span>
           </div>
           <Link
             href="/dashboard/shopping-list?mode=shopping"
-            className="text-white font-bold rounded-lg transition-colors"
-            style={{ fontSize: 10, background: '#FB7185', padding: '4px 10px', borderRadius: 7 }}
+            className="flex items-center gap-1 text-white font-bold rounded-lg transition-colors"
+            style={{ fontSize: 11, background: '#FB7185', padding: '5px 12px', borderRadius: 999 }}
           >
+            <ShoppingBag className="w-3 h-3" />
             Shop
           </Link>
         </div>
-        {/* Pill chips */}
-        <div style={{ padding: '10px 14px 8px' }}>
+
+        {/* Items */}
+        <div style={{ padding: '4px 14px', flex: 1 }}>
           {items.length === 0 ? (
-            <p style={{ fontSize: 12, color: '#a5a5b8', textAlign: 'center', padding: '6px 0' }}>Nothing on the list</p>
+            <p style={{ fontSize: 12, color: 'var(--muted-ink)', textAlign: 'center', padding: '14px 0' }}>Nothing on the list</p>
           ) : (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {items.slice(0, 4).map(item => (
-                <span
-                  key={item.id}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                    background: 'rgba(49,46,129,0.06)', borderRadius: 999,
-                    padding: '4px 10px',
-                    fontSize: 11, fontWeight: 600, color: '#312E81',
-                    maxWidth: '100%',
-                  }}
-                >
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', border: '1.5px solid rgba(49,46,129,0.3)', flexShrink: 0, display: 'inline-block' }} />
-                  <span className="truncate" style={{ maxWidth: 80 }}>{item.title}</span>
-                </span>
-              ))}
-              {totalCount > 4 && (
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center',
-                  background: 'rgba(251,113,133,0.1)', borderRadius: 999,
-                  padding: '4px 10px',
-                  fontSize: 11, fontWeight: 700, color: '#FB7185',
-                }}>
-                  +{totalCount - 4}
-                </span>
-              )}
-            </div>
+            items.slice(0, 4).map((item, i) => (
+              <div
+                key={item.id}
+                style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0',
+                  borderBottom: i < Math.min(items.length, 4) - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={item.completed}
+                  onChange={() => handleToggleItem(item.id, item.completed)}
+                  className="mt-0.5 w-4 h-4 rounded border-gray-300 text-success-500 focus:ring-success-400 cursor-pointer"
+                  style={{ flexShrink: 0 }}
+                />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{
+                    fontSize: 13, fontWeight: 600,
+                    color: item.completed ? 'var(--muted-ink)' : 'var(--brand-ink)',
+                    textDecoration: item.completed ? 'line-through' : 'none',
+                  }}>
+                    {item.title}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--muted-ink)', marginTop: 2 }}>
+                    {getMemberName(item.added_by)} &middot; {timeAgo(item.created_at)}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+          {totalCount > 4 && (
+            <Link
+              href="/dashboard/shopping-list"
+              style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#FB7185', textAlign: 'center', padding: '8px 0 4px' }}
+            >
+              +{totalCount - 4} more
+            </Link>
           )}
         </div>
 
         {/* Quick add */}
         <form
           onSubmit={handleAddItem}
-          style={{ padding: '0 12px 12px', display: 'flex', gap: 6, borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: 10, marginTop: 2 }}
+          style={{ padding: '10px 12px 12px', display: 'flex', gap: 8, borderTop: '1px solid rgba(0,0,0,0.06)' }}
         >
           <input
             type="text"
@@ -143,22 +157,23 @@ export default function ShoppingListWidget({
             placeholder="Add item…"
             disabled={isAdding}
             style={{
-              flex: 1, fontSize: 12, padding: '6px 10px',
-              border: '1px solid rgba(0,0,0,0.1)', borderRadius: 10,
-              outline: 'none', color: '#312E81', background: '#fafafa',
+              flex: 1, fontSize: 12, padding: '8px 14px',
+              border: '1px solid rgba(0,0,0,0.1)', borderRadius: 999,
+              outline: 'none', color: 'var(--brand-ink)', background: 'var(--card)',
             }}
           />
           <button
             type="submit"
             disabled={!newItem.trim() || isAdding}
+            className="flex items-center gap-1"
             style={{
-              width: 30, height: 30, borderRadius: 9, border: 'none', cursor: 'pointer',
-              background: '#FB7185', color: 'white', fontSize: 18, fontWeight: 300,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '8px 14px', borderRadius: 999, border: 'none', cursor: 'pointer',
+              background: '#FB7185', color: 'white', fontSize: 12, fontWeight: 700,
               opacity: !newItem.trim() || isAdding ? 0.4 : 1, flexShrink: 0,
             }}
           >
             <Plus className="w-3.5 h-3.5" />
+            Add
           </button>
         </form>
       </div>

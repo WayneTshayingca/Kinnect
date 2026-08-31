@@ -70,14 +70,14 @@ export default function WeekCalendarStrip({ events, onCreateEvent }: WeekCalenda
   return (
     <div
       className="rounded-[1.5rem] overflow-hidden flex flex-col md:h-full"
-      style={{ background: 'white', boxShadow: '0 4px 20px rgba(49,46,129,0.10), 0 1px 6px rgba(0,0,0,0.04)' }}
+      style={{ background: 'var(--card)', boxShadow: '0 4px 20px rgba(49,46,129,0.10), 0 1px 6px rgba(0,0,0,0.04)' }}
     >
       {/* Header */}
       <div
         className="flex items-center justify-between shrink-0"
-        style={{ padding: '13px 16px 11px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}
+        style={{ padding: '13px 16px 11px', borderBottom: '1px solid var(--border)' }}
       >
-        <span style={{ fontSize: 13, fontWeight: 800, color: '#312E81' }}>This Week</span>
+        <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--brand-ink)' }}>This Week</span>
         <Link
           href="/dashboard/calendar"
           style={{ fontSize: 12, fontWeight: 700, color: '#FB7185', textDecoration: 'none' }}
@@ -100,20 +100,20 @@ export default function WeekCalendarStrip({ events, onCreateEvent }: WeekCalenda
               className="flex flex-col items-center"
               style={{ gap: 3, flex: 1, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             >
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#a0a0c0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted-ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 {DAY_LABELS[i]}
               </span>
               <div style={{
                 width: 30, height: 30, borderRadius: '50%',
-                background: isSelected ? '#312E81' : 'transparent',
-                border: isToday && !isSelected ? '2px solid #312E81' : '2px solid transparent',
+                background: isSelected ? 'var(--brand-ink)' : 'transparent',
+                border: isToday && !isSelected ? '2px solid var(--brand-ink)' : '2px solid transparent',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'background 150ms ease',
               }}>
                 <span style={{
                   fontSize: 13,
                   fontWeight: isSelected || isToday ? 800 : 600,
-                  color: isSelected ? 'white' : isToday ? '#312E81' : isWeekend ? '#c4c4d8' : '#374151',
+                  color: isSelected ? 'white' : isToday ? 'var(--brand-ink)' : isWeekend ? 'var(--muted-ink)' : 'var(--foreground)',
                 }}>
                   {day.getDate()}
                 </span>
@@ -130,11 +130,11 @@ export default function WeekCalendarStrip({ events, onCreateEvent }: WeekCalenda
       {/* Selected day's events */}
       <div
         className="flex-1"
-        style={{ padding: '6px 16px 14px', borderTop: '1px solid rgba(0,0,0,0.04)' }}
+        style={{ padding: '6px 16px 14px', borderTop: '1px solid var(--border)' }}
       >
         {!hasAnythingSelected ? (
           <div className="flex items-center justify-between" style={{ paddingTop: 8 }}>
-            <span style={{ fontSize: 12, color: '#a5a5b8', fontWeight: 500 }}>No events {dayLabel}</span>
+            <span style={{ fontSize: 12, color: 'var(--muted-ink)', fontWeight: 500 }}>No events {dayLabel}</span>
             {onCreateEvent && (
               <button
                 onClick={onCreateEvent}
@@ -153,13 +153,16 @@ export default function WeekCalendarStrip({ events, onCreateEvent }: WeekCalenda
                   width: 34, height: 34, borderRadius: 10,
                   background: '#fef9ec',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0, fontSize: 15,
+                  flexShrink: 0,
                 }}>
-                  🎌
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="4" y1="22" x2="4" y2="2" />
+                    <path d="M4 4h13l-2.5 4L17 12H4" />
+                  </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: '#312E81', lineHeight: 1.3 }}>{h.name}</div>
-                  <div style={{ fontSize: 11, color: '#a5a5b8', marginTop: 1 }}>Public holiday · All day</div>
+                  <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-ink)', lineHeight: 1.3 }}>{h.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted-ink)', marginTop: 1 }}>Public holiday · All day</div>
                 </div>
               </div>
             ))}
@@ -171,13 +174,13 @@ export default function WeekCalendarStrip({ events, onCreateEvent }: WeekCalenda
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0,
                 }}>
-                  <Calendar style={{ width: 15, height: 15, color: '#312E81' }} />
+                  <Calendar style={{ width: 15, height: 15, color: 'var(--brand-ink)' }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: '#312E81', lineHeight: 1.3 }}>
+                  <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-ink)', lineHeight: 1.3 }}>
                     {ev.title}
                   </div>
-                  <div style={{ fontSize: 11, color: '#a5a5b8', marginTop: 1 }}>
+                  <div style={{ fontSize: 11, color: 'var(--muted-ink)', marginTop: 1 }}>
                     {ev.all_day ? 'All day' : formatEventTime(ev.start_time)}
                     {ev.location ? ` · ${ev.location}` : ''}
                   </div>

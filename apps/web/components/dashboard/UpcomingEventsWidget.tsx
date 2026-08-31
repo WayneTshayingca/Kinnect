@@ -46,12 +46,12 @@ export default function UpcomingEventsWidget({ events, onCreateEvent, variant }:
   if (variant === 'bento') {
     const visibleItems = items.slice(0, 3)
     return (
-      <div className="rounded-[1.5rem] overflow-hidden h-full flex flex-col" style={{ background: 'white', boxShadow: '0 2px 12px rgb(49 46 129/0.07)' }}>
+      <div className="rounded-[1.5rem] overflow-hidden h-full flex flex-col" style={{ background: 'var(--card)', boxShadow: '0 2px 12px rgb(49 46 129/0.07)' }}>
         {/* Header */}
-        <div className="flex items-center justify-between shrink-0" style={{ padding: '12px 14px 10px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+        <div className="flex items-center justify-between shrink-0" style={{ padding: '12px 14px 10px', borderBottom: '1px solid var(--border)' }}>
           <div className="flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5" style={{ color: '#312E81' }} />
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#312E81' }}>Upcoming</span>
+            <Calendar className="w-3.5 h-3.5" style={{ color: 'var(--brand-ink)' }} />
+            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--brand-ink)' }}>Upcoming</span>
           </div>
           {onCreateEvent && (
             <button
@@ -66,7 +66,7 @@ export default function UpcomingEventsWidget({ events, onCreateEvent, variant }:
         <div style={{ padding: '8px 14px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
           {visibleItems.length === 0 ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <p style={{ color: '#a5a5b8', fontSize: 12 }}>Nothing coming up</p>
+              <p style={{ color: 'var(--muted-ink)', fontSize: 12 }}>Nothing coming up</p>
             </div>
           ) : (
             visibleItems.map((item, i) => {
@@ -74,7 +74,7 @@ export default function UpcomingEventsWidget({ events, onCreateEvent, variant }:
               const title = isHoliday ? item.holiday.name : item.event.title
               const time = isHoliday ? 'All day' : (item.event.all_day ? 'All day' : formatEventTime(item.event.start_time))
               const iconBg = isHoliday ? '#fef9ec' : 'rgba(49,46,129,0.08)'
-              const iconColor = isHoliday ? '#d97706' : '#312E81'
+              const iconColor = isHoliday ? '#d97706' : 'var(--brand-ink)'
               return (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                   <div style={{
@@ -84,13 +84,18 @@ export default function UpcomingEventsWidget({ events, onCreateEvent, variant }:
                     flexShrink: 0,
                   }}>
                     {isHoliday
-                      ? <span style={{ fontSize: 13 }}>🎌</span>
+                      ? (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="4" y1="22" x2="4" y2="2" />
+                          <path d="M4 4h13l-2.5 4L17 12H4" />
+                        </svg>
+                      )
                       : <Calendar style={{ width: 13, height: 13, color: iconColor }} />
                     }
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="truncate" style={{ fontSize: 12, fontWeight: 700, color: '#312E81', lineHeight: 1.3 }}>{title}</div>
-                    <div style={{ fontSize: 10, color: '#a5a5b8', marginTop: 1 }}>{time}</div>
+                    <div className="truncate" style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-ink)', lineHeight: 1.3 }}>{title}</div>
+                    <div style={{ fontSize: 10, color: 'var(--muted-ink)', marginTop: 1 }}>{time}</div>
                   </div>
                 </div>
               )
