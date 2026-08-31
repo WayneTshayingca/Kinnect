@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
   },
   agendaEmptyHint: {
     fontSize: 12,
-    color: '#a5a5b8',
+    color: T.mutedInk,
     fontWeight: '500',
   },
 

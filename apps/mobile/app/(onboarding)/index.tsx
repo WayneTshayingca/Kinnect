@@ -57,7 +57,7 @@ export default function OnboardingScreen() {
 
           {/* Card */}
           <View className="bg-white rounded-3xl px-7 py-8">
-            <Text className="text-gray-900 text-xl font-bold mb-2">Welcome! 👋</Text>
+            <Text className="text-gray-900 text-xl font-bold mb-2">Welcome!</Text>
             <Text className="text-gray-500 text-sm mb-8">
               Create your family to get started. You can invite members later.
             </Text>

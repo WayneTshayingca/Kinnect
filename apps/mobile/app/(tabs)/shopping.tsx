@@ -580,7 +580,7 @@ const styles = StyleSheet.create({
   },
   emptyHint: {
     fontSize: 13,
-    color: '#a5a5b8',
+    color: T.mutedInk,
     fontWeight: '500',
   },
 
@@ -702,7 +702,7 @@ const styles = StyleSheet.create({
   completedLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#a5a5b8',
+    color: T.mutedInk,
   },
   clearText: {
     fontSize: 12,

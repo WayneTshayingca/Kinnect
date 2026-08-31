@@ -6,4 +6,7 @@ export const T = {
   accent: '#FB7185',
   bg: '#f7f7fa',
   success: '#34D399',
+  // Muted text — tuned for 4.5:1+ contrast on white (WCAG AA).
+  // Replaces #a0a0c0 (~2.9:1) and #a5a5b8 (~3.3:1), both of which failed.
+  mutedInk: '#6E6E93',
 }

@@ -11,6 +11,7 @@ import {
   ScrollView,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Ionicons } from '@expo/vector-icons'
 import {
   getTasks,
   getFamilyMembers,
@@ -450,7 +451,12 @@ export default function TasksScreen() {
               )
             ) : (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyEmoji}>{filter === 'done' ? '🎉' : '📋'}</Text>
+                <Ionicons
+                  name={filter === 'done' ? 'checkmark-done-circle-outline' : 'list-outline'}
+                  size={40}
+                  color="#c7c5dd"
+                  style={styles.emptyEmoji}
+                />
                 <Text style={styles.emptyTitle}>
                   {filter === 'done'
                     ? (assigneeName ? `Nothing done by ${assigneeName} yet` : 'Nothing done yet')
@@ -640,7 +646,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#a5a5b8',
+    color: T.mutedInk,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
@@ -700,7 +706,7 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   taskTitleDone: {
-    color: '#a5a5b8',
+    color: T.mutedInk,
     textDecorationLine: 'line-through',
     fontWeight: '500',
   },
@@ -713,7 +719,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 11,
-    color: '#a5a5b8',
+    color: T.mutedInk,
     fontWeight: '500',
   },
   dueBadge: {
@@ -763,7 +769,7 @@ const styles = StyleSheet.create({
   },
   emptySubtitle: {
     fontSize: 13,
-    color: '#a5a5b8',
+    color: T.mutedInk,
     fontWeight: '500',
   },
 

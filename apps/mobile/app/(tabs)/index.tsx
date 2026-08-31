@@ -167,7 +167,7 @@ function WeekCalendarStrip({ events, holidays }: {
             {selectedHolidays.map(h => (
               <View key={h.date} style={styles.calendarEventRow}>
                 <View style={[styles.calendarEventIcon, { backgroundColor: '#fef9ec' }]}>
-                  <Text style={{ fontSize: 14 }}>🎌</Text>
+                  <Ionicons name="flag" size={14} color="#D97706" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.calendarEventTitle} numberOfLines={1}>{h.name}</Text>
@@ -226,7 +226,7 @@ function DailySnapshot({ tasksLeft, eventsToday, shoppingCount, routinesDone, ro
       <View style={styles.snapshotHeaderRow}>
         <Text style={styles.snapshotHeader}>Daily Snapshot</Text>
         <Text style={styles.snapshotStatus}>
-          {allClear ? "You're all set today! 🎉" : `${tasksLeft} tasks until you're done`}
+          {allClear ? "You're all set today!" : `${tasksLeft} tasks until you're done`}
         </Text>
       </View>
       <View style={{ flexDirection: 'row' }}>
@@ -358,7 +358,7 @@ export default function HomeScreen() {
         {/* Greeting + family member avatars/add-member, inline */}
         <View style={styles.greetingRow}>
           <Text style={styles.greetingInline}>
-            {getGreeting()}, <Text style={styles.greetingName}>{firstName}</Text> 👋
+            {getGreeting()}, <Text style={styles.greetingName}>{firstName}</Text>
           </Text>
           <View style={styles.memberRow}>
             <MemberAvatarRow
@@ -724,7 +724,7 @@ const styles = StyleSheet.create({
   dayLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#a0a0c0',
+    color: T.mutedInk,
     textTransform: 'uppercase',
   },
   dayCircle: {
@@ -778,7 +778,7 @@ const styles = StyleSheet.create({
   },
   calendarEmpty: {
     fontSize: 12,
-    color: '#a5a5b8',
+    color: T.mutedInk,
     fontWeight: '500',
     paddingVertical: 6,
   },
@@ -803,7 +803,7 @@ const styles = StyleSheet.create({
   },
   calendarEventTime: {
     fontSize: 11,
-    color: '#a5a5b8',
+    color: T.mutedInk,
     marginTop: 1,
   },
 
@@ -906,7 +906,7 @@ const styles = StyleSheet.create({
   },
   taskMeta: {
     fontSize: 11,
-    color: '#a5a5b8',
+    color: T.mutedInk,
     marginTop: 2,
   },
   roleDot: {
@@ -975,7 +975,7 @@ const styles = StyleSheet.create({
   },
   shoppingEmpty: {
     fontSize: 12,
-    color: '#a5a5b8',
+    color: T.mutedInk,
     textAlign: 'center',
     paddingHorizontal: 16,
   },
@@ -1023,12 +1023,12 @@ const styles = StyleSheet.create({
     color: T.primary,
   },
   routineTitleDone: {
-    color: '#a5a5b8',
+    color: T.mutedInk,
     textDecorationLine: 'line-through',
   },
   routineMeta: {
     fontSize: 10,
-    color: '#a5a5b8',
+    color: T.mutedInk,
     marginTop: 1,
   },
 })
