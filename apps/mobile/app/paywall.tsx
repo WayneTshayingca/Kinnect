@@ -35,6 +35,13 @@ export default function PaywallScreen() {
 
   const isAdmin = user?.role === 'admin'
 
+  // Never let this screen become a dead end: if there is nothing to go back to,
+  // send the user home rather than leaving the close button inert.
+  function handleClose() {
+    if (router.canGoBack()) router.back()
+    else router.replace('/(tabs)')
+  }
+
   async function handleUpgrade(tier: SubscriptionTier) {
     if (!isAdmin) {
       Alert.alert('Ask an admin', 'Only a family admin can change the plan.')
@@ -75,7 +82,7 @@ export default function PaywallScreen() {
         }}
       >
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={handleClose}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           activeOpacity={0.7}
           style={styles.close}

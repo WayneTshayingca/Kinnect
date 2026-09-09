@@ -7,6 +7,13 @@ import { StatusBar } from 'expo-status-bar'
 import { UserProvider } from '@/components/providers/user-provider'
 import { SubscriptionProvider } from '@/components/providers/subscription-provider'
 
+// Declaring children on <Stack> also declares screen order, and the first one
+// becomes the initial route — so `index` must be listed first and pinned here,
+// or the app boots into whichever screen happens to lead the list.
+export const unstable_settings = {
+  initialRouteName: 'index',
+}
+
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -15,6 +22,7 @@ export default function RootLayout() {
         <UserProvider>
           <SubscriptionProvider>
             <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
               {/* The paywall is a decision surface, so it arrives as a sheet
                   rather than another push onto the stack. */}
               <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
