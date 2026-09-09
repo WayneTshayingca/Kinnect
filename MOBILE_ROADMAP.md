@@ -92,11 +92,27 @@ Still open:
       grants nothing. This is the gap to close before charging anyone.
 
 ## Phase 4 — Publishing readiness
-- [ ] `eas.json` — development / preview / production build profiles (does not exist yet)
-- [ ] App icons + splash, `app.json` permissions and `africa.kinnect.app` identifier review
-- [ ] Privacy policy (POPIA) linked from signup — web `/privacy` already exists
+- [x] `eas.json` — development / preview / production profiles
+- [x] `app.json` — description, colours, `ITSAppUsesNonExemptEncryption`, empty Android
+      permissions array, `expo-web-browser` plugin registered
+- [x] Privacy policy (POPIA) now opens from the signup screen
+
+Blocking, needs you:
+- [ ] **Rotate the leaked credentials.** The Supabase `service_role` key and a Sentry auth
+      token were committed in `apps/mobile/.env.example`, and another Sentry token in
+      `apps/web/.env.sentry-build-plugin`. Both files are cleaned up, but the values are still
+      in git history — rotate them in the Supabase and Sentry dashboards.
+- [ ] **App icon and splash screen.** `apps/mobile/assets/` does not exist, so the app would
+      ship with Expo's placeholder. Needs a 1024×1024 icon, an Android adaptive icon, and a
+      splash image, then the matching `app.json` entries.
+- [ ] **EAS env vars.** `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` are not
+      in `eas.json` — set them as EAS environment variables per profile, or builds will start
+      with no Supabase client. Never put the service-role key there.
+- [ ] Set the real production origin in `eas.json` if it is not `https://kinnect.co.za`
 - [ ] Store metadata + screenshots (App Store, Play Store)
-- [ ] Decide on mobile error monitoring (Sentry is currently web-only)
+
+Nice to have:
+- [ ] Mobile error monitoring (Sentry is currently web-only)
 - [ ] Minimal CI — type-check on push (no `.github/workflows` today)
 
 ## Branching strategy

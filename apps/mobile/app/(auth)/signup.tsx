@@ -13,8 +13,17 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Link, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import * as WebBrowser from 'expo-web-browser'
 import { signUp } from '@kinnect/core'
 import { C } from '@/lib/authTheme'
+
+// POPIA requires the privacy policy to be reachable before signup, and Google
+// OAuth publishing requires it too. Lives on the web app at /privacy.
+const WEB_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://kinnect.co.za'
+
+function openPrivacyPolicy() {
+  WebBrowser.openBrowserAsync(`${WEB_URL}/privacy`).catch(() => {})
+}
 
 export default function SignupScreen() {
   const [name, setName] = useState('')
@@ -178,7 +187,12 @@ export default function SignupScreen() {
             </Link>
           </View>
 
-          <Text style={styles.legal}>By signing up you agree to our Privacy Policy</Text>
+          <Text style={styles.legal}>
+            By signing up you agree to our{' '}
+            <Text style={styles.legalLink} onPress={openPrivacyPolicy}>
+              Privacy Policy
+            </Text>
+          </Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -348,6 +362,10 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.55)',
     textAlign: 'center',
     marginTop: 4,
+  },
+  legalLink: {
+    color: C.coral,
+    fontWeight: '700',
   },
 
   // Verification screen

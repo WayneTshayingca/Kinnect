@@ -6,19 +6,28 @@
     "scheme": "kinnect",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "description": "Family coordination for South African households — tasks, calendar, shopping and routines in one shared space.",
+    "primaryColor": "#312E81",
+    "backgroundColor": "#1A1830",
     "updates": {
       "enabled": false
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "africa.kinnect.app"
+      "bundleIdentifier": "africa.kinnect.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
-      "package": "africa.kinnect.app"
+      "package": "africa.kinnect.app",
+      "edgeToEdgeEnabled": true,
+      "permissions": []
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": false
