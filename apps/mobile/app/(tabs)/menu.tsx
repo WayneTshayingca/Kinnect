@@ -8,9 +8,12 @@ import { useUser } from '@/components/providers/user-provider'
 import { Avatar } from '@/components/Avatar'
 import { T } from '@/lib/theme'
 
-const MENU_ITEMS: { key: string; label: string; icon: keyof typeof Ionicons.glyphMap; route: '/profile' | '/routines' }[] = [
-  { key: 'profile', label: 'Profile', icon: 'person-outline', route: '/profile' },
+type MenuRoute = '/profile' | '/routines' | '/account-security'
+
+const MENU_ITEMS: { key: string; label: string; icon: keyof typeof Ionicons.glyphMap; route: MenuRoute }[] = [
+  { key: 'profile', label: 'Family & profile', icon: 'people-outline', route: '/profile' },
   { key: 'routines', label: 'Routines', icon: 'repeat-outline', route: '/routines' },
+  { key: 'security', label: 'Security', icon: 'lock-closed-outline', route: '/account-security' },
 ]
 
 export default function MenuScreen() {

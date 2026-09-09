@@ -12,7 +12,9 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Link, useRouter } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
 import { signUp } from '@kinnect/core'
+import { C } from '@/lib/authTheme'
 
 export default function SignupScreen() {
   const [name, setName] = useState('')
@@ -52,7 +54,7 @@ export default function SignupScreen() {
         <View style={styles.glowBottom} pointerEvents="none" />
         <View style={styles.verifyContainer}>
           <View style={styles.verifyIconWrap}>
-            <Text style={styles.verifyEmoji}>✉️</Text>
+            <Ionicons name="mail-outline" size={30} color={C.coral} />
           </View>
           <Text style={styles.verifyTitle}>Check your email</Text>
           <Text style={styles.verifyBody}>
@@ -116,7 +118,7 @@ export default function SignupScreen() {
             <TextInput
               style={styles.input}
               placeholder="Your full name"
-              placeholderTextColor="rgba(255,255,255,0.5)"
+              placeholderTextColor={C.placeholder}
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
@@ -130,7 +132,7 @@ export default function SignupScreen() {
             <TextInput
               style={styles.input}
               placeholder="you@example.com"
-              placeholderTextColor="rgba(255,255,255,0.5)"
+              placeholderTextColor={C.placeholder}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -145,7 +147,7 @@ export default function SignupScreen() {
             <TextInput
               style={styles.input}
               placeholder="Minimum 6 characters"
-              placeholderTextColor="rgba(255,255,255,0.5)"
+              placeholderTextColor={C.placeholder}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -181,20 +183,6 @@ export default function SignupScreen() {
       </ScrollView>
     </KeyboardAvoidingView>
   )
-}
-
-const C = {
-  bg:          '#1A1830',
-  coral:       '#FB7185',
-  coralDim:    'rgba(251,113,133,0.15)',
-  white:       '#FFFFFF',
-  glass:       'rgba(255,255,255,0.07)',
-  glassBorder: 'rgba(255,255,255,0.11)',
-  // Text on the #1A1830 ground. 0.45 gave ~4.4:1 and 0.25 only ~2.2:1 — both
-  // under WCAG AA. Raised to ~6.5:1 and ~5.2:1 respectively.
-  muted:       'rgba(255,255,255,0.62)',
-  mutedDim:    'rgba(255,255,255,0.55)',
-  indigo:      'rgba(99,102,241,0.14)',
 }
 
 const styles = StyleSheet.create({
@@ -377,9 +365,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
-  },
-  verifyEmoji: {
-    fontSize: 32,
   },
   verifyTitle: {
     fontSize: 26,

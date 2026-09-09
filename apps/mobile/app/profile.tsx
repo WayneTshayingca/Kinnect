@@ -16,6 +16,7 @@ import {
   getFamily,
   getFamilyMembers,
   updateFamily,
+  removeFamilyMember,
   signOut,
   getSupabase,
   ROLE_HEX_COLORS,
@@ -25,6 +26,7 @@ import {
 import { useUser } from '@/components/providers/user-provider'
 import { useScreenData } from '@/hooks/useScreenData'
 import { Avatar } from '@/components/Avatar'
+import { MemberSheet } from '@/components/MemberSheet'
 import { T } from '@/lib/theme'
 
 const ROLE_LABELS: Record<string, string> = {
@@ -34,7 +36,19 @@ const ROLE_LABELS: Record<string, string> = {
   observer: 'Observer',
 }
 
-function MemberCard({ member, isMe }: { member: User; isMe: boolean }) {
+function MemberCard({
+  member,
+  isMe,
+  canManage,
+  onEdit,
+  onRemove,
+}: {
+  member: User
+  isMe: boolean
+  canManage: boolean
+  onEdit: () => void
+  onRemove: () => void
+}) {
   const roleColor = ROLE_HEX_COLORS[member.role ?? ''] ?? '#6B7280'
   return (
     <View className={`flex-row items-center px-4 py-3 gap-3 ${isMe ? 'bg-primary-600/[0.03]' : ''}`}>
@@ -54,6 +68,31 @@ function MemberCard({ member, isMe }: { member: User; isMe: boolean }) {
           </Text>
         </View>
       </View>
+
+      {canManage && (
+        <View className="flex-row items-center gap-1">
+          <TouchableOpacity
+            onPress={onEdit}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.7}
+            className="w-8 h-8 items-center justify-center"
+            accessibilityLabel={`Edit ${member.name}`}
+          >
+            <Ionicons name="create-outline" size={18} color={T.mutedInk} />
+          </TouchableOpacity>
+          {!isMe && (
+            <TouchableOpacity
+              onPress={onRemove}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              activeOpacity={0.7}
+              className="w-8 h-8 items-center justify-center"
+              accessibilityLabel={`Remove ${member.name}`}
+            >
+              <Ionicons name="person-remove-outline" size={18} color="#EF4444" />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </View>
   )
 }
@@ -72,6 +111,9 @@ export default function ProfileScreen() {
   const [savingName, setSavingName] = useState(false)
 
   const [email, setEmail] = useState<string | null>(null)
+
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [editingMember, setEditingMember] = useState<User | null>(null)
 
   const isAdmin = user?.role === 'admin'
 
@@ -105,6 +147,30 @@ export default function ProfileScreen() {
     } finally {
       setSavingName(false)
     }
+  }
+
+  function handleRemoveMember(member: User) {
+    Alert.alert(
+      `Remove ${member.name}?`,
+      'They will lose access to this family. Their tasks and events stay in the family history.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            const previous = members
+            setMembers((prev) => prev.filter((m) => m.id !== member.id))
+            try {
+              await removeFamilyMember(member.id)
+            } catch (err) {
+              setMembers(previous)
+              Alert.alert('Error', err instanceof Error ? err.message : 'Could not remove this member')
+            }
+          },
+        },
+      ]
+    )
   }
 
   async function handleSignOut() {
@@ -220,11 +286,30 @@ export default function ProfileScreen() {
         </View>
 
         <View className="gap-2">
-          <Text className="text-[11px] font-bold text-ink-muted uppercase tracking-wide px-1">Members</Text>
+          <View className="flex-row items-center justify-between px-1">
+            <Text className="text-[11px] font-bold text-ink-muted uppercase tracking-wide">Members</Text>
+            {isAdmin && (
+              <TouchableOpacity
+                onPress={() => { setEditingMember(null); setSheetOpen(true) }}
+                activeOpacity={0.7}
+                className="flex-row items-center gap-1"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="add-circle" size={16} color={T.accent} />
+                <Text className="text-xs font-bold text-accent-600">Add</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           <View className="bg-white rounded-3xl overflow-hidden shadow-sm">
             {members.map((m, i) => (
               <React.Fragment key={m.id}>
-                <MemberCard member={m} isMe={m.id === user?.id} />
+                <MemberCard
+                  member={m}
+                  isMe={m.id === user?.id}
+                  canManage={isAdmin}
+                  onEdit={() => { setEditingMember(m); setSheetOpen(true) }}
+                  onRemove={() => handleRemoveMember(m)}
+                />
                 {i < members.length - 1 && <View className="h-px bg-black/[0.04] ml-[72px]" />}
               </React.Fragment>
             ))}
@@ -262,6 +347,16 @@ export default function ProfileScreen() {
 
         <View style={{ height: insets.bottom + 24 }} />
       </ScrollView>
+
+      {family?.id && (
+        <MemberSheet
+          visible={sheetOpen}
+          familyId={family.id}
+          member={editingMember}
+          onClose={() => setSheetOpen(false)}
+          onSaved={refresh}
+        />
+      )}
     </View>
   )
 }

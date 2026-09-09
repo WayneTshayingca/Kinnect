@@ -17,6 +17,7 @@ import * as WebBrowser from 'expo-web-browser'
 import * as Linking from 'expo-linking'
 import { signIn, getSupabase } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
+import { C } from '@/lib/authTheme'
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('')
@@ -158,7 +159,7 @@ export default function LoginScreen() {
           <TextInput
             style={styles.input}
             placeholder="Email address"
-            placeholderTextColor="rgba(255,255,255,0.5)"
+            placeholderTextColor={C.placeholder}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -171,13 +172,20 @@ export default function LoginScreen() {
           <TextInput
             style={[styles.input, styles.inputLast]}
             placeholder="Password"
-            placeholderTextColor="rgba(255,255,255,0.5)"
+            placeholderTextColor={C.placeholder}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
             autoComplete="password"
             selectionColor="#FB7185"
           />
+
+          {/* Forgot password */}
+          <Link href="/(auth)/forgot-password" asChild>
+            <TouchableOpacity activeOpacity={0.7} style={styles.forgotRow}>
+              <Text style={styles.forgotLink}>Forgot password?</Text>
+            </TouchableOpacity>
+          </Link>
 
           {/* Sign in */}
           <TouchableOpacity
@@ -206,21 +214,6 @@ export default function LoginScreen() {
       </ScrollView>
     </KeyboardAvoidingView>
   )
-}
-
-const C = {
-  bg:        '#1A1830',
-  bgDeep:    '#0F0D24',
-  coral:     '#FB7185',
-  coralDim:  'rgba(251,113,133,0.15)',
-  white:     '#FFFFFF',
-  glass:     'rgba(255,255,255,0.07)',
-  glassBorder: 'rgba(255,255,255,0.11)',
-  // Text on the #1A1830 ground. 0.45 gave ~4.4:1 and 0.25 only ~2.2:1 — both
-  // under WCAG AA. Raised to ~6.5:1 and ~5.2:1 respectively.
-  muted:     'rgba(255,255,255,0.62)',
-  mutedDim:  'rgba(255,255,255,0.55)',
-  indigo:    'rgba(99,102,241,0.14)',
 }
 
 const styles = StyleSheet.create({
@@ -381,6 +374,18 @@ const styles = StyleSheet.create({
   },
   inputLast: {
     marginBottom: 4,
+  },
+
+  // Forgot password
+  forgotRow: {
+    alignSelf: 'flex-end',
+    paddingVertical: 2,
+    marginBottom: 2,
+  },
+  forgotLink: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: C.mutedDim,
   },
 
   // Sign in button
