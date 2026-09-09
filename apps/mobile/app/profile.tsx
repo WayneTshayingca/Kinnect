@@ -25,6 +25,7 @@ import {
 import { useUser } from '@/components/providers/user-provider'
 import { useScreenData } from '@/hooks/useScreenData'
 import { Avatar } from '@/components/Avatar'
+import { T } from '@/lib/theme'
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
@@ -150,7 +151,7 @@ export default function ProfileScreen() {
         >
           {signingOut
             ? <ActivityIndicator color="rgba(255,255,255,0.5)" size="small" />
-            : <Text className="text-[13px] font-bold text-white/60">Sign out</Text>}
+            : <Text className="text-[13px] font-bold text-white/90">Sign out</Text>}
         </TouchableOpacity>
       </View>
 
@@ -160,10 +161,10 @@ export default function ProfileScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#312E81" />}
       >
         <View className="gap-2">
-          <Text className="text-[11px] font-bold text-primary-300 uppercase tracking-wide px-1">Your family</Text>
+          <Text className="text-[11px] font-bold text-ink-muted uppercase tracking-wide px-1">Your family</Text>
           <View className="bg-white rounded-3xl p-4 flex-row items-center gap-3.5 shadow-sm">
             <View className="w-12 h-12 rounded-2xl bg-primary-800 items-center justify-center">
-              <Text className="text-[22px]">🏠</Text>
+              <Ionicons name="home" size={22} color="white" />
             </View>
             <View className="flex-1 gap-0.5">
               {editingName ? (
@@ -191,8 +192,9 @@ export default function ProfileScreen() {
                     onPress={() => setEditingName(false)}
                     className="w-7 h-7 rounded-full bg-gray-100 items-center justify-center"
                     activeOpacity={0.7}
+                    accessibilityLabel="Cancel editing family name"
                   >
-                    <Text className="text-[11px] text-gray-400 font-bold">✕</Text>
+                    <Ionicons name="close" size={14} color={T.mutedInk} />
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -203,13 +205,14 @@ export default function ProfileScreen() {
                       onPress={() => { setNameInput(family?.name ?? ''); setEditingName(true) }}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       activeOpacity={0.7}
+                      accessibilityLabel="Edit family name"
                     >
-                      <Text className="text-sm">✏️</Text>
+                      <Ionicons name="pencil" size={16} color={T.accent} />
                     </TouchableOpacity>
                   )}
                 </View>
               )}
-              <Text className="text-xs text-primary-300 font-medium">
+              <Text className="text-xs text-ink-muted font-medium">
                 {members.length} {members.length === 1 ? 'member' : 'members'}
               </Text>
             </View>
@@ -217,7 +220,7 @@ export default function ProfileScreen() {
         </View>
 
         <View className="gap-2">
-          <Text className="text-[11px] font-bold text-primary-300 uppercase tracking-wide px-1">Members</Text>
+          <Text className="text-[11px] font-bold text-ink-muted uppercase tracking-wide px-1">Members</Text>
           <View className="bg-white rounded-3xl overflow-hidden shadow-sm">
             {members.map((m, i) => (
               <React.Fragment key={m.id}>
@@ -229,12 +232,12 @@ export default function ProfileScreen() {
         </View>
 
         <View className="gap-2">
-          <Text className="text-[11px] font-bold text-primary-300 uppercase tracking-wide px-1">Your profile</Text>
+          <Text className="text-[11px] font-bold text-ink-muted uppercase tracking-wide px-1">Your profile</Text>
           <View className="bg-white rounded-3xl p-4 flex-row items-center gap-3.5 shadow-sm">
             {user && <Avatar name={user.name} role={user.role} size={52} borderWidth={2} />}
             <View className="flex-1">
               <Text className="text-base font-extrabold text-primary-600">{user?.name ?? '—'}</Text>
-              {email && <Text className="text-xs text-gray-400 mt-0.5">{email}</Text>}
+              {email && <Text className="text-xs text-ink-muted mt-0.5">{email}</Text>}
               {user?.role && (
                 <View className="self-start rounded-md px-1.5 py-0.5 mt-1" style={{ backgroundColor: (ROLE_HEX_COLORS[user.role] ?? '#6B7280') + '18' }}>
                   <Text className="text-[11px] font-bold" style={{ color: ROLE_HEX_COLORS[user.role] ?? '#6B7280' }}>

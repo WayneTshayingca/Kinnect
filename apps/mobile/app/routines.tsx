@@ -14,6 +14,7 @@ import {
 } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
 import { useScreenData } from '@/hooks/useScreenData'
+import { T } from '@/lib/theme'
 
 const CATEGORY_LABELS: Record<string, string> = {
   transport: 'Transport',
@@ -109,13 +110,13 @@ export default function RoutinesScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#312E81" />}
         >
           <View className="gap-2">
-            <Text className="text-[11px] font-bold text-primary-300 uppercase tracking-wide px-1">
+            <Text className="text-[11px] font-bold text-ink-muted uppercase tracking-wide px-1">
               Today · {completed.length}/{routines.length} done
             </Text>
 
             {routines.length === 0 ? (
               <View className="bg-white rounded-3xl py-10 items-center gap-2 shadow-sm">
-                <Text className="text-2xl">↻</Text>
+                <Ionicons name="repeat-outline" size={28} color={T.mutedInk} />
                 <Text className="text-sm font-bold text-primary-600">No routines today</Text>
               </View>
             ) : (
@@ -135,13 +136,18 @@ export default function RoutinesScreen() {
                               {CATEGORY_LABELS[r.category] ?? r.category}
                             </Text>
                           </View>
-                          <Text className="text-[11px] text-primary-300">
+                          <Text className="text-[11px] text-ink-muted">
                             {r.assignee_name.split(' ')[0]} · {formatTime(r.scheduled_time)}
                           </Text>
                         </View>
                       </View>
-                      <TouchableOpacity onPress={() => handleReassign(r)} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                        <Ionicons name="swap-horizontal" size={18} color="#9CA3AF" />
+                      <TouchableOpacity
+                        onPress={() => handleReassign(r)}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityLabel={`Reassign ${r.flow_title}`}
+                      >
+                        <Ionicons name="swap-horizontal" size={18} color={T.mutedInk} />
                       </TouchableOpacity>
                     </View>
                   )
@@ -157,10 +163,10 @@ export default function RoutinesScreen() {
                       <Ionicons name="checkmark" size={14} color="white" />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-sm font-bold text-primary-300 line-through">{r.flow_title}</Text>
-                      <Text className="text-[11px] text-primary-300">{r.assignee_name.split(' ')[0]}</Text>
+                      <Text className="text-sm font-bold text-ink-muted line-through">{r.flow_title}</Text>
+                      <Text className="text-[11px] text-ink-muted">{r.assignee_name.split(' ')[0]}</Text>
                     </View>
-                    <Ionicons name="arrow-undo" size={16} color="#9CA3AF" />
+                    <Ionicons name="arrow-undo" size={16} color={T.mutedInk} />
                   </TouchableOpacity>
                 ))}
               </View>

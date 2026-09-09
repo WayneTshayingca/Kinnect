@@ -7,24 +7,31 @@ Africa's family coordination platform for multi-generational households.
 ```
 kinnect/
 ├── apps/
-│   └── web/                # Next.js 14 web application
-│       ├── app/            # App router pages
-│       │   ├── auth/       # Sign-in, signup, callback, forgot/reset/set password
-│       │   ├── onboarding/ # Family creation after signup
-│       │   ├── dashboard/  # Protected dashboard, tasks, calendar, shopping, custody, settings
-│       │   └── api/        # Server-side API routes (invite, add-member, payfast)
-│       ├── components/     # React components (widgets, modals, providers)
-│       ├── hooks/          # useRealtimeSync, useShoppingPresence
-│       └── lib/            # logger, formatters, constants
+│   ├── web/                # Next.js 14 web application
+│   │   ├── app/            # App router pages
+│   │   │   ├── auth/       # Sign-in, signup, callback, forgot/reset/set password
+│   │   │   ├── onboarding/ # Family creation after signup
+│   │   │   ├── dashboard/  # Protected dashboard, tasks, calendar, shopping, routines, profile
+│   │   │   └── api/        # Server-side API routes (invite, members, notifications)
+│   │   ├── components/     # React components (widgets, modals, providers)
+│   │   ├── hooks/          # useRealtimeSync, useShoppingPresence
+│   │   └── lib/            # logger, formatters, constants
+│   │
+│   └── mobile/             # Expo / React Native app (Expo Router)
+│       ├── app/            # (auth), (onboarding), (tabs), profile, routines
+│       ├── components/     # Avatar, DashboardHeader, NotificationsPanel, etc.
+│       ├── hooks/          # useRealtimeSync (AppState-aware mobile variant)
+│       └── lib/            # supabase client, theme tokens
 │
 ├── packages/
-│   └── core/               # Shared business logic (60-70% code reuse)
-│       └── src/
-│           ├── supabase/   # Database queries & auth (incl. custody, activity, subscriptions)
-│           └── types/      # TypeScript types
+│   ├── core/               # Shared business logic (60-70% code reuse), React-free
+│   │   └── src/
+│   │       ├── supabase/   # Database queries & auth
+│   │       └── types/      # TypeScript types
+│   └── hooks/              # Shared React hooks (portable: web + RN)
 │
 ├── supabase/
-│   └── migrations/         # Database migrations (000–010 deployed; 011–017 planned)
+│   └── migrations/         # Database migrations (000–017 deployed)
 │
 ├── IMPLEMENTATION.md       # Full phased feature roadmap with specs + API contracts
 ├── ARCHITECTURE.md         # System design, flows, component reference
@@ -91,6 +98,9 @@ kinnect/
    - `supabase/migrations/015_add_update_flow_rpc.sql`
    - `supabase/migrations/016_add_end_time_to_flows.sql`
 
+   **And the notifications feature:**
+   - `supabase/migrations/017_notifications.sql`
+
 4. **Start the development server:**
    ```bash
    npm run dev
@@ -136,8 +146,9 @@ npm run type-check   # Type check all packages
 | **responsibility_templates** | System templates for recurring routines (school run, shopping duty, etc.) |
 | **responsibility_flows** | Recurring household responsibilities with assignee, recurrence rule, start/end time |
 | **responsibility_occurrences** | Pre-generated daily occurrences from flows (90 days ahead) |
-| **activity_log** | Family activity feed (task completions, responsibilities, member events, etc.) — Phase 3 |
-| **subscriptions** | Billing tier per family (free / plus / family) via PayFast — Phase 4 |
+| **notifications** | Per-user, family-scoped notification feed (migration 017). Inserts are service-role only |
+| **subscriptions** | Billing tier per family (free / plus / family) via PayFast — planned, migration 018 |
+| **activity_log** | Family activity feed — planned, number assigned when built (018 is taken by subscriptions) |
 
 ## Features
 
@@ -190,24 +201,35 @@ npm run type-check   # Type check all packages
 - [x] System templates: school run, shopping duty, household errand, staff visit
 - [x] Routines management page: view, edit, deactivate, and permanently delete routines
 
+**Notifications** ✓ Complete (migration 017)
+- [x] Per-user notification feed, family-scoped, RLS-protected
+- [x] Bell icon + notifications panel (web + mobile), mark-as-read
+- [ ] Producers/triggers — rows are currently only insertable via service-role API routes
+
+**Mobile app** — in progress, see `MOBILE_ROADMAP.md`
+- [x] All 5 tabs (home, tasks, calendar, shopping, family) + auth + onboarding
+- [x] Realtime sync via `useRealtimeSync` (AppState-aware), shopping presence
+- [ ] Family member management, account security, forgot-password flow, routines CRUD
+- [ ] Paywall screen, EAS build config, store assets
+
 **Phase 3 — Activity Tracker**
 - [ ] Family activity feed widget (replaces member completion count)
 - [ ] Grouped by day: "Gogo confirmed pickup of Sipho · 13:04"
 - [ ] Feeds from task completions, handoffs, member adds
 
-**Phase 4 — PayFast Premium**
+**Phase 4 — PayFast Premium** (migrations 018–019)
 - [ ] Billing tiers: Free / Kinnect Plus R99/mo / Kinnect Family R149/mo
 - [ ] PayFast checkout + ITN webhook
 - [ ] Feature gating via `<PremiumGate>` component
 - [ ] Free tier: polling sync (3 min); Paid: WebSocket realtime
 - [ ] `/dashboard/settings` — plan management + upgrade CTAs
+- [ ] Mobile paywall screen (`apps/mobile/app/paywall.tsx`)
 
 **Future**
-- [ ] React Native mobile app (`apps/mobile`)
 - [ ] Push notifications (native — `push_token` column already on `users`)
 - [ ] Offline-first functionality
 - [ ] Multi-language support
-- [ ] Family switcher UI (DB layer already supports multi-family via `family_members`)
+- [ ] Google OAuth on mobile (`expo-auth-session`)
 
 ## Deployment
 
@@ -227,7 +249,7 @@ npm run type-check   # Type check all packages
 ### Supabase (Production)
 
 1. Create a new Supabase project for production
-2. Run all applicable migrations (000–010, plus 011–017 as you implement each phase) in the SQL Editor
+2. Run all migrations 000–017 in the SQL Editor, in order (018+ as each new phase ships)
 3. Update environment variables with production Supabase credentials
 4. Configure auth settings in Supabase Dashboard:
    - Site URL: your Vercel deployment URL

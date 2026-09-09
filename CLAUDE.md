@@ -13,7 +13,7 @@ Bundle identifier: `africa.kinnect.app`
 - `apps/mobile` — Expo / React Native mobile app (EAS)
 - `packages/core` — shared DB queries, auth, types, formatters (zero React)
 - `packages/hooks` — shared React hooks (portable: web + RN)
-- `supabase/migrations/` — numbered SQL migrations (000–016 deployed)
+- `supabase/migrations/` — numbered SQL migrations (000–017 deployed)
 
 ## Tech stack
 - **Web:** Next.js 14, TypeScript, Tailwind CSS, Framer Motion, Lucide
@@ -72,13 +72,14 @@ All mutations that have predictable outcomes use optimistic updates:
 3. Revert on failure
 
 ## Feature status
-| Phase | Feature | Status |
-|-------|---------|--------|
-| 1 | Google OAuth | Complete |
-| 2 | Routines & Responsibilities | Complete |
-| 3 | Activity Tracker (family feed) | Planned |
-| 4 | PayFast Premium billing | Planned |
-| — | Mobile app | In progress |
+| Phase | Feature | Migrations | Status |
+|-------|---------|-----------|--------|
+| 1 | Google OAuth (web only) | — | Complete |
+| 2 | Routines & Responsibilities | 011–016 | Complete |
+| — | Notifications feed | 017 | Complete (no producers yet) |
+| — | Mobile app | — | In progress — see `MOBILE_ROADMAP.md` |
+| 4 | PayFast Premium billing | 018–019 | Next |
+| 3 | Activity Tracker (family feed) | TBD | Planned (deferred behind Phase 4) |
 
 ## Mobile app specifics
 - Expo Router for navigation (file-based, same mental model as Next.js App Router)
@@ -92,7 +93,7 @@ All mutations that have predictable outcomes use optimistic updates:
 
 ## DB migration convention
 Files are numbered `NNN_description.sql`. Run in order in Supabase Dashboard → SQL Editor.
-Never skip a number. Currently deployed: 000–016.
+Never skip or reuse a number. Currently deployed: 000–017. Next free: 018.
 
 ## SA-specific context
 - Currency: ZAR (South African Rand)

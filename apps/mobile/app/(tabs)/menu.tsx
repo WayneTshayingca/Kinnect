@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { signOut } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
 import { Avatar } from '@/components/Avatar'
+import { T } from '@/lib/theme'
 
 const MENU_ITEMS: { key: string; label: string; icon: keyof typeof Ionicons.glyphMap; route: '/profile' | '/routines' }[] = [
   { key: 'profile', label: 'Profile', icon: 'person-outline', route: '/profile' },
@@ -53,9 +54,9 @@ export default function MenuScreen() {
           {user && <Avatar name={user.name} role={user.role} size={48} borderWidth={2} />}
           <View className="flex-1">
             <Text className="text-base font-extrabold text-primary-600">{user?.name ?? '—'}</Text>
-            <Text className="text-xs text-primary-300 mt-0.5 capitalize">{user?.role ?? ''}</Text>
+            <Text className="text-xs text-ink-muted mt-0.5 capitalize">{user?.role ?? ''}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+          <Ionicons name="chevron-forward" size={18} color={T.mutedInk} />
         </TouchableOpacity>
 
         <View className="bg-white rounded-3xl overflow-hidden shadow-sm">
@@ -70,7 +71,7 @@ export default function MenuScreen() {
                 <Ionicons name={item.icon} size={18} color="#312E81" />
               </View>
               <Text className="flex-1 text-[15px] font-bold text-primary-600">{item.label}</Text>
-              <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+              <Ionicons name="chevron-forward" size={18} color={T.mutedInk} />
             </TouchableOpacity>
           ))}
         </View>

@@ -158,7 +158,7 @@ export default function LoginScreen() {
           <TextInput
             style={styles.input}
             placeholder="Email address"
-            placeholderTextColor="rgba(255,255,255,0.35)"
+            placeholderTextColor="rgba(255,255,255,0.5)"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -171,7 +171,7 @@ export default function LoginScreen() {
           <TextInput
             style={[styles.input, styles.inputLast]}
             placeholder="Password"
-            placeholderTextColor="rgba(255,255,255,0.35)"
+            placeholderTextColor="rgba(255,255,255,0.5)"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -216,8 +216,10 @@ const C = {
   white:     '#FFFFFF',
   glass:     'rgba(255,255,255,0.07)',
   glassBorder: 'rgba(255,255,255,0.11)',
-  muted:     'rgba(255,255,255,0.45)',
-  mutedDim:  'rgba(255,255,255,0.25)',
+  // Text on the #1A1830 ground. 0.45 gave ~4.4:1 and 0.25 only ~2.2:1 — both
+  // under WCAG AA. Raised to ~6.5:1 and ~5.2:1 respectively.
+  muted:     'rgba(255,255,255,0.62)',
+  mutedDim:  'rgba(255,255,255,0.55)',
   indigo:    'rgba(99,102,241,0.14)',
 }
 

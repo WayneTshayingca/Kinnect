@@ -4,12 +4,19 @@
 
 This document defines the phased implementation plan for Kinnect's next major feature set. Each phase ships independently and builds on the prior one.
 
-| Phase | Feature | Status |
-|-------|---------|--------|
-| 1 | Google OAuth sign-in | Complete ✓ |
-| 2 | Today's Responsibilities | Planned |
-| 3 | Activity Tracker (family feed) | Planned |
-| 4 | PayFast Premium billing | Planned |
+| Phase | Feature | Migrations | Status |
+|-------|---------|-----------|--------|
+| 1 | Google OAuth sign-in (web) | — | Complete ✓ |
+| 2 | Today's Responsibilities / Routines | 011–016 | Complete ✓ |
+| — | Notifications feed | 017 | Complete ✓ (no producers yet) |
+| M | Mobile app completion | — | In progress — see `MOBILE_ROADMAP.md` |
+| 4 | PayFast Premium billing | 018–019 | Next |
+| 3 | Activity Tracker (family feed) | TBD | Planned (deferred behind Phase 4) |
+
+> **Migration numbering:** 000–017 are deployed. Phase 4 takes **018–019**. Phase 3's
+> `activity_log` migration gets its number when it is actually built — the numbers this
+> document originally reserved for it (015/016/017) were consumed by the routines and
+> notifications work.
 
 ---
 
@@ -44,7 +51,15 @@ Reduce signup friction with Google OAuth as an alternative to email/password.
 
 ---
 
-## Phase 2: Today's Responsibilities
+## Phase 2: Today's Responsibilities ✓ Complete
+
+> **Shipped.** Actual migrations differ from the original spec below: the feature landed as
+> `011_add_responsibility_templates`, `012_add_responsibility_flows`,
+> `013_add_responsibility_occurrences`, `014_enable_realtime_responsibilities`,
+> `015_add_update_flow_rpc`, and `016_add_end_time_to_flows` (flows carry both a start and an
+> end time, e.g. school drop-off + pick-up). Web ships the dashboard widget, the create-routine
+> modal, and a full `/dashboard/routines` management page. Mobile currently surfaces today's
+> occurrences read-only — full CRUD is tracked in `MOBILE_ROADMAP.md`.
 
 ### Goal
 Extend Kinnect into a household coordination engine. Introduce recurring responsibility flows with daily dashboard visibility and quick reassignment. Architecture-first: the engine supports any household routine, not just child-related ones.
@@ -139,7 +154,7 @@ Unique constraint on `(flow_id, scheduled_for)`. Occurrences are pre-generated 9
 
 ---
 
-## Phase 3: Activity Tracker
+## Phase 3: Activity Tracker — Planned (deferred behind Phase 4)
 
 ### Goal
 Replace the static family-members widget with a live family activity feed.
@@ -148,7 +163,7 @@ Replace the static family-members widget with a live family activity feed.
 
 | File | Description |
 |------|-------------|
-| `supabase/migrations/015_add_activity_log.sql` | Create `activity_log` table + indexes + RLS |
+| `supabase/migrations/0NN_add_activity_log.sql` | Create `activity_log` table + indexes + RLS. **Number assigned when built** — 015/016/017 are taken, and 018–019 are reserved for Phase 4 |
 
 ### Schema
 
@@ -170,8 +185,13 @@ Replace the static family-members widget with a live family activity feed.
 |------|--------|
 | `packages/core/src/supabase/activity.ts` | NEW — `logActivity`, `getActivityFeed` |
 | `packages/core/src/supabase/tasks.ts` | Call `logActivity` in `completeTask` |
-| `packages/core/src/supabase/custody.ts` | Call `logActivity` in `claimCustody`, `confirmHandoff` |
+| `packages/core/src/supabase/responsibilities.ts` | Call `logActivity` in `completeOccurrence`, `reassignOccurrence` |
 | `packages/core/src/supabase/calendar.ts` | Call `logActivity` in `createCalendarEvent` |
+
+> Note: the original spec referenced a `custody.ts` (WGTK custody tracking) that was never
+> built — custody is not in the codebase. Activity sources are tasks, responsibilities,
+> calendar, and member events. `activity_log` also overlaps with the shipped `notifications`
+> table (017); decide at build time whether to merge the two or keep feed vs. inbox separate.
 
 ### UI
 
@@ -196,8 +216,8 @@ Monetize with tiered billing (Free / Kinnect Plus R99/mo / Kinnect Family R149/m
 
 | File | Description |
 |------|-------------|
-| `supabase/migrations/016_add_subscriptions.sql` | Create `subscriptions` table + RLS (insert/update via service role only) |
-| `supabase/migrations/017_seed_free_subscriptions.sql` | Backfill all existing families with `free` tier |
+| `supabase/migrations/018_add_subscriptions.sql` | Create `subscriptions` table + RLS (insert/update via service role only) |
+| `supabase/migrations/019_seed_free_subscriptions.sql` | Backfill all existing families with `free` tier |
 
 ### Schema
 
@@ -230,11 +250,11 @@ Monetize with tiered billing (Free / Kinnect Plus R99/mo / Kinnect Family R149/m
 
 | Feature | Free | Plus (R99/mo) | Family (R149/mo) |
 |---------|------|---------------|------------------|
-| WGTK custody tracking | ✓ | ✓ | ✓ |
-| Activity feed | ✓ | ✓ | ✓ |
-| Tasks + calendar | ✓ | ✓ | ✓ |
+| Tasks + calendar + shopping | ✓ | ✓ | ✓ |
+| Notifications | ✓ | ✓ | ✓ |
+| Routines / responsibilities | Up to 3 flows | Unlimited | Unlimited |
 | Realtime sync | Polling (3 min) | WebSocket | WebSocket |
-| Event templates | System only | System + custom | System + custom |
+| Routine templates | System only | System + custom | System + custom |
 | Family size | Up to 5 | Up to 10 | Unlimited |
 
 ### UI
@@ -246,13 +266,15 @@ Monetize with tiered billing (Free / Kinnect Plus R99/mo / Kinnect Family R149/m
 | `apps/web/app/dashboard/layout.tsx` | Wrap with `SubscriptionProvider`, add Settings nav link |
 | `apps/web/app/dashboard/settings/page.tsx` | NEW — current plan + upgrade CTAs + cancel |
 | `apps/web/hooks/useRealtimeSync.ts` | Accept `tier` param — polling for free, WebSocket for paid |
+| `apps/mobile/app/paywall.tsx` | NEW — tier comparison + upgrade CTA. Opens the web PayFast checkout URL in `expo-web-browser` (PayFast has no native SDK), then refetches tier on return |
+| `apps/mobile/components/providers/subscription-provider.tsx` | NEW — mobile mirror of the web provider |
 
 ### Verification
 1. Settings page shows current plan (free)
 2. "Upgrade to Plus" → PayFast sandbox checkout
 3. Complete sandbox payment → ITN fires → `isPlus` becomes true
 4. Free tier: network tab shows polling interval (~3 min) instead of persistent WS
-5. `custody` realtime always active regardless of tier
+5. Mobile paywall opens the same checkout in an in-app browser and reflects the new tier on return
 
 ---
 
@@ -295,11 +317,16 @@ Run migrations in order in Supabase Dashboard → SQL Editor:
 008_fix_cascade_deletes.sql
 009_enable_realtime.sql
 010_multi_family_support.sql
-011_add_event_type_to_calendar_events.sql   ← Phase 2
-012_add_custody_tables.sql                  ← Phase 2
-013_seed_system_templates.sql               ← Phase 2
-014_enable_realtime_custody.sql             ← Phase 2
-015_add_activity_log.sql                    ← Phase 3
-016_add_subscriptions.sql                   ← Phase 4
-017_seed_free_subscriptions.sql             ← Phase 4
+011_add_responsibility_templates.sql        ← Phase 2  (deployed)
+012_add_responsibility_flows.sql            ← Phase 2  (deployed)
+013_add_responsibility_occurrences.sql      ← Phase 2  (deployed)
+014_enable_realtime_responsibilities.sql    ← Phase 2  (deployed)
+015_add_update_flow_rpc.sql                 ← Phase 2  (deployed)
+016_add_end_time_to_flows.sql               ← Phase 2  (deployed)
+017_notifications.sql                       ← Notifications (deployed)
+018_add_subscriptions.sql                   ← Phase 4  (next)
+019_seed_free_subscriptions.sql             ← Phase 4  (next)
 ```
+
+Never reuse or skip a number. Phase 3's `activity_log` migration takes the next free number
+at the time it is built.
