@@ -38,3 +38,6 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Sentry build-time auth token (secret — set via shell or EAS/Vercel secrets)
+.env.sentry-build-plugin
