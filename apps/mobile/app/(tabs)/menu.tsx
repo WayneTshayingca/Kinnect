@@ -3,8 +3,9 @@ import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { signOut } from '@kinnect/core'
+import { signOut, TIER_PLANS } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
+import { useSubscription } from '@/components/providers/subscription-provider'
 import { Avatar } from '@/components/Avatar'
 import { T } from '@/lib/theme'
 
@@ -20,6 +21,7 @@ export default function MenuScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
   const { user } = useUser()
+  const { tier, isPaid } = useSubscription()
   const [signingOut, setSigningOut] = useState(false)
 
   async function handleSignOut() {
@@ -58,6 +60,25 @@ export default function MenuScreen() {
           <View className="flex-1">
             <Text className="text-base font-extrabold text-primary-600">{user?.name ?? '—'}</Text>
             <Text className="text-xs text-ink-muted mt-0.5 capitalize">{user?.role ?? ''}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={T.mutedInk} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => router.push('/paywall')}
+          activeOpacity={0.7}
+          className="flex-row items-center gap-3 bg-white rounded-3xl p-4 mb-4 shadow-sm"
+        >
+          <View className="w-9 h-9 rounded-xl bg-accent-50 items-center justify-center">
+            <Ionicons name="sparkles-outline" size={18} color={T.accent} />
+          </View>
+          <View className="flex-1">
+            <Text className="text-[15px] font-bold text-primary-600">
+              {isPaid ? TIER_PLANS[tier].name : 'Upgrade your plan'}
+            </Text>
+            <Text className="text-xs text-ink-muted mt-0.5">
+              {isPaid ? 'Manage your subscription' : 'More members, unlimited routines'}
+            </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={T.mutedInk} />
         </TouchableOpacity>

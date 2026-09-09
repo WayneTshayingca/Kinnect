@@ -417,6 +417,56 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          id: string
+          family_id: string
+          tier: string
+          status: string
+          payfast_subscription_token: string | null
+          payfast_payment_id: string | null
+          next_billing_date: string | null
+          trial_ends_at: string | null
+          cancelled_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          family_id: string
+          tier?: string
+          status?: string
+          payfast_subscription_token?: string | null
+          payfast_payment_id?: string | null
+          next_billing_date?: string | null
+          trial_ends_at?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          family_id?: string
+          tier?: string
+          status?: string
+          payfast_subscription_token?: string | null
+          payfast_payment_id?: string | null
+          next_billing_date?: string | null
+          trial_ends_at?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: true
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       notifications: {
         Row: {
           id: string

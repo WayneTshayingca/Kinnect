@@ -31,38 +31,65 @@ Commit `b03d4fe` fixed low-contrast greys (`#a0a0c0` ≈2.9:1, `#a5a5b8` ≈3.3:
 AA) by introducing `T.mutedInk` (`#6E6E93`) in `lib/theme.ts`, and dropped decorative emoji.
 It only covered `(tabs)/index`, `tasks`, `calendar`, `shopping`, and `(onboarding)/index`.
 
-Still to cover:
-- [ ] `app/(auth)/login.tsx`
-- [ ] `app/(auth)/signup.tsx`
-- [ ] `app/(tabs)/menu.tsx`
-- [ ] `app/profile.tsx`
-- [ ] `app/routines.tsx`
+Covered:
+- [x] `app/(auth)/login.tsx` — translucent whites raised to AA
+- [x] `app/(auth)/signup.tsx` — same, plus the last emoji removed
+- [x] `app/(tabs)/menu.tsx` — `primary-300` text replaced with `ink-muted`
+- [x] `app/profile.tsx` — emoji replaced with Ionicons, muted text fixed
+- [x] `app/routines.tsx`
+
+`ink-muted` (#6E6E93) now exists in the mobile Tailwind palette, mirroring
+`T.mutedInk`, so NativeWind screens and StyleSheet screens share one token.
+`primary-300` is documented as decorative-only — never use it for text.
 
 ### 1b. Close functional gaps
 All backed by functions already exported from `@kinnect/core` — no backend work required.
 
-- [ ] **Family management** — add / remove / role-edit members on `(tabs)/family.tsx`.
-      Adding a member goes through `POST /api/members` (service role), never a client insert.
-- [ ] **Account security** — new screen wiring `changePassword` / `resetPasswordForEmail`
-- [ ] **Forgot password** — new `(auth)/forgot-password.tsx` + link from login
-- [ ] **Routines CRUD** — upgrade `routines.tsx` from read-only to create/edit/deactivate/delete
-      via `createResponsibilityFlow`, `updateResponsibilityFlow`, `deactivateFlow`, `deleteFlow`,
-      `getResponsibilityFlows`, `getResponsibilityTemplates`
-- [ ] **Multi-family switching** — surface `getMyFamilies` / `switchActiveFamily`
-      (`components/FamilySwitcherSheet.tsx` already exists)
+- [x] **Family management** — add / edit / remove members, admin-gated, on `profile.tsx`
+      (there is no family tab; family lives inside profile). Adding goes through
+      `POST /api/members` via the new `lib/api.ts` helper, never a client insert.
+- [x] **Account security** — `app/account-security.tsx` wrapping `changePassword`
+- [x] **Forgot password** — `(auth)/forgot-password.tsx` + link from login
+- [x] **Routines CRUD** — `routines.tsx` is now Today / All routines, with a `RoutineSheet`
+      for create and edit, plus pause and delete
+- [x] **Multi-family switching** — already shipped; `DashboardHeader` wires
+      `FamilySwitcherSheet` to `getMyFamilies` / `switchActiveFamily`. The audit was stale.
 
 ### 1c. Stretch — not blocking
-- [ ] Google OAuth via `expo-auth-session` / `expo-web-browser`
+- [x] Google OAuth — already shipped on mobile; `login.tsx` runs the full
+      `signInWithOAuth` + `openAuthSessionAsync` flow. The audit was stale here too.
 - [ ] Push notifications via `expo-notifications` (`users.push_token` column already exists)
 
-## Phase 2 — Navigation
-Add entries for the Phase 1b screens (account security from menu, forgot-password from login,
-routine create/edit from routines) and re-audit that every route target resolves.
+## Phase 2 — Navigation ✓
+- [x] Menu links to Security (`/account-security`) and the paywall
+- [x] Login links to `/(auth)/forgot-password`
+- [x] Routine create/edit reachable from the routines header and empty state
+All route targets resolve; the paywall is registered as a modal in the root stack.
 
-## Phase 3 — PayFast + paywall
-Spec lives in `IMPLEMENTATION.md` Phase 4. Migrations **018–019**.
-Mobile piece: `app/paywall.tsx` opening the web checkout in `expo-web-browser`, plus a mobile
-`subscription-provider`. PayFast has no native SDK, so checkout is always a web handoff.
+## Phase 3 — PayFast + paywall — code complete, unverified
+Spec: `IMPLEMENTATION.md` Phase 4. PayFast has no native SDK, so checkout is always a web
+handoff — mobile opens the signed URL in `expo-web-browser`.
+
+- [x] Migrations `018_add_subscriptions.sql` (RLS grants SELECT only; writes are service-role
+      so a client cannot grant itself a tier) and `019_seed_free_subscriptions.sql`. A trigger
+      gives every new family a free row, so app code can assume one exists.
+- [x] `packages/core/src/supabase/subscriptions.ts` — `getSubscription`, `getFamilyTier`,
+      `TIER_PLANS`, `isPaidTier`. Cancelled and past-due both resolve to `free`.
+- [x] `apps/web/lib/payfast.ts` — signature, ITN validation, tier prices
+- [x] `/api/payfast/checkout`, `/notify`, `/cancel`
+- [x] `apps/mobile/app/paywall.tsx` + `subscription-provider.tsx`, menu entry
+
+The ITN webhook is the only thing that grants a paid tier. It checks the signature, the source
+IP, PayFast's own validation reply, and the paid amount before writing.
+
+Still open:
+- [ ] Run migrations 018–019 and regenerate DB types (the `subscriptions` table was hand-added
+      to `database.ts` so the build passes before the migration is applied)
+- [ ] Walk the full sandbox flow end to end
+- [ ] Web `/dashboard/settings` — plan management + cancel button
+- [ ] **Enforce the limits.** `maxMembers` / `maxRoutines` and the free-tier polling-vs-websocket
+      split are defined but nothing reads them yet, so today the paywall sells a plan that
+      grants nothing. This is the gap to close before charging anyone.
 
 ## Phase 4 — Publishing readiness
 - [ ] `eas.json` — development / preview / production build profiles (does not exist yet)

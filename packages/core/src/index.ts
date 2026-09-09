@@ -27,5 +27,8 @@ export * from './supabase/responsibilities'
 // Notifications
 export * from './supabase/notifications'
 
+// Subscriptions (PayFast billing)
+export * from './supabase/subscriptions'
+
 // Types
 export * from './types/database'
