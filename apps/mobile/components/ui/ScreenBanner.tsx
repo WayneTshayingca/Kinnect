@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, Animated, type ViewStyle } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { DS, DS_SHADOW } from '@/lib/theme'
 
@@ -21,6 +21,12 @@ interface ScreenBannerProps {
   onAction?: () => void
   /** Coral fill on the action, for the primary create action. */
   actionAccent?: boolean
+  /**
+   * Override styles on the banner itself. Accepts an Animated style so a screen
+   * can transition the background — shopping.tsx shifts to emerald in Shopping
+   * Mode without losing the animation.
+   */
+  style?: ViewStyle | Animated.WithAnimatedValue<ViewStyle>
 }
 
 export function ScreenBanner({
@@ -32,11 +38,12 @@ export function ScreenBanner({
   actionLabel,
   onAction,
   actionAccent = false,
+  style,
 }: ScreenBannerProps) {
   const hasAction = !!onAction && (!!actionIcon || !!actionLabel)
 
   return (
-    <View style={styles.banner}>
+    <Animated.View style={[styles.banner, style as any]}>
       {onBack && (
         <TouchableOpacity
           onPress={onBack}
@@ -81,7 +88,7 @@ export function ScreenBanner({
           {actionLabel && <Text style={styles.actionLabel}>{actionLabel}</Text>}
         </TouchableOpacity>
       )}
-    </View>
+    </Animated.View>
   )
 }
 

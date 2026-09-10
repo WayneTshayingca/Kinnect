@@ -25,7 +25,9 @@ import {
 import { useUser } from '@/components/providers/user-provider'
 import { useScreenData } from '@/hooks/useScreenData'
 import { useShoppingPresence } from '@kinnect/hooks'
-import { T } from '@/lib/theme'
+import { ScreenBanner } from '@/components/ui/ScreenBanner'
+import { Checkbox } from '@/components/ui/Checkbox'
+import { T, DS, DS_SHADOW } from '@/lib/theme'
 
 // ── Item row ───────────────────────────────────────────────────────────────
 
@@ -56,7 +58,6 @@ const ItemRow = React.memo(function ItemRow({
 }) {
   const isEditing = editingId === item.id
   const checkSize = shoppingMode ? 32 : 24
-  const checkRadius = checkSize / 2
 
   return (
     <View style={[
@@ -65,23 +66,13 @@ const ItemRow = React.memo(function ItemRow({
       !isLast && styles.itemRowBorder,
       item.completed && styles.itemRowDone,
     ]}>
-      {/* Checkbox */}
-      <TouchableOpacity
+      {/* Checkbox — larger in Shopping Mode, which is thumb-driven in-store */}
+      <Checkbox
+        checked={!!item.completed}
         onPress={() => onToggle(item)}
-        activeOpacity={0.6}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        style={styles.checkWrap}
-      >
-        <View style={[
-          styles.checkBox,
-          { width: checkSize, height: checkSize, borderRadius: checkRadius },
-          item.completed && styles.checkBoxDone,
-        ]}>
-          {item.completed && (
-            <Text style={[styles.checkMark, shoppingMode && { fontSize: 14 }]}>✓</Text>
-          )}
-        </View>
-      </TouchableOpacity>
+        size={checkSize}
+        label={item.completed ? `Un-tick ${item.title}` : `Tick off ${item.title}`}
+      />
 
       {/* Title / edit input */}
       <View style={styles.itemBody}>
@@ -290,36 +281,28 @@ export default function ShoppingScreen() {
 
   const headerBg = shoppingModeAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['white', '#065F46'],
+    outputRange: ['#1E1B4B', '#065F46'],
   })
 
   return (
     <View style={styles.root}>
 
       {/* ── Header ───────────────────────────────────── */}
-      <Animated.View style={[styles.header, { backgroundColor: headerBg }]}>
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={[styles.headerTitle, { color: shoppingMode ? 'white' : T.primary }]}>
-              {shoppingMode ? '🛒 Shopping' : 'Shopping'}
-            </Text>
-            {pendingCount > 0 && (
-              <Text style={[styles.headerSub, { color: shoppingMode ? 'rgba(255,255,255,0.7)' : 'rgba(49,46,129,0.5)' }]}>
-                {pendingCount} item{pendingCount !== 1 ? 's' : ''} left
-              </Text>
-            )}
-          </View>
-          <TouchableOpacity
-            onPress={() => { setShoppingMode((v) => !v); Keyboard.dismiss() }}
-            style={[styles.modeBtn, shoppingMode && styles.modeBtnActive]}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.modeBtnText, { color: shoppingMode ? 'white' : T.accent }]}>
-              {shoppingMode ? 'Done shopping' : 'Start shopping'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
+      <View style={styles.header}>
+        <ScreenBanner
+          icon="basket-outline"
+          title="Shopping list"
+          subtitle={
+            pendingCount > 0
+              ? `${pendingCount} item${pendingCount !== 1 ? 's' : ''} left`
+              : 'All sorted'
+          }
+          actionLabel={shoppingMode ? 'Done' : 'Shop'}
+          actionAccent={!shoppingMode}
+          onAction={() => { setShoppingMode((v) => !v); Keyboard.dismiss() }}
+          style={{ backgroundColor: headerBg }}
+        />
+      </View>
 
       {/* ── Presence banner ─────────────────────────────── */}
       {otherShoppers.length > 0 && (
@@ -505,6 +488,10 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
+    paddingHorizontal: 16,
+    paddingTop: 22,
+  },
+  legacyHeader: {
     paddingHorizontal: 20,
     paddingTop: 6,
     paddingBottom: 16,
@@ -555,11 +542,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    padding: 14,
-    paddingBottom: 8,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    backgroundColor: DS.card,
+    borderRadius: DS.radius.card,
+    paddingHorizontal: 16,
+    ...DS_SHADOW.card,
   },
   listEmpty: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
   },
 
@@ -597,7 +589,14 @@ const styles = StyleSheet.create({
   },
 
   // Item row
+  // Rows sit inside one grouped card, divided by hairlines.
   itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    gap: 11,
+  },
+  legacyItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
@@ -617,10 +616,12 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     marginBottom: 10,
   },
-  itemRowBorder: {},
+  itemRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: DS.hairline,
+  },
   itemRowDone: {
-    shadowOpacity: 0.03,
-    elevation: 1,
+    opacity: 0.75,
   },
   checkWrap: {
     flexShrink: 0,

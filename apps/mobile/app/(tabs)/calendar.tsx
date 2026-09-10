@@ -22,7 +22,8 @@ import {
 import { useUser } from '@/components/providers/user-provider'
 import { useScreenData } from '@/hooks/useScreenData'
 import { BottomSheetModal } from '@/components/BottomSheetModal'
-import { T } from '@/lib/theme'
+import { ScreenBanner } from '@/components/ui/ScreenBanner'
+import { T, DS, DS_SHADOW } from '@/lib/theme'
 
 // ── Date helpers ──────────────────────────────────────────────────────────
 
@@ -337,7 +338,19 @@ export default function CalendarScreen() {
   return (
     <View style={styles.root}>
 
-      {/* ── Header ─────────────────────────────────────── */}
+      {/* ── Banner ─────────────────────────────────────── */}
+      <View style={styles.bannerWrap}>
+        <ScreenBanner
+          icon="calendar-outline"
+          title="Calendar"
+          subtitle={monthLabel(year, month)}
+          actionIcon="add"
+          actionAccent
+          onAction={() => setShowCreate(true)}
+        />
+      </View>
+
+      {/* ── Month card ─────────────────────────────────── */}
       <View style={styles.header}>
         {/* Month nav */}
         <View style={styles.monthNav}>
@@ -452,16 +465,7 @@ export default function CalendarScreen() {
         )}
       </ScrollView>
 
-      {/* ── FAB ────────────────────────────────────────── */}
-      {user?.family_id && (
-        <TouchableOpacity
-          style={[styles.fab, { bottom: insets.bottom + 80 }]}
-          onPress={() => setShowCreate(true)}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.fabIcon}>+</Text>
-        </TouchableOpacity>
-      )}
+      {/* Create is the banner's trailing action, per the design — no FAB. */}
 
       {/* ── Create modal ───────────────────────────────── */}
       {user?.family_id && user?.id && (
@@ -489,7 +493,22 @@ const styles = StyleSheet.create({
   },
 
   // ── Header / calendar ──────────────────────────────
+  bannerWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 22,
+  },
+  // The month grid is a card on the light surface, not a full-bleed panel.
   header: {
+    backgroundColor: DS.card,
+    marginHorizontal: 16,
+    marginTop: 14,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
+    borderRadius: DS.radius.card,
+    ...DS_SHADOW.card,
+  },
+  legacyHeader: {
     backgroundColor: 'white',
     paddingHorizontal: 16,
     paddingTop: 6,

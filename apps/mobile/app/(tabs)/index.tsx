@@ -32,7 +32,7 @@ import { useUser } from '@/components/providers/user-provider'
 import { useScreenData } from '@/hooks/useScreenData'
 import { MemberAvatarRow } from '@/components/MemberAvatarRow'
 import { ShoppingIcon } from '@/components/TabIcons'
-import { T } from '@/lib/theme'
+import { T, DS, DS_SHADOW } from '@/lib/theme'
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -556,8 +556,8 @@ const styles = StyleSheet.create({
 
   // Dark gradient banner wrapping date/greeting/avatars/daily snapshot
   banner: {
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 20,
@@ -626,52 +626,48 @@ const styles = StyleSheet.create({
   // Content
   content: {
     paddingHorizontal: 16,
-    rowGap: 8,
+    rowGap: 16,
     flexDirection: 'column',
   },
 
   // Generic card
   card: {
-    backgroundColor: 'white',
-    borderRadius: 20,
+    backgroundColor: DS.card,
+    borderRadius: DS.radius.card,
     overflow: 'hidden',
-    shadowColor: T.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 5,
+    ...DS_SHADOW.card,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 13,
-    paddingBottom: 9,
+    paddingTop: 14,
+    paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    borderBottomColor: DS.hairline,
   },
   cardHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 9,
   },
   cardIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
+    width: 30,
+    height: 30,
+    borderRadius: DS.radius.chip,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: T.primary,
+    fontSize: 16,
+    fontWeight: '700',
+    color: DS.indigo600,
   },
   cardLink: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: T.accent,
+    fontSize: 13,
+    fontWeight: '600',
+    color: DS.coral,
   },
   cardBody: {
     paddingHorizontal: 16,
@@ -696,17 +692,17 @@ const styles = StyleSheet.create({
     paddingTop: 13,
     paddingBottom: 11,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    borderBottomColor: DS.hairline,
   },
   calendarTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: T.primary,
+    fontSize: 16,
+    fontWeight: '700',
+    color: DS.indigo600,
   },
   calendarLink: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: T.accent,
+    fontSize: 13,
+    fontWeight: '600',
+    color: DS.coral,
   },
   weekRow: {
     flexDirection: 'row',

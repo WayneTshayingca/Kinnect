@@ -26,7 +26,10 @@ import { useUser } from '@/components/providers/user-provider'
 import { useScreenData } from '@/hooks/useScreenData'
 import { Avatar } from '@/components/Avatar'
 import { BottomSheetModal } from '@/components/BottomSheetModal'
-import { T } from '@/lib/theme'
+import { ScreenBanner, BannerStat, BannerDot } from '@/components/ui/ScreenBanner'
+import { SegmentedPills } from '@/components/ui/SegmentedPills'
+import { Checkbox } from '@/components/ui/Checkbox'
+import { T, DS, DS_SHADOW } from '@/lib/theme'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -73,11 +76,11 @@ const TaskRow = React.memo(function TaskRow({
 
   return (
     <View style={[styles.taskRow, !isLast && styles.taskRowBorder]}>
-      <TouchableOpacity onPress={() => onToggle(task)} activeOpacity={0.6} style={styles.checkWrap} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <View style={[styles.checkCircle, task.completed && styles.checkCircleDone]}>
-          {task.completed && <Text style={styles.checkMark}>✓</Text>}
-        </View>
-      </TouchableOpacity>
+      <Checkbox
+        checked={!!task.completed}
+        onPress={() => onToggle(task)}
+        label={task.completed ? `Reopen ${task.title}` : `Complete ${task.title}`}
+      />
 
       <View style={styles.taskBody}>
         <Text
@@ -311,14 +314,14 @@ export default function TasksScreen() {
 
     return (
       <>
-        <View style={styles.card}>
-          <TaskRow
-            task={item}
-            members={members}
-            onToggle={handleToggle}
-            isLast={isLast}
-          />
-        </View>
+        {/* Rows are grouped inside one card, separated by hairlines — the
+            design groups a list rather than giving every row its own card. */}
+        <TaskRow
+          task={item}
+          members={members}
+          onToggle={handleToggle}
+          isLast={isLast || showDoneDivider}
+        />
         {showDoneDivider && (
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Done</Text>
@@ -333,28 +336,31 @@ export default function TasksScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Tasks</Text>
-        {/* Filter tabs */}
-        <View style={styles.tabs}>
-          {FILTERS.map((f) => (
-            <TouchableOpacity
-              key={f.key}
-              onPress={() => setFilter(f.key)}
-              activeOpacity={0.7}
-              style={[styles.tab, filter === f.key && styles.tabActive]}
-            >
-              <Text style={[styles.tabText, filter === f.key && styles.tabTextActive]}>
-                {f.label}
-              </Text>
-              {f.count > 0 && (
-                <View style={[styles.tabBadge, filter === f.key && styles.tabBadgeActive]}>
-                  <Text style={[styles.tabBadgeText, filter === f.key && styles.tabBadgeTextActive]}>
-                    {f.count}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          ))}
+        <ScreenBanner
+          icon="checkmark-done-outline"
+          title="Tasks"
+          subtitle={
+            <>
+              <BannerStat value={`${pending.length} pending`} />
+              <BannerDot />
+              <BannerStat value={`${done.length} done`} tone="success" />
+            </>
+          }
+          actionIcon="add"
+          actionAccent
+          onAction={() => setShowCreate(true)}
+        />
+
+        <View style={styles.filters}>
+          <SegmentedPills<Filter>
+            segments={FILTERS.map((f) => ({
+              value: f.key,
+              label: f.label,
+              badge: f.count || '',
+            }))}
+            value={filter}
+            onChange={setFilter}
+          />
         </View>
 
         {/* Assignee filter chips */}
@@ -478,16 +484,7 @@ export default function TasksScreen() {
         />
       )}
 
-      {/* FAB */}
-      {user?.family_id && (
-        <TouchableOpacity
-          style={[styles.fab, { bottom: insets.bottom + 80 }]}
-          onPress={() => setShowCreate(true)}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.fabIcon}>+</Text>
-        </TouchableOpacity>
-      )}
+      {/* Create is the banner's trailing action, per the design — no FAB. */}
 
       {/* Create modal */}
       {user?.family_id && user?.id && (
@@ -512,8 +509,15 @@ const styles = StyleSheet.create({
     backgroundColor: T.bg,
   },
 
-  // Header
+  // Header — dark banner card on the light surface, per the design.
   header: {
+    paddingHorizontal: 16,
+    paddingTop: 22,
+  },
+  filters: {
+    marginTop: 16,
+  },
+  legacyHeader: {
     backgroundColor: 'white',
     paddingHorizontal: 20,
     paddingTop: 6,
@@ -628,12 +632,19 @@ const styles = StyleSheet.create({
   },
 
   // List
+  // The list itself is the card: white, 24px, indigo shadow, rows divided by
+  // hairlines. Replaces the previous card-per-task treatment.
   listContent: {
-    padding: 14,
-    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 16,
+    backgroundColor: DS.card,
+    borderRadius: DS.radius.card,
+    paddingHorizontal: 16,
+    ...DS_SHADOW.card,
   },
   listEmpty: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
   },
 
@@ -666,13 +677,12 @@ const styles = StyleSheet.create({
   taskRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
     paddingVertical: 13,
-    gap: 10,
+    gap: 11,
   },
   taskRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.04)',
+    borderBottomColor: DS.hairline,
   },
   checkWrap: {
     flexShrink: 0,
