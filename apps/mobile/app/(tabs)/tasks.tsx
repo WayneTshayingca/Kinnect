@@ -329,7 +329,7 @@ export default function TasksScreen() {
   }, [filter, filteredPending.length, filteredDone.length, displayed.length, members, handleToggle])
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={styles.root}>
 
       {/* Header */}
       <View style={styles.header}>

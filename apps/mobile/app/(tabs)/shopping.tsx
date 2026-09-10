@@ -294,7 +294,7 @@ export default function ShoppingScreen() {
   })
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={styles.root}>
 
       {/* ── Header ───────────────────────────────────── */}
       <Animated.View style={[styles.header, { backgroundColor: headerBg }]}>

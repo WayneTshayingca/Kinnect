@@ -56,7 +56,7 @@ export default function AccountSecurityScreen() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-[#f0eff8]"
+      className="flex-1 bg-screen"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ paddingTop: insets.top }}
     >
@@ -101,7 +101,7 @@ export default function AccountSecurityScreen() {
             <View className="gap-1.5">
               <Text className="text-xs font-bold text-primary-600">New password</Text>
               <TextInput
-                className="bg-[#f7f7fa] border border-black/[0.06] rounded-xl px-3.5 py-3 text-[15px] text-primary-600"
+                className="bg-[#f3f3f5] border border-black/[0.06] rounded-xl px-3.5 py-3 text-[15px] text-primary-600"
                 placeholder={`At least ${MIN_LENGTH} characters`}
                 placeholderTextColor={T.mutedInk}
                 value={newPassword}
@@ -116,7 +116,7 @@ export default function AccountSecurityScreen() {
             <View className="gap-1.5">
               <Text className="text-xs font-bold text-primary-600">Confirm new password</Text>
               <TextInput
-                className="bg-[#f7f7fa] border border-black/[0.06] rounded-xl px-3.5 py-3 text-[15px] text-primary-600"
+                className="bg-[#f3f3f5] border border-black/[0.06] rounded-xl px-3.5 py-3 text-[15px] text-primary-600"
                 placeholder="Re-enter your new password"
                 placeholderTextColor={T.mutedInk}
                 value={confirmPassword}

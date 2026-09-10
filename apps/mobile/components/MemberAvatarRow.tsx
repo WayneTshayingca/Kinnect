@@ -14,7 +14,7 @@ export function MemberAvatarRow({
   members,
   size = 44,
   maxVisible,
-  ringColor = '#f0eff8',
+  ringColor = '#f8f8fb',
   overflowBg = '#312E81',
 }: MemberAvatarRowProps) {
   const visible = maxVisible ? members.slice(0, maxVisible) : members

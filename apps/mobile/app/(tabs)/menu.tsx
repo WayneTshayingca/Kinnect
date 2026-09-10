@@ -45,7 +45,7 @@ export default function MenuScreen() {
   }
 
   return (
-    <View className="flex-1 bg-[#f0eff8]" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-screen" style={{ paddingTop: insets.top }}>
       <View className="px-5 pt-4 pb-2">
         <Text className="text-2xl font-extrabold text-primary-600 tracking-tight">Menu</Text>
       </View>

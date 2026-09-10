@@ -195,14 +195,14 @@ export default function ProfileScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-[#f0eff8] items-center justify-center" style={{ paddingTop: insets.top }}>
+      <View className="flex-1 bg-screen items-center justify-center" style={{ paddingTop: insets.top }}>
         <ActivityIndicator color="#312E81" size="large" />
       </View>
     )
   }
 
   return (
-    <View className="flex-1 bg-[#f0eff8]" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-screen" style={{ paddingTop: insets.top }}>
       <View className="bg-primary-800 px-5 pt-1.5 pb-[18px] rounded-b-3xl flex-row items-center justify-between">
         <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={24} color="white" />

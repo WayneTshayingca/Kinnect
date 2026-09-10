@@ -21,6 +21,7 @@ import {
 import { useUser } from '@/components/providers/user-provider'
 import { useScreenData } from '@/hooks/useScreenData'
 import { RoutineSheet } from '@/components/RoutineSheet'
+import { SegmentedPills } from '@/components/ui/SegmentedPills'
 import { T } from '@/lib/theme'
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -179,7 +180,7 @@ export default function RoutinesScreen() {
   const completed = routines.filter((r) => !!r.completed_by)
 
   return (
-    <View className="flex-1 bg-[#f0eff8]" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-screen" style={{ paddingTop: insets.top }}>
       <View className="bg-primary-800 px-5 pt-1.5 pb-[18px] rounded-b-3xl flex-row items-center gap-3">
         <TouchableOpacity
           onPress={() => router.back()}
@@ -204,23 +205,15 @@ export default function RoutinesScreen() {
         )}
       </View>
 
-      {/* Segmented control */}
-      <View className="flex-row gap-1 mx-4 mt-4 bg-white rounded-2xl p-1 shadow-sm">
-        {(['today', 'manage'] as Tab[]).map((t) => {
-          const active = tab === t
-          return (
-            <TouchableOpacity
-              key={t}
-              onPress={() => setTab(t)}
-              activeOpacity={0.7}
-              className={`flex-1 py-2.5 rounded-xl items-center ${active ? 'bg-primary-800' : ''}`}
-            >
-              <Text className={`text-[13px] font-bold ${active ? 'text-white' : 'text-ink-muted'}`}>
-                {t === 'today' ? 'Today' : `All routines${flows.length ? ` (${flows.length})` : ''}`}
-              </Text>
-            </TouchableOpacity>
-          )
-        })}
+      <View className="mx-4 mt-4">
+        <SegmentedPills<Tab>
+          segments={[
+            { value: 'today', label: 'Today' },
+            { value: 'manage', label: 'All routines', badge: flows.length || '' },
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
       </View>
 
       {loading ? (

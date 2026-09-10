@@ -30,7 +30,6 @@ import {
 } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
 import { useScreenData } from '@/hooks/useScreenData'
-import { DashboardHeader } from '@/components/DashboardHeader'
 import { MemberAvatarRow } from '@/components/MemberAvatarRow'
 import { ShoppingIcon } from '@/components/TabIcons'
 import { T } from '@/lib/theme'
@@ -339,8 +338,7 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 32 }}
     >
-      {/* ── Unified header: family switcher + notifications + avatar ── */}
-      <DashboardHeader familyName={familyName || 'Family'} paddingTop={insets.top} />
+      {/* Header now lives in (tabs)/_layout.tsx so every tab shares one. */}
 
       {/* ── Dark banner: date, greeting, family avatars, daily snapshot ── */}
       <LinearGradient

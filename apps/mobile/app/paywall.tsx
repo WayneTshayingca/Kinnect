@@ -11,17 +11,21 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { LinearGradient } from 'expo-linear-gradient'
+import { StatusBar } from 'expo-status-bar'
 import * as WebBrowser from 'expo-web-browser'
 import { TIER_PLANS, type SubscriptionTier, type TierPlan } from '@kinnect/core'
 import { useUser } from '@/components/providers/user-provider'
 import { useSubscription } from '@/components/providers/subscription-provider'
 import { apiFetch } from '@/lib/api'
-import { C } from '@/lib/authTheme'
+import { DS, DS_SHADOW } from '@/lib/theme'
 
+// Styled to the Kinnect design system's PLANS screen: light #f8f8fb surface,
+// indigo gradient hero, white 24px cards with brand-tinted shadows, coral CTA.
+//
 // PayFast has no native SDK, so checkout is a web handoff: the server builds a
-// signed URL and we open it in an in-app browser. On return we refetch the
-// tier — the ITN webhook is what actually grants it, so the row may lag a
-// moment behind the browser closing.
+// signed URL and we open it in an in-app browser. The ITN webhook is what
+// actually grants the tier, so the row may lag the browser closing.
 
 const PAID_TIERS: SubscriptionTier[] = ['plus', 'family']
 
@@ -56,7 +60,6 @@ export default function PaywallScreen() {
       })
 
       await WebBrowser.openBrowserAsync(url)
-      // The webhook may not have landed yet; refetch and let the screen settle.
       await refreshTier()
     } catch (err) {
       Alert.alert(
@@ -70,15 +73,15 @@ export default function PaywallScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={styles.glowTop} pointerEvents="none" />
-      <View style={styles.glowBottom} pointerEvents="none" />
-
+      {/* The root sets light status-bar content for the dark screens; this one
+          is light-surfaced, so it needs dark glyphs to stay visible. */}
+      <StatusBar style="dark" />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingTop: insets.top + 12,
           paddingBottom: insets.bottom + 32,
-          paddingHorizontal: 24,
+          paddingHorizontal: 16,
         }}
       >
         <TouchableOpacity
@@ -88,22 +91,25 @@ export default function PaywallScreen() {
           style={styles.close}
           accessibilityLabel="Close"
         >
-          <Ionicons name="close" size={24} color={C.mutedDim} />
+          <Ionicons name="close" size={22} color={DS.inkMuted} />
         </TouchableOpacity>
 
-        <Text style={styles.headline}>More room for</Text>
-        <Text style={styles.headlineAccent}>everyone.</Text>
-        <Text style={styles.subtitle}>
-          Kinnect stays free for one household. Upgrade when your family grows past it —
-          more people, more routines, instant sync.
-        </Text>
-
-        <View style={styles.statusRow}>
-          <View style={styles.statusDot} />
-          <Text style={styles.statusText}>
-            You're on {TIER_PLANS[currentTier].name}
+        {/* Hero — the one gradient surface on the screen */}
+        <LinearGradient
+          colors={DS.bannerGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.hero}
+        >
+          <View style={styles.heroPill}>
+            <View style={styles.heroDot} />
+            <Text style={styles.heroPillText}>KINNECT PREMIUM</Text>
+          </View>
+          <Text style={styles.heroTitle}>Keep the whole family in step</Text>
+          <Text style={styles.heroSub}>
+            More members, unlimited routines and instant sync — for one household price.
           </Text>
-        </View>
+        </LinearGradient>
 
         {PAID_TIERS.map((t) => (
           <PlanCard
@@ -117,9 +123,10 @@ export default function PaywallScreen() {
           />
         ))}
 
-        <Text style={styles.footnote}>
-          Billed monthly in rand through PayFast. Cancel any time from Settings — you keep
-          your plan until the end of the month you've paid for.
+        <FreeCard plan={TIER_PLANS.free} current={currentTier === 'free'} />
+
+        <Text style={styles.legal}>
+          Prices in ZAR and include VAT. POPIA compliant — we never sell your family's data.
         </Text>
       </ScrollView>
     </View>
@@ -142,28 +149,34 @@ function PlanCard({
   onPress: () => void
 }) {
   return (
-    <View style={[styles.card, recommended && styles.cardRecommended]}>
+    <View style={[styles.card, recommended ? styles.cardRecommended : styles.cardPlain]}>
       <View style={styles.cardHead}>
         <View style={styles.cardHeadText}>
           <Text style={styles.planName}>{plan.name}</Text>
-          <Text style={styles.planTagline}>{plan.tagline}</Text>
+          <Text style={styles.planSub}>{plan.tagline}</Text>
         </View>
-        <View style={styles.priceBlock}>
-          <Text style={styles.currency}>R</Text>
-          <Text style={[styles.price, recommended && styles.priceAccent]}>{plan.price}</Text>
-        </View>
+        {current ? (
+          <View style={styles.badgeCurrent}>
+            <Text style={styles.badgeCurrentText}>CURRENT</Text>
+          </View>
+        ) : recommended ? (
+          <View style={styles.badgeRecommended}>
+            <Text style={styles.badgeRecommendedText}>POPULAR</Text>
+          </View>
+        ) : null}
       </View>
-      <Text style={styles.period}>per month</Text>
+
+      <View style={styles.priceRow}>
+        <Text style={styles.price}>R{plan.price}</Text>
+        <Text style={styles.period}>/month</Text>
+      </View>
 
       <View style={styles.features}>
         {plan.features.map((f) => (
           <View key={f} style={styles.featureRow}>
-            <Ionicons
-              name="checkmark"
-              size={15}
-              color={recommended ? C.coral : C.mutedDim}
-              style={styles.featureIcon}
-            />
+            <View style={styles.checkChip}>
+              <Ionicons name="checkmark" size={12} color={DS.green700} />
+            </View>
             <Text style={styles.featureText}>{f}</Text>
           </View>
         ))}
@@ -171,28 +184,56 @@ function PlanCard({
 
       {current ? (
         <View style={styles.currentBtn}>
-          <Text style={styles.currentText}>Your current plan</Text>
+          <Text style={styles.currentBtnText}>Your current plan</Text>
         </View>
       ) : (
-        <TouchableOpacity
-          onPress={onPress}
-          disabled={disabled}
-          activeOpacity={0.88}
-          style={[
-            styles.cta,
-            recommended ? styles.ctaPrimary : styles.ctaSecondary,
-            disabled && styles.ctaDisabled,
-          ]}
-        >
-          {busy ? (
-            <ActivityIndicator color={recommended ? C.white : C.coral} size="small" />
-          ) : (
-            <Text style={[styles.ctaText, !recommended && styles.ctaTextSecondary]}>
-              Choose {plan.name}
-            </Text>
-          )}
-        </TouchableOpacity>
+        <>
+          <TouchableOpacity
+            onPress={onPress}
+            disabled={disabled}
+            activeOpacity={0.85}
+            style={[styles.cta, disabled && styles.ctaDisabled]}
+          >
+            {busy ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.ctaText}>Choose {plan.name}</Text>
+            )}
+          </TouchableOpacity>
+          <Text style={styles.ctaNote}>Billed securely via PayFast · Cancel anytime</Text>
+        </>
       )}
+    </View>
+  )
+}
+
+function FreeCard({ plan, current }: { plan: TierPlan; current: boolean }) {
+  return (
+    <View style={[styles.card, styles.cardPlain]}>
+      <View style={styles.cardHead}>
+        <View style={styles.cardHeadText}>
+          <Text style={styles.freeName}>{plan.name}</Text>
+          <Text style={styles.planSub}>
+            R0 · {current ? 'your current plan' : 'the essentials'}
+          </Text>
+        </View>
+        {current && (
+          <View style={styles.badgeCurrent}>
+            <Text style={styles.badgeCurrentText}>CURRENT</Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.featuresTight}>
+        {plan.features.map((f) => (
+          <View key={f} style={styles.featureRow}>
+            <View style={styles.dashChip}>
+              <Ionicons name="remove" size={11} color={DS.inkFaint} />
+            </View>
+            <Text style={styles.featureTextMuted}>{f}</Text>
+          </View>
+        ))}
+      </View>
     </View>
   )
 }
@@ -200,100 +241,80 @@ function PlanCard({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: C.bg,
-  },
-
-  glowTop: {
-    position: 'absolute',
-    top: -80,
-    right: -90,
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    backgroundColor: C.indigo,
-  },
-  glowBottom: {
-    position: 'absolute',
-    bottom: -40,
-    left: -110,
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: C.coralDim,
-    opacity: 0.45,
+    backgroundColor: DS.screen,
   },
 
   close: {
     alignSelf: 'flex-end',
-    marginBottom: 16,
+    marginBottom: 10,
   },
 
-  headline: {
-    fontSize: 34,
-    fontWeight: '900',
-    color: C.white,
-    letterSpacing: -1.2,
-    lineHeight: 38,
+  // ── Hero ────────────────────────────────────────────────────
+  hero: {
+    borderRadius: DS.radius.banner,
+    paddingVertical: 22,
+    paddingHorizontal: 18,
+    ...DS_SHADOW.banner,
   },
-  headlineAccent: {
-    fontSize: 34,
-    fontWeight: '900',
-    color: C.coral,
-    letterSpacing: -1.2,
-    lineHeight: 38,
-    marginBottom: 14,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: C.muted,
-    lineHeight: 21,
-    maxWidth: 330,
-    marginBottom: 24,
-  },
-
-  // Current plan reads as a status line, not another card.
-  statusRow: {
+  heroPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 20,
+    alignSelf: 'flex-start',
+    gap: 7,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: DS.radius.full,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
   },
-  statusDot: {
+  heroDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: C.coral,
+    backgroundColor: DS.coral,
   },
-  statusText: {
+  heroPillText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.6,
+    color: DS.indigo100,
+  },
+  heroTitle: {
+    color: '#fff',
+    fontSize: 23,
+    fontWeight: '800',
+    letterSpacing: -0.7,
+    lineHeight: 28,
+    marginTop: 14,
+  },
+  heroSub: {
+    color: DS.indigo300,
     fontSize: 13,
-    fontWeight: '600',
-    color: C.mutedDim,
+    fontWeight: '500',
+    lineHeight: 20,
+    marginTop: 8,
   },
 
+  // ── Cards ───────────────────────────────────────────────────
   card: {
-    backgroundColor: C.glass,
-    borderWidth: 1,
-    borderColor: C.glassBorder,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 14,
+    backgroundColor: DS.card,
+    borderRadius: DS.radius.card,
+    padding: 18,
+    marginTop: 14,
   },
-  // Only the recommended plan gets lift — the other stays flat.
+  cardPlain: DS_SHADOW.card,
+  // The recommended plan is the only card carrying a border, per the
+  // paywall design — elsewhere the system uses shadow alone.
   cardRecommended: {
-    borderColor: 'rgba(251,113,133,0.45)',
-    backgroundColor: 'rgba(251,113,133,0.07)',
-    shadowColor: C.coral,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 18,
-    elevation: 8,
+    borderWidth: 2,
+    borderColor: DS.coral,
+    ...DS_SHADOW.cardRaised,
   },
 
   cardHead: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 10,
   },
   cardHeadText: {
     flex: 1,
@@ -301,78 +322,115 @@ const styles = StyleSheet.create({
   planName: {
     fontSize: 17,
     fontWeight: '800',
-    color: C.white,
-    letterSpacing: -0.3,
+    color: DS.indigo600,
+    letterSpacing: -0.34,
   },
-  planTagline: {
-    fontSize: 12.5,
-    color: C.mutedDim,
+  freeName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: DS.indigo600,
+  },
+  planSub: {
+    fontSize: 12,
+    color: DS.inkMuted,
     marginTop: 3,
     lineHeight: 17,
   },
 
-  // The price numeral is the one bold element on the screen.
-  priceBlock: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  badgeRecommended: {
+    backgroundColor: DS.coral100,
+    borderRadius: DS.radius.badge,
+    paddingVertical: 5,
+    paddingHorizontal: 9,
   },
-  currency: {
-    fontSize: 15,
+  badgeRecommendedText: {
+    color: DS.coral700,
+    fontSize: 10,
     fontWeight: '700',
-    color: C.mutedDim,
-    marginTop: 6,
-    marginRight: 1,
+    letterSpacing: 1,
+  },
+  badgeCurrent: {
+    backgroundColor: DS.lavender,
+    borderRadius: DS.radius.badge,
+    paddingVertical: 5,
+    paddingHorizontal: 9,
+  },
+  badgeCurrentText: {
+    color: DS.indigo500,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 5,
+    marginTop: 12,
   },
   price: {
-    fontSize: 40,
-    fontWeight: '900',
-    color: C.white,
-    letterSpacing: -2,
-    lineHeight: 44,
-  },
-  priceAccent: {
-    color: C.coral,
+    fontSize: 34,
+    fontWeight: '800',
+    color: DS.indigo600,
+    letterSpacing: -1,
+    lineHeight: 38,
   },
   period: {
-    fontSize: 12,
-    color: C.mutedDim,
-    textAlign: 'right',
-    marginTop: -4,
+    fontSize: 13,
+    fontWeight: '600',
+    color: DS.inkMuted,
   },
 
   features: {
+    gap: 10,
     marginTop: 16,
+  },
+  featuresTight: {
     gap: 9,
+    marginTop: 14,
   },
   featureRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 9,
+    alignItems: 'center',
+    gap: 10,
   },
-  featureIcon: {
-    marginTop: 1,
+  checkChip: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: DS.green50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dashChip: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: DS.neutral,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   featureText: {
     flex: 1,
-    fontSize: 13.5,
-    color: C.muted,
-    lineHeight: 19,
+    fontSize: 13,
+    fontWeight: '500',
+    color: DS.ink,
+  },
+  featureTextMuted: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+    color: DS.inkMuted,
   },
 
+  // ── Actions ─────────────────────────────────────────────────
   cta: {
-    borderRadius: 14,
-    paddingVertical: 14,
+    marginTop: 18,
+    height: 48,
+    borderRadius: DS.radius.button,
+    backgroundColor: DS.coral,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 18,
-  },
-  ctaPrimary: {
-    backgroundColor: C.coral,
-  },
-  ctaSecondary: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: 'rgba(251,113,133,0.5)',
   },
   ctaDisabled: {
     opacity: 0.6,
@@ -380,31 +438,34 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 15,
     fontWeight: '700',
-    color: C.white,
-    letterSpacing: -0.2,
+    color: '#fff',
   },
-  ctaTextSecondary: {
-    color: C.coral,
+  ctaNote: {
+    textAlign: 'center',
+    fontSize: 11,
+    color: DS.inkFaint,
+    marginTop: 9,
   },
 
   currentBtn: {
-    borderRadius: 14,
-    paddingVertical: 14,
+    marginTop: 18,
+    height: 48,
+    borderRadius: DS.radius.button,
+    backgroundColor: DS.lavender,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 18,
-    backgroundColor: 'rgba(255,255,255,0.06)',
   },
-  currentText: {
+  currentBtnText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: C.mutedDim,
+    fontWeight: '700',
+    color: DS.indigo600,
   },
 
-  footnote: {
-    fontSize: 11.5,
-    color: C.mutedDim,
-    lineHeight: 17,
-    marginTop: 6,
+  legal: {
+    textAlign: 'center',
+    fontSize: 11,
+    color: DS.inkFaint,
+    lineHeight: 18,
+    marginTop: 16,
   },
 })

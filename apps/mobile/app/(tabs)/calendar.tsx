@@ -335,7 +335,7 @@ export default function CalendarScreen() {
   })
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={styles.root}>
 
       {/* ── Header ─────────────────────────────────────── */}
       <View style={styles.header}>

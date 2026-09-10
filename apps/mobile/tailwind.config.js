@@ -20,10 +20,16 @@ module.exports = {
           800: '#1E1B4B',
           900: '#171538',
         },
-        // Mirrors T.mutedInk in lib/theme.ts — ~4.9:1 on white (WCAG AA).
+        // Mirrors DS in lib/theme.ts. `muted` is the design system's secondary
+        // text (~4.8:1 on white, WCAG AA); it replaced #6E6E93 so the
+        // NativeWind and StyleSheet screens use one value.
         ink: {
-          muted: '#6E6E93',
+          DEFAULT: '#0a0a14',
+          muted: '#717182',
+          faint: '#9a9ab0',
         },
+        // The one app surface every screen sits on.
+        screen: '#f8f8fb',
         accent: {
           50:  '#FFF5F6',
           400: '#FB8A95',
